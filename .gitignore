@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+.pytest_cache/
+.mypy_cache/
+
+# Virtual environments
+.venv/
+venv/
+
+# OS/editor
+.DS_Store
+.vscode/
+.idea/
+
+# Data and outputs generated at runtime
+/data/raw/*.csv
+/data/processed/*.csv
+/data/processed/*.duckdb
+/data/processed/sql_marts/*.csv
+/outputs/*.csv
+/outputs/*.json
+/outputs/*.md
+/dashboard/*.csv
+
+# Jupyter
+.ipynb_checkpoints/
