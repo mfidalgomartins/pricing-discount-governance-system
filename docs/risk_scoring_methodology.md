@@ -1,59 +1,90 @@
 # Risk Scoring Methodology
 
-## Design Principles
-- Interpretable to commercial and finance stakeholders.
-- Based on observable pricing behavior, not opaque model artifacts.
-- Stable percentile scoring for comparability across cohorts.
-- Explicitly designed for prioritization, not causal inference or predictive probability.
+## Design Standard
+Scoring is intentionally governance-oriented, interpretable, and auditable.  
+The objective is intervention prioritization, not causal attribution or churn/win-rate prediction.
 
-## Why Percentile Scoring
-- Different components have different scales and distributions (e.g., discount %, variability, margin proxy).
-- Percentile normalization keeps components comparable while preserving directional ordering.
-- Scores are robust for cross-segment prioritization when absolute scale units differ.
+## Why the Model Uses Hybrid Signals
+Pure percentile ranking can overstate risk in uniformly healthy cohorts.  
+Pure threshold logic can miss meaningful peer outliers.  
+The implemented model combines both:
+- **relative components** (percentile vs peers)
+- **absolute components** (policy threshold breach intensity)
 
-## Component Scores
-- **pricing_risk_score**
+This gives stronger operational credibility for Pricing and Finance review.
+
+## Reliability Guardrail
+Customers with very low order counts are noisier.  
+The model applies a reliability weight:
+- `score_reliability_weight = min(total_orders / 6, 1)`
+- low-order customers are shrunk toward neutral score (`50`) rather than over-ranked.
+
+Outputs:
+- `score_reliability_weight`
+- `low_data_flag`
+
+## Component Structure
+
+### `pricing_risk_score`
+- Relative block (60%):
   - 50% avg discount percentile
-  - 30% realized price variation percentile
-  - 20% share of high-discount orders percentile
+  - 30% realized price CV percentile
+  - 20% high-discount order share percentile
+- Absolute block (40%):
+  - 45% discount depth excess above policy threshold
+  - 30% price variability excess
+  - 25% high-discount order share excess
 
-- **discount_dependency_score**
+### `discount_dependency_score`
+- Relative block (55%):
   - 45% high-discount revenue share percentile
   - 35% repeat high-discount behavior percentile
-  - 20% share of high-discount orders percentile
+  - 20% high-discount order share percentile
+- Absolute block (45%):
+  - 45% high-discount revenue share excess
+  - 30% repeat behavior excess
+  - 25% high-discount order share excess
 
-- **margin_erosion_score**
-  - 55% inverse margin proxy percentile
-  - 30% avg discount percentile
-  - 15% high-discount revenue share percentile
+### `margin_erosion_score`
+- Relative block (50%):
+  - 55% inverse margin percentile
+  - 30% discount depth percentile
+  - 15% high-discount revenue percentile
+- Absolute block (50%):
+  - 55% margin shortfall vs floor
+  - 25% discount depth excess
+  - 20% high-discount revenue share excess
 
-- **governance_priority_score**
-  - 40% pricing risk
-  - 35% discount dependency
-  - 25% margin erosion
+### `governance_priority_score`
+- 40% pricing risk
+- 35% dependency risk
+- 25% margin erosion risk
 
-## Tiering
-- `Critical`: score >= 80
-- `High`: 65 to < 80
-- `Medium`: 45 to < 65
-- `Low`: < 45
+## Policy Threshold Anchors
+- Avg discount threshold: `18%`
+- High-discount order share threshold: `35%`
+- High-discount revenue share threshold: `40%`
+- Repeat high-discount behavior threshold: `20%`
+- Margin proxy floor: `38%`
+- Realized price CV threshold: `45%`
 
-## Action Mapping Rationale
-- `Low`: monitor only (no immediate governance intervention).
-- `Medium`: review segment pricing (structural review before rep-level intervention).
-- `High/Critical`: route action by dominant risk driver to keep interventions specific:
-  - pricing risk driver -> investigate rep behavior
-  - dependency driver -> redesign discount policy
-  - margin erosion driver -> tighten approval thresholds
+These are governance defaults, not universal truths. They should be calibrated in production with policy owners.
 
-## Recommended Action Rules
-- `Low`: monitor only
-- `Medium`: review segment pricing
-- `High/Critical` + pricing risk driver: investigate rep behavior
-- `High/Critical` + dependency driver: redesign discount policy
-- `High/Critical` + margin erosion driver: tighten approval thresholds
+## Tiering and Actions
+- `Critical`: `>= 80`
+- `High`: `65 to < 80`
+- `Medium`: `45 to < 65`
+- `Low`: `< 45`
 
-## Limitations and Calibration Notes
-- Weights are governance-priority assumptions and should be calibrated with policy owners.
-- Threshold sensitivity (discount and risk tiers) should be tested before production rollout.
-- Scores are only as reliable as the transactional completeness and pricing field quality in source systems.
+Action mapping:
+- `Low` -> monitor only
+- `Medium` -> review segment pricing
+- `High/Critical` -> route by dominant driver:
+  - pricing risk -> investigate rep behavior
+  - dependency risk -> redesign discount policy
+  - margin erosion risk -> tighten approval thresholds
+
+## Limitations
+- Scores remain policy heuristics and require periodic recalibration.
+- Reliability shrinkage reduces noise but does not fully remove low-volume uncertainty.
+- Synthetic data supports method demonstration, not causal commercial claims.

@@ -3,10 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Dict
 
-import matplotlib.pyplot as plt
+import matplotlib
 import numpy as np
 import pandas as pd
 import seaborn as sns
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
 
 
@@ -16,6 +18,10 @@ def _currency_millions(x: float, _pos: int) -> str:
 
 def _percent_axis(x: float, _pos: int) -> str:
     return f"{x:.0f}%"
+
+
+def _currency_units(x: float, _pos: int) -> str:
+    return f"${x:,.0f}"
 
 
 def _save(fig: plt.Figure, path: Path) -> None:
@@ -31,6 +37,7 @@ def create_visualization_pack(
 ) -> Dict[str, pd.DataFrame]:
     viz_dir = outputs_dir / "visualizations"
     viz_dir.mkdir(parents=True, exist_ok=True)
+    docs_dir.mkdir(parents=True, exist_ok=True)
 
     pricing = processed_tables["order_item_pricing_metrics"].copy()
     customer_risk = processed_tables["customer_risk_scores"].copy()
@@ -49,9 +56,14 @@ def create_visualization_pack(
     sns.histplot(pricing["discount_pct_100"], bins=45, color="#0b7285", alpha=0.85, ax=ax)
     median_discount = pricing["discount_pct_100"].median()
     p90_discount = pricing["discount_pct_100"].quantile(0.90)
+    discount_title = (
+        "Discount Distribution Shows a Material Deep-Discount Tail"
+        if (median_discount >= 15 or p90_discount >= 30)
+        else "Discount Distribution Remains Moderately Concentrated"
+    )
     ax.axvline(median_discount, color="#e03131", linestyle="--", linewidth=2, label=f"Median: {median_discount:.1f}%")
     ax.axvline(p90_discount, color="#f08c00", linestyle=":", linewidth=2, label=f"P90: {p90_discount:.1f}%")
-    ax.set_title("Discounting Is Structurally Deep Across the Transaction Base")
+    ax.set_title(discount_title)
     ax.set_xlabel("Discount depth (%)")
     ax.set_ylabel("Order item count")
     ax.legend(frameon=False)
@@ -78,11 +90,11 @@ def create_visualization_pack(
     )
     max_val = max(sample["list_price_at_sale"].max(), sample["realized_price"].max())
     ax.plot([0, max_val], [0, max_val], linestyle="--", linewidth=2, color="#d9480f", label="Parity: realized=list")
-    ax.set_title("Realized Prices Consistently Trail List Prices")
+    ax.set_title("Realized vs List Price Relationship (Transaction Density)")
     ax.set_xlabel("List price at sale")
     ax.set_ylabel("Realized unit price")
-    ax.xaxis.set_major_formatter(FuncFormatter(_currency_millions))
-    ax.yaxis.set_major_formatter(FuncFormatter(_currency_millions))
+    ax.xaxis.set_major_formatter(FuncFormatter(_currency_units))
+    ax.yaxis.set_major_formatter(FuncFormatter(_currency_units))
     ax.legend(frameon=False)
     cb = fig.colorbar(hb, ax=ax)
     cb.set_label("Transaction density")
@@ -109,14 +121,15 @@ def create_visualization_pack(
     seg = segment_summary.merge(risk_segment, on="segment", how="left")
     seg = seg.sort_values("margin_erosion_proxy", ascending=False)
 
-    fig, ax1 = plt.subplots(figsize=(11, 6.5))
-    bars = ax1.bar(seg["segment"], seg["margin_erosion_proxy"], color="#364fc7", alpha=0.85, label="Margin erosion proxy")
-    ax1.set_ylabel("Margin erosion proxy")
-    ax1.set_xlabel("Segment")
-    ax1.set_title("Public Sector and Enterprise Show Highest Margin Erosion Exposure")
+    segment_title = (
+        f"{seg.iloc[0]['segment']} and {seg.iloc[1]['segment']} Have the Highest Margin Erosion Exposure"
+        if len(seg) >= 2
+        else "Segment Margin Erosion Exposure and High-Risk Concentration"
+    )
 
-    ax2 = ax1.twinx()
-    ax2.plot(
+    fig, ax = plt.subplots(figsize=(11, 6.5))
+    ax.bar(seg["segment"], seg["margin_erosion_proxy"], color="#364fc7", alpha=0.85, label="Margin erosion proxy")
+    ax.plot(
         seg["segment"],
         seg["high_risk_customer_share"] * 100,
         marker="o",
@@ -124,12 +137,11 @@ def create_visualization_pack(
         color="#e03131",
         label="High-risk customer share",
     )
-    ax2.set_ylabel("High-risk customer share (%)")
-    ax2.yaxis.set_major_formatter(FuncFormatter(_percent_axis))
-
-    lines, labels = ax1.get_legend_handles_labels()
-    lines2, labels2 = ax2.get_legend_handles_labels()
-    ax1.legend(lines + lines2, labels + labels2, frameon=False, loc="upper right")
+    ax.set_ylabel("Percent / index")
+    ax.set_xlabel("Segment")
+    ax.set_title(segment_title)
+    ax.yaxis.set_major_formatter(FuncFormatter(_percent_axis))
+    ax.legend(frameon=False, loc="upper right")
     _save(fig, viz_dir / "high_risk_segments_comparison.png")
     chart_manifest.append(
         {
@@ -149,6 +161,17 @@ def create_visualization_pack(
         .reset_index()
     )
 
+    total_high_discount_revenue = float(monthly_comp["high_discount_revenue"].sum())
+    total_revenue = float(
+        monthly_comp["high_discount_revenue"].sum() + monthly_comp["standard_discount_revenue"].sum()
+    )
+    high_discount_revenue_share = total_high_discount_revenue / total_revenue if total_revenue else np.nan
+    revenue_title = (
+        "High-Discount Deals Represent a Material Share of Monthly Revenue"
+        if high_discount_revenue_share >= 0.25
+        else "High-Discount Revenue Share Remains Limited Over Time"
+    )
+
     fig, ax = plt.subplots(figsize=(12, 6.5))
     ax.stackplot(
         monthly_comp["order_month_date"],
@@ -158,7 +181,7 @@ def create_visualization_pack(
         colors=["#74c0fc", "#fa5252"],
         alpha=0.9,
     )
-    ax.set_title("Monthly Revenue Is Dominated by High-Discount Deals")
+    ax.set_title(revenue_title)
     ax.set_xlabel("Order month")
     ax.set_ylabel("Revenue")
     ax.yaxis.set_major_formatter(FuncFormatter(_currency_millions))
@@ -183,6 +206,12 @@ def create_visualization_pack(
         )
         .sort_values("avg_discount_pct", ascending=False)
     )
+    top_channels = channel_cmp.head(2)["sales_channel"].tolist()
+    channel_title = (
+        f"{' and '.join(top_channels)} Channels Carry the Highest Discount Burden"
+        if len(top_channels) == 2
+        else "Channel Discount Burden Comparison"
+    )
 
     fig, ax = plt.subplots(figsize=(11, 6.5))
     sns.barplot(
@@ -194,7 +223,7 @@ def create_visualization_pack(
         legend=False,
         ax=ax,
     )
-    ax.set_title("Reseller and Partner Channels Carry the Highest Discount Burden")
+    ax.set_title(channel_title)
     ax.set_xlabel("Sales channel")
     ax.set_ylabel("Average discount (%)")
     ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _p: f"{x*100:.0f}%"))
@@ -230,10 +259,16 @@ def create_visualization_pack(
     )
     product_dep["dependence_score"] = product_dep["high_discount_revenue_share"] * np.log1p(product_dep["revenue"])
     top_dep = product_dep.sort_values("dependence_score", ascending=False).head(15).sort_values("dependence_score")
+    max_dependency_share = float(top_dep["high_discount_revenue_share"].max()) if not top_dep.empty else 0.0
+    product_title = (
+        "Top Products Show Material Reliance on Discounted Revenue"
+        if max_dependency_share >= 0.40
+        else "Top Products by Discounted-Revenue Reliance"
+    )
 
     fig, ax = plt.subplots(figsize=(12, 8))
     bars = ax.barh(top_dep["product_name"], top_dep["dependence_score"], color="#5f3dc4", alpha=0.9)
-    ax.set_title("Top Products Are Structurally Reliant on Discounted Revenue")
+    ax.set_title(product_title)
     ax.set_xlabel("Discount dependence ranking score")
     ax.set_ylabel("Product")
 

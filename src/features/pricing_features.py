@@ -38,6 +38,14 @@ def build_order_item_pricing_metrics(enriched: pd.DataFrame) -> pd.DataFrame:
 
 
 def build_customer_pricing_profile(pricing_metrics: pd.DataFrame) -> pd.DataFrame:
+    pricing_metrics = pricing_metrics.copy()
+    pricing_metrics["discount_weighted_value"] = pricing_metrics["discount_depth"] * pricing_metrics["line_list_revenue"]
+    pricing_metrics["high_discount_revenue_component"] = np.where(
+        pricing_metrics["high_discount_flag"] == 1,
+        pricing_metrics["line_revenue"],
+        0.0,
+    )
+
     order_level = (
         pricing_metrics.groupby(["customer_id", "order_id", "order_date"], as_index=False)
         .agg(
@@ -69,9 +77,10 @@ def build_customer_pricing_profile(pricing_metrics: pd.DataFrame) -> pd.DataFram
             total_order_items=("order_item_id", "count"),
             total_revenue=("line_revenue", "sum"),
             avg_discount_pct=("discount_depth", "mean"),
-            weighted_discount_pct=("discount_depth", lambda s: np.average(s, weights=pricing_metrics.loc[s.index, "line_list_revenue"])),
+            total_list_revenue=("line_list_revenue", "sum"),
+            weighted_discount_num=("discount_weighted_value", "sum"),
             share_order_items_discounted=("discounted_flag", "mean"),
-            revenue_high_discount=("line_revenue", lambda s: s[pricing_metrics.loc[s.index, "high_discount_flag"] == 1].sum()),
+            revenue_high_discount=("high_discount_revenue_component", "sum"),
             product_diversity=("product_id", pd.Series.nunique),
             avg_margin_proxy_pct=("margin_proxy_pct", "mean"),
             realized_price_cv=("realized_price", lambda s: float(s.std(ddof=0) / s.mean()) if s.mean() > 0 else 0.0),
@@ -85,6 +94,11 @@ def build_customer_pricing_profile(pricing_metrics: pd.DataFrame) -> pd.DataFram
 
     customer_profile = customer_profile.merge(order_stats, on="customer_id", how="left")
     customer_profile = customer_profile.merge(repeat_behavior.reset_index(), on="customer_id", how="left")
+    customer_profile["weighted_discount_pct"] = np.where(
+        customer_profile["total_list_revenue"] > 0,
+        customer_profile["weighted_discount_num"] / customer_profile["total_list_revenue"],
+        0,
+    )
 
     customer_profile["revenue_high_discount_share"] = np.where(
         customer_profile["total_revenue"] > 0,
@@ -101,7 +115,9 @@ def build_customer_pricing_profile(pricing_metrics: pd.DataFrame) -> pd.DataFram
     ]
     customer_profile[fill_cols] = customer_profile[fill_cols].fillna(0)
 
-    return customer_profile.drop(columns=["revenue_high_discount"]).sort_values("total_revenue", ascending=False)
+    return customer_profile.drop(
+        columns=["revenue_high_discount", "total_list_revenue", "weighted_discount_num"]
+    ).sort_values("total_revenue", ascending=False)
 
 
 def build_segment_pricing_summary(pricing_metrics: pd.DataFrame) -> pd.DataFrame:

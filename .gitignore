@@ -22,7 +22,11 @@ venv/
 /outputs/*.csv
 /outputs/*.json
 /outputs/*.md
+/outputs/release/*.json
+/outputs/release/*.md
 /dashboard/*.csv
+/dashboard/*.json
+/docs/reports/*.md
 
 # Jupyter
 .ipynb_checkpoints/

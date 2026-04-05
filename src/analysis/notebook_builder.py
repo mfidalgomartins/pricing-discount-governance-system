@@ -66,6 +66,8 @@ margin_risk = pd.read_csv(outputs_dir / "margin_erosion_risk.csv")
 rep_inconsistency = pd.read_csv(outputs_dir / "rep_pricing_inconsistency.csv")
 product_patterns = pd.read_csv(outputs_dir / "product_governance_patterns.csv")
 validation_checks = pd.read_csv(outputs_dir / "formal_analysis_validation_checks.csv")
+threshold_sensitivity = pd.read_csv(outputs_dir / "threshold_sensitivity_analysis.csv")
+governance_action_queue = pd.read_csv(outputs_dir / "governance_action_queue.csv")
 
 print("Loaded tables successfully")
 print("Raw rows:", {"customers": len(customers), "orders": len(orders), "order_items": len(order_items), "products": len(products), "sales_reps": len(sales_reps)})
@@ -227,6 +229,31 @@ product_patterns[["product_id", "product_name", "category", "revenue", "avg_disc
             """
 ## Warehouse SQL Layer Checks
 This confirms warehouse-model quality controls (grain uniqueness, reconciliation, and bounds) pass in the current run.
+""".strip()
+        )
+    )
+
+    cells.append(
+        nbf.v4.new_markdown_cell(
+            """
+## Decision Engine Views
+Threshold sensitivity and action queue outputs support governance planning beyond static diagnosis.
+""".strip()
+        )
+    )
+
+    cells.append(
+        nbf.v4.new_code_cell(
+            """
+threshold_sensitivity
+""".strip()
+        )
+    )
+
+    cells.append(
+        nbf.v4.new_code_cell(
+            """
+governance_action_queue.head(20)
 """.strip()
         )
     )

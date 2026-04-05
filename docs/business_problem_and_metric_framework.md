@@ -30,6 +30,13 @@ Leadership needs to distinguish revenue quality from headline growth. Repeated d
 - High-discount threshold: 20%.
 - Risk tiers: Low (<45), Medium (45-64.99), High (65-79.99), Critical (>=80).
 
+## Scoring Governance
+- Customer risk scoring blends:
+  - relative percentile behavior (peer comparison)
+  - absolute policy-breach intensity (threshold exceedance)
+- Low-volume customers are stabilized toward a neutral score using an order-count reliability weight, reducing noise-driven false positives.
+- Threshold sensitivity is published to `outputs/threshold_sensitivity_analysis.csv` for governance scenario review.
+
 ## Interpretation Guardrails
 - High score indicates governance priority, not proof of causal underperformance.
 - Segment/channel outliers indicate where policy review is likely highest ROI, not automatic policy breach.

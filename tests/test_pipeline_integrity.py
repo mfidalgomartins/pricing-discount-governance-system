@@ -68,6 +68,8 @@ def test_risk_scores_bounds_and_actions() -> None:
         "monitor only",
     }
     assert set(customer_risk["recommended_action"]).issubset(expected_actions)
+    assert customer_risk["score_reliability_weight"].between(0, 1).all()
+    assert set(customer_risk["low_data_flag"].unique()).issubset({0, 1})
 
 
 def test_weighted_discount_and_margin_consistency() -> None:

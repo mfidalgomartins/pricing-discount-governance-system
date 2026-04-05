@@ -11,29 +11,30 @@ Provide a leadership-ready view of pricing health, discount dependency, margin-a
 - Filter controls: segment, region, product category, sales channel.
 - KPI cards:
   - net revenue
-  - average discount
+  - weighted discount
   - margin at risk
   - high-risk customer count
 - Charts:
   - discount trend over time
-  - discount by segment
-  - pricing inconsistency by channel
-  - revenue under high discount
-  - top governance priorities
+  - weighted discount by segment
+  - margin-at-risk by region
+  - revenue exposure by recommended action
 - Sortable detail table of highest-risk customers.
 
 ## Data Used
-- `data/processed/order_item_pricing_metrics.csv`
+- `data/processed/order_item_pricing_metrics.csv` (aggregated for dashboard payload)
 - `data/processed/customer_risk_scores.csv`
 
 ## Notes
 - Data is embedded directly into the HTML at build time.
-- Chart interactivity uses Chart.js via CDN.
+- Dashboard payload uses governed pre-aggregated pricing slices plus customer-level filtered revenue aggregates.
+- KPI cards consume governed precomputed metric rows (`kpiRows`) rather than on-the-fly KPI math in the browser.
+- Risk table and action-priority chart are filter-consistent: customer revenue and discount values reflect the active filter context.
+- Chart interactivity uses a bundled local asset (`dashboard/vendor/chart.umd.min.js`) with CDN fallback.
 - Dashboard is responsive and presentation-ready.
-- Current self-contained HTML payload is larger than ideal due embedded row-level data.
 
 ## Limitations
-- Offline rendering requires Chart.js availability (CDN dependency).
+- Dashboard is offline-capable if the local `vendor/chart.umd.min.js` file is kept with the HTML.
 - Margin at risk is a governance proxy, not accounting gross margin.
 - The underlying dataset is synthetic.
-- For production use, move to pre-aggregated API-backed data and bundle JS locally for true offline portability.
+- For production use at scale, move to API-backed data and incremental refresh.

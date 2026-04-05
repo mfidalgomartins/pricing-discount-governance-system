@@ -8,9 +8,160 @@ import numpy as np
 import pandas as pd
 
 
+HEALTHY_WEIGHTED_DISCOUNT_MAX = 0.12
+HEALTHY_HIGH_DISCOUNT_REVENUE_SHARE_MAX = 0.20
+HEALTHY_MARGIN_PROXY_MIN = 0.45
+
+MIXED_WEIGHTED_DISCOUNT_MAX = 0.18
+MIXED_HIGH_DISCOUNT_REVENUE_SHARE_MAX = 0.30
+MIXED_MARGIN_PROXY_MIN = 0.40
+
+
 def _pct_rank(series: pd.Series, reverse: bool = False) -> pd.Series:
     ranked = series.rank(pct=True)
     return (1 - ranked) if reverse else ranked
+
+
+def _compute_growth_2025_vs_2023(yearly: pd.DataFrame) -> float | None:
+    if {2023, 2025}.issubset(set(yearly["year"])):
+        rev_2023 = yearly.loc[yearly["year"] == 2023, "revenue"].iloc[0]
+        rev_2025 = yearly.loc[yearly["year"] == 2025, "revenue"].iloc[0]
+        return (rev_2025 / rev_2023 - 1) * 100 if rev_2023 else np.nan
+    return None
+
+
+def _pricing_health_verdict(overall: pd.Series) -> tuple[str, str]:
+    weighted_discount = float(overall["weighted_realized_discount"])
+    high_discount_share = float(overall["high_discount_revenue_share"])
+    margin_proxy = float(overall["margin_proxy_pct"])
+
+    if (
+        weighted_discount <= HEALTHY_WEIGHTED_DISCOUNT_MAX
+        and high_discount_share <= HEALTHY_HIGH_DISCOUNT_REVENUE_SHARE_MAX
+        and margin_proxy >= HEALTHY_MARGIN_PROXY_MIN
+    ):
+        return (
+            "Healthy pricing discipline",
+            "Discount intensity is controlled and margin quality remains robust.",
+        )
+
+    if (
+        weighted_discount <= MIXED_WEIGHTED_DISCOUNT_MAX
+        and high_discount_share <= MIXED_HIGH_DISCOUNT_REVENUE_SHARE_MAX
+        and margin_proxy >= MIXED_MARGIN_PROXY_MIN
+    ):
+        return (
+            "Mixed pricing quality",
+            "Growth quality is acceptable but discount dependency requires active monitoring.",
+        )
+
+    return (
+        "Discount-reliant growth risk",
+        "Growth is materially supported by high discounting and exposes margin quality.",
+    )
+
+
+def _build_threshold_sensitivity(pricing: pd.DataFrame) -> pd.DataFrame:
+    thresholds = [0.15, 0.20, 0.25]
+    rows: list[dict] = []
+
+    customer_revenue = pricing.groupby("customer_id", as_index=False).agg(total_revenue=("line_revenue", "sum"))
+
+    for threshold in thresholds:
+        high_discount_mask = pricing["discount_depth"] >= threshold
+        high_discount_revenue = float(pricing.loc[high_discount_mask, "line_revenue"].sum())
+        total_revenue = float(pricing["line_revenue"].sum())
+
+        customer_high_discount = (
+            pricing.loc[high_discount_mask]
+            .groupby("customer_id", as_index=False)
+            .agg(high_discount_revenue=("line_revenue", "sum"))
+        )
+        customer_sensitivity = customer_revenue.merge(customer_high_discount, on="customer_id", how="left").fillna(
+            {"high_discount_revenue": 0.0}
+        )
+        customer_sensitivity["high_discount_share"] = np.where(
+            customer_sensitivity["total_revenue"] > 0,
+            customer_sensitivity["high_discount_revenue"] / customer_sensitivity["total_revenue"],
+            0.0,
+        )
+
+        rows.append(
+            {
+                "high_discount_threshold": threshold,
+                "high_discount_revenue_share": (
+                    high_discount_revenue / total_revenue if total_revenue > 0 else np.nan
+                ),
+                "high_discount_order_item_share": float(high_discount_mask.mean()),
+                "margin_proxy_pct_on_high_discount": float(
+                    pricing.loc[high_discount_mask, "margin_proxy_pct"].mean()
+                )
+                if high_discount_mask.any()
+                else np.nan,
+                "customer_share_over_40pct_high_discount_revenue": float(
+                    (customer_sensitivity["high_discount_share"] >= 0.40).mean()
+                ),
+                "revenue_with_margin_at_risk": float(
+                    pricing.loc[high_discount_mask & (pricing["margin_proxy_pct"] < 0.35), "line_revenue"].sum()
+                ),
+            }
+        )
+
+    return pd.DataFrame(rows)
+
+
+def _build_governance_action_queue(
+    pricing: pd.DataFrame,
+    customer_risk_scores: pd.DataFrame | None,
+) -> pd.DataFrame:
+    if customer_risk_scores is None or customer_risk_scores.empty:
+        return pd.DataFrame()
+
+    customer_leakage = (
+        pricing.groupby("customer_id", as_index=False)
+        .agg(
+            revenue_in_scope=("line_revenue", "sum"),
+            total_list_revenue=("line_list_revenue", "sum"),
+            high_discount_revenue=("line_revenue", lambda s: s[pricing.loc[s.index, "discount_depth"] >= 0.20].sum()),
+            margin_at_risk_revenue=(
+                "line_revenue",
+                lambda s: s[
+                    (pricing.loc[s.index, "discount_depth"] >= 0.20)
+                    & (pricing.loc[s.index, "margin_proxy_pct"] < 0.35)
+                ].sum(),
+            ),
+            discount_leakage_value=("line_revenue", lambda s: (pricing.loc[s.index, "line_list_revenue"] - s).sum()),
+        )
+    )
+
+    queue = customer_risk_scores.merge(customer_leakage, on="customer_id", how="left")
+    queue["high_discount_revenue"] = queue["high_discount_revenue"].fillna(0.0)
+    queue["margin_at_risk_revenue"] = queue["margin_at_risk_revenue"].fillna(0.0)
+    queue["discount_leakage_value"] = queue["discount_leakage_value"].fillna(0.0)
+    queue["revenue_in_scope"] = queue["revenue_in_scope"].fillna(queue["total_revenue"])
+    queue["priority_value_proxy"] = (
+        queue["governance_priority_score"] / 100 * queue["margin_at_risk_revenue"]
+    )
+
+    keep_cols = [
+        "customer_id",
+        "segment",
+        "region",
+        "risk_tier",
+        "main_risk_driver",
+        "recommended_action",
+        "governance_priority_score",
+        "total_revenue",
+        "revenue_in_scope",
+        "high_discount_revenue",
+        "margin_at_risk_revenue",
+        "discount_leakage_value",
+        "priority_value_proxy",
+    ]
+    return queue[keep_cols].sort_values(
+        ["priority_value_proxy", "governance_priority_score", "margin_at_risk_revenue"],
+        ascending=False,
+    )
 
 
 def _overall_pricing_health(pricing: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -302,6 +453,14 @@ def _validation_checks(
     continuity_ok = len(month_series.difference(observed_months)) == 0
     add_check("trend_continuity_monthly", continuity_ok, f"expected_months={len(month_series)}, observed_months={len(observed_months)}")
 
+    expected_years = sorted(pricing["order_date"].dt.year.unique().tolist())
+    observed_years = sorted(yearly_health["year"].tolist())
+    add_check(
+        "time_window_year_coverage",
+        expected_years == observed_years,
+        f"expected_years={expected_years}, observed_years={observed_years}",
+    )
+
     segment_total = float(segment_dependency["revenue"].sum())
     subtotal_ok = abs(segment_total - total_revenue) <= max(1.0, total_revenue * 0.0001)
     add_check("subtotal_total_consistency", subtotal_ok, f"segment_total={segment_total:.2f}, total={total_revenue:.2f}")
@@ -353,35 +512,72 @@ def _render_formal_report(payload: dict) -> str:
     margin_risk = payload["margin_erosion_risk"]
     rep_inconsistency = payload["rep_pricing_inconsistency"]
     product_patterns = payload["product_patterns"]
+    threshold_sensitivity = payload["threshold_sensitivity"]
+    action_queue = payload["governance_action_queue"]
     validations = payload["validation_checks"]
+    analysis_window = payload["analysis_window"]
+    verdict = payload["pricing_health_verdict"]
+    verdict_reason = payload["pricing_health_reason"]
 
-    growth_2025_vs_2023 = None
-    if {2023, 2025}.issubset(set(yearly["year"])):
-        rev_2023 = yearly.loc[yearly["year"] == 2023, "revenue"].iloc[0]
-        rev_2025 = yearly.loc[yearly["year"] == 2025, "revenue"].iloc[0]
-        growth_2025_vs_2023 = (rev_2025 / rev_2023 - 1) * 100 if rev_2023 else np.nan
+    growth_2025_vs_2023 = _compute_growth_2025_vs_2023(yearly)
+    growth_line = (
+        f"Revenue growth (2025 vs 2023): {growth_2025_vs_2023:.2f}%."
+        if growth_2025_vs_2023 is not None and not np.isnan(growth_2025_vs_2023)
+        else "Revenue growth (2025 vs 2023): N/A for current date window."
+    )
 
     top_segment_dependency = segment_dependency.sort_values("high_discount_revenue_share", ascending=False).iloc[0]
     top_margin_risk = margin_risk.iloc[0]
     outlier_reps = int(rep_inconsistency["discount_outlier_flag"].sum()) if "discount_outlier_flag" in rep_inconsistency.columns else 0
+    discount_reliant_products = int((product_patterns["pricing_pattern"] == "Discount-reliant").sum())
 
-    recommendation_lines = [
-        "tighten approval thresholds for >20% discount deals in high-risk segments/channels",
-        "review segment pricing architecture for Public Sector and Enterprise cohorts",
-        "redesign policy guardrails for discount-reliant products",
-        "track high-discount revenue share and margin proxy as monthly governance KPIs",
-    ]
+    recommendation_lines: list[str] = []
+    if overall["high_discount_revenue_share"] >= 0.30:
+        recommendation_lines.append("tighten approval thresholds for deals above 20% discount in exposed segment/channel combinations")
+    if float(top_segment_dependency["high_discount_revenue_share"]) >= 0.40:
+        recommendation_lines.append(
+            f"review segment pricing architecture for {top_segment_dependency['segment']} where high-discount dependency is structurally elevated"
+        )
     if outlier_reps > 0:
-        recommendation_lines.insert(2, "investigate rep-level outliers and align incentives to price realization")
+        recommendation_lines.append("investigate rep-level outliers and align incentives to price realization governance")
     else:
-        recommendation_lines.insert(2, "continue rep-level monitoring; no peer outliers are currently flagged")
+        recommendation_lines.append("maintain monthly rep-monitoring; no rep outlier currently breaches the z-score threshold")
+    if discount_reliant_products > 0:
+        recommendation_lines.append("redesign policy guardrails for discount-reliant products with weak pricing quality")
+    else:
+        recommendation_lines.append("monitor mixed-pattern products and tighten governance if a discount-reliant cohort emerges")
+    if not action_queue.empty:
+        recommendation_lines.append("activate a prioritized intervention queue using margin-at-risk and governance priority score")
+    recommendation_lines.append("track weighted discount, high-discount revenue share, and margin proxy as recurring governance KPIs")
+
+    sensitivity_lines = [
+        (
+            f"- Threshold >= {row.high_discount_threshold:.0%}: "
+            f"high-discount revenue share {row.high_discount_revenue_share:.2%}, "
+            f"customer exposure >=40% revenue {row.customer_share_over_40pct_high_discount_revenue:.2%}, "
+            f"margin-at-risk revenue {row.revenue_with_margin_at_risk:,.2f}"
+        )
+        for row in threshold_sensitivity.itertuples(index=False)
+    ]
+
+    queue_lines: list[str] = []
+    queue_preview = action_queue.head(5)
+    if not queue_preview.empty:
+        for row in queue_preview.itertuples(index=False):
+            queue_lines.append(
+                f"- {row.customer_id} ({row.segment}, {row.region}) -> {row.recommended_action}; "
+                f"priority proxy={row.priority_value_proxy:,.2f}, margin-at-risk={row.margin_at_risk_revenue:,.2f}"
+            )
+    else:
+        queue_lines.append("- Action queue unavailable (customer_risk_scores not provided in current run).")
 
     lines = [
         "# Formal Pricing Discipline Analysis Report",
         "",
         "## Executive Summary",
-        "Growth is not primarily healthy from a pricing-discipline perspective; performance is materially supported by high discount intensity that increases margin-erosion risk.",
-        f"Revenue growth (2025 vs 2023): {growth_2025_vs_2023:.2f}%.",
+        f"Pricing discipline verdict: {verdict}.",
+        verdict_reason,
+        growth_line,
         f"Weighted realized discount: {overall['weighted_realized_discount']:.2%}; price realization: {overall['price_realization']:.2%}; high-discount revenue share: {overall['high_discount_revenue_share']:.2%}.",
         f"Most exposed segment (discount dependency): {top_segment_dependency['segment']} ({top_segment_dependency['high_discount_revenue_share']:.2%} high-discount revenue share).",
         f"Most exposed segment-category margin erosion pattern: {top_margin_risk['segment']} / {top_margin_risk['category']} (risk score={top_margin_risk['margin_erosion_risk_score']:.1f}).",
@@ -390,8 +586,9 @@ def _render_formal_report(payload: dict) -> str:
         "## Methodology",
         "- Analysis type: full business diagnostics with validation checks.",
         "- Tables used: order_item_pricing_metrics, customer_pricing_profile, customer_risk_scores, segment_pricing_summary, segment_channel_diagnostics.",
-        "- Time period: full available coverage (2023-01-01 to 2025-12-31).",
+        f"- Time period: full available coverage ({analysis_window['coverage_start']} to {analysis_window['coverage_end']}).",
         "- Metric logic: realized discount, price realization, high-discount revenue share, margin proxy, repeat discount behavior, variance diagnostics.",
+        "- Scoring interpretation: customer risk scoring blends peer-relative ranks with absolute policy-threshold breaches.",
         "",
         "## Detailed Findings",
         "### A. Overall Pricing Health",
@@ -418,12 +615,27 @@ def _render_formal_report(payload: dict) -> str:
         f"- Highest channel-region discount level: {payload['channel_region_inconsistency'].iloc[0]['sales_channel']} / {payload['channel_region_inconsistency'].iloc[0]['region']} ({payload['channel_region_inconsistency'].iloc[0]['avg_discount_pct']:.2%}).",
         "",
         "### E. Product-Level Patterns",
-        f"- Products classified as discount-reliant: {(product_patterns['pricing_pattern'] == 'Discount-reliant').sum()} of {len(product_patterns)}.",
+        f"- Products classified as discount-reliant: {discount_reliant_products} of {len(product_patterns)}.",
         f"- Products sold cleanly: {(product_patterns['pricing_pattern'] == 'Sold cleanly').sum()} of {len(product_patterns)}.",
         f"- Highest governance concern product: {product_patterns.iloc[0]['product_name']} (score={product_patterns.iloc[0]['governance_concern_score']:.1f}).",
         "",
-        "## Validation Checks",
+        "### F. Threshold Sensitivity and Decision Impact",
+        "How governance exposure changes when the high-discount threshold moves:",
     ]
+    lines.extend(sensitivity_lines)
+    lines.extend(
+        [
+            "",
+            "Top intervention queue (by priority value proxy):",
+        ]
+    )
+    lines.extend(queue_lines)
+    lines.extend(
+        [
+            "",
+            "## Validation Checks",
+        ]
+    )
 
     for row in validations.itertuples(index=False):
         lines.append(f"- {row.check_name}: {row.status} ({row.detail})")
@@ -433,9 +645,9 @@ def _render_formal_report(payload: dict) -> str:
             "",
             "## Caveats and Limitations",
             "- Data is synthetic and behaviorally simulated; it supports method validation, not real-world attribution.",
-            "- High-discount threshold is set at 20%; sensitivity to alternative thresholds (e.g., 15% and 25%) is not included in the base run.",
+            "- High-discount thresholds are policy assumptions and should be calibrated to commercial context.",
             "- Margin is a proxy using modeled unit cost, not full financial statement gross margin.",
-            "- Outlier detection highlights governance signals, not definitive misconduct or causal drivers.",
+            "- Outlier detection highlights governance signals, not proof of misconduct or causal drivers.",
             "",
             "## Recommendations and Next Steps",
         ]
@@ -457,15 +669,21 @@ def run_formal_pricing_analysis(
 
     pricing = processed_tables["order_item_pricing_metrics"].copy()
     customer_profile = processed_tables["customer_pricing_profile"].copy()
+    customer_risk_scores = processed_tables.get("customer_risk_scores")
 
     pricing["order_date"] = pd.to_datetime(pricing["order_date"])
     pricing["year"] = pricing["order_date"].dt.year
+    coverage_start = pricing["order_date"].min().strftime("%Y-%m-%d")
+    coverage_end = pricing["order_date"].max().strftime("%Y-%m-%d")
 
     overall_health, yearly_health = _overall_pricing_health(pricing)
     dependency_tables = _discount_dependency(pricing, customer_profile)
     margin_risk = _margin_erosion_risk(pricing)
     inconsistency_tables = _pricing_inconsistency(pricing)
     product_patterns = _product_level_patterns(pricing)
+    threshold_sensitivity = _build_threshold_sensitivity(pricing)
+    governance_action_queue = _build_governance_action_queue(pricing, customer_risk_scores)
+    verdict, verdict_reason = _pricing_health_verdict(overall_health.iloc[0])
 
     validations = _validation_checks(
         pricing=pricing,
@@ -479,12 +697,20 @@ def run_formal_pricing_analysis(
     payload = {
         "overall_health": overall_health,
         "yearly_health": yearly_health,
+        "analysis_window": {
+            "coverage_start": coverage_start,
+            "coverage_end": coverage_end,
+        },
         "segment_dependency": dependency_tables["segment_discount_dependency"],
         "dependency_concentration": dependency_tables["discount_dependency_concentration"],
         "margin_erosion_risk": margin_risk,
         "rep_pricing_inconsistency": inconsistency_tables["rep_pricing_inconsistency"],
         "channel_region_inconsistency": inconsistency_tables["channel_region_pricing_inconsistency"],
         "product_patterns": product_patterns,
+        "threshold_sensitivity": threshold_sensitivity,
+        "governance_action_queue": governance_action_queue,
+        "pricing_health_verdict": verdict,
+        "pricing_health_reason": verdict_reason,
         "validation_checks": validations,
     }
 
@@ -509,12 +735,20 @@ def run_formal_pricing_analysis(
     )
     inconsistency_tables["product_price_variance"].to_csv(outputs_dir / "product_price_variance.csv", index=False)
     product_patterns.to_csv(outputs_dir / "product_governance_patterns.csv", index=False)
+    threshold_sensitivity.to_csv(outputs_dir / "threshold_sensitivity_analysis.csv", index=False)
+    governance_action_queue.to_csv(outputs_dir / "governance_action_queue.csv", index=False)
     validations.to_csv(outputs_dir / "formal_analysis_validation_checks.csv", index=False)
 
     summary_payload = {
         "question": "Is the company growing with healthy pricing discipline, or relying on discounting patterns that erode margin?",
-        "answer": "Growth is materially discount-led and exposes the business to margin erosion and governance inconsistency.",
+        "answer": verdict,
+        "answer_detail": verdict_reason,
+        "analysis_window": {
+            "coverage_start": coverage_start,
+            "coverage_end": coverage_end,
+        },
         "overall_pricing_health": overall_health.iloc[0].to_dict(),
+        "threshold_sensitivity": threshold_sensitivity.to_dict(orient="records"),
         "validation_status": {
             "all_checks_passed": bool((validations["status"] == "PASS").all()),
             "checks": len(validations),
@@ -525,7 +759,9 @@ def run_formal_pricing_analysis(
         [
             "# Executive Summary",
             "",
-            "Growth is materially discount-led, not primarily pricing-discipline-led.",
+            f"Pricing discipline verdict: {verdict}.",
+            verdict_reason,
+            f"- Time coverage: {coverage_start} to {coverage_end}",
             f"- Weighted realized discount: {overall_health.iloc[0]['weighted_realized_discount']:.2%}",
             f"- Price realization: {overall_health.iloc[0]['price_realization']:.2%}",
             f"- High-discount revenue share: {overall_health.iloc[0]['high_discount_revenue_share']:.2%}",
@@ -547,5 +783,7 @@ def run_formal_pricing_analysis(
         "channel_region_pricing_inconsistency": inconsistency_tables["channel_region_pricing_inconsistency"],
         "product_price_variance": inconsistency_tables["product_price_variance"],
         "product_governance_patterns": product_patterns,
+        "threshold_sensitivity_analysis": threshold_sensitivity,
+        "governance_action_queue": governance_action_queue,
         "formal_analysis_validation_checks": validations,
     }

@@ -161,6 +161,12 @@ def _build_findings(
 def _render_executive_summary(findings_payload: dict) -> str:
     findings = findings_payload["findings"]
     recommendations = findings_payload["recommendations"]
+    growth_value = findings["revenue_growth_2025_vs_2023_pct"]
+    growth_line = (
+        f"{growth_value:.2f}%"
+        if growth_value is not None
+        else "N/A for current date window"
+    )
 
     lines = [
         "# Pricing & Discount Governance Executive Summary",
@@ -169,7 +175,7 @@ def _render_executive_summary(findings_payload: dict) -> str:
         "Is growth supported by pricing discipline, or by discount behaviors that erode margin and weaken governance?",
         "",
         "## Key Findings",
-        f"- Revenue growth (2025 vs 2023): {findings['revenue_growth_2025_vs_2023_pct']}%.",
+        f"- Revenue growth (2025 vs 2023): {growth_line}.",
         f"- Latest-year average discount: {findings['latest_year_avg_discount_pct']:.2%}.",
         f"- Latest-year average margin proxy: {findings['latest_year_avg_margin_proxy_pct']:.2%}.",
         f"- Highest margin erosion segment: {findings['segment_with_highest_margin_erosion_proxy']} (proxy={findings['segment_margin_erosion_proxy_value']}).",
@@ -193,10 +199,8 @@ def generate_analysis_outputs(
     feature_tables: Dict[str, pd.DataFrame],
     risk_tables: Dict[str, pd.DataFrame],
     outputs_dir: Path,
-    dashboard_dir: Path,
 ) -> Dict[str, pd.DataFrame]:
     outputs_dir.mkdir(parents=True, exist_ok=True)
-    dashboard_dir.mkdir(parents=True, exist_ok=True)
 
     pricing_metrics = feature_tables["order_item_pricing_metrics"]
     segment_summary = feature_tables["segment_pricing_summary"]
@@ -223,11 +227,6 @@ def generate_analysis_outputs(
     diagnostics["rep_pricing_diagnostics"].to_csv(outputs_dir / "rep_pricing_diagnostics.csv", index=False)
     diagnostics["top_risk_customers"].to_csv(outputs_dir / "top_risk_customers.csv", index=False)
     diagnostics["risk_by_segment"].to_csv(outputs_dir / "risk_by_segment.csv", index=False)
-
-    monthly.to_csv(dashboard_dir / "monthly_pricing_performance.csv", index=False)
-    feature_tables["segment_channel_diagnostics"].to_csv(dashboard_dir / "segment_channel_diagnostics.csv", index=False)
-    risk_tables["customer_risk_scores"].to_csv(dashboard_dir / "customer_risk_scores.csv", index=False)
-    risk_tables["risk_tier_summary"].to_csv(dashboard_dir / "risk_tier_summary.csv", index=False)
 
     analysis_tables = {
         "monthly_pricing_performance": monthly,

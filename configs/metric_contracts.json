@@ -1,0 +1,94 @@
+{
+  "tables": {
+    "order_item_pricing_metrics": {
+      "source": "processed",
+      "required_columns": [
+        "order_item_id",
+        "order_date",
+        "order_month",
+        "customer_id",
+        "segment",
+        "region",
+        "category",
+        "sales_channel",
+        "line_revenue",
+        "line_list_revenue",
+        "realized_price",
+        "list_price_at_sale",
+        "discount_depth",
+        "high_discount_flag",
+        "margin_proxy_pct"
+      ],
+      "bounds": [
+        {"column": "line_revenue", "min": 0.0},
+        {"column": "line_list_revenue", "min": 0.0},
+        {"column": "discount_depth", "min": 0.0, "max": 0.7},
+        {"column": "margin_proxy_pct", "min": -0.25, "max": 1.0}
+      ]
+    },
+    "customer_pricing_profile": {
+      "source": "processed",
+      "required_columns": [
+        "customer_id",
+        "total_orders",
+        "total_revenue",
+        "avg_discount_pct",
+        "share_orders_discounted",
+        "share_orders_high_discount",
+        "revenue_high_discount_share",
+        "avg_margin_proxy_pct"
+      ],
+      "bounds": [
+        {"column": "total_orders", "min": 1},
+        {"column": "total_revenue", "min": 0.0},
+        {"column": "avg_discount_pct", "min": 0.0, "max": 0.7},
+        {"column": "share_orders_discounted", "min": 0.0, "max": 1.0},
+        {"column": "share_orders_high_discount", "min": 0.0, "max": 1.0},
+        {"column": "revenue_high_discount_share", "min": 0.0, "max": 1.0},
+        {"column": "avg_margin_proxy_pct", "min": 0.0, "max": 1.0}
+      ]
+    },
+    "customer_risk_scores": {
+      "source": "processed",
+      "required_columns": [
+        "customer_id",
+        "pricing_risk_score",
+        "discount_dependency_score",
+        "margin_erosion_score",
+        "governance_priority_score",
+        "main_risk_driver",
+        "risk_tier",
+        "recommended_action",
+        "low_data_flag"
+      ],
+      "bounds": [
+        {"column": "pricing_risk_score", "min": 0.0, "max": 100.0},
+        {"column": "discount_dependency_score", "min": 0.0, "max": 100.0},
+        {"column": "margin_erosion_score", "min": 0.0, "max": 100.0},
+        {"column": "governance_priority_score", "min": 0.0, "max": 100.0},
+        {"column": "low_data_flag", "min": 0, "max": 1}
+      ],
+      "allowed_values": {
+        "risk_tier": ["Low", "Medium", "High", "Critical"]
+      }
+    },
+    "overall_pricing_health": {
+      "source": "output",
+      "csv": "overall_pricing_health.csv",
+      "required_columns": [
+        "total_revenue",
+        "weighted_realized_discount",
+        "price_realization",
+        "high_discount_revenue_share",
+        "margin_proxy_pct"
+      ],
+      "bounds": [
+        {"column": "total_revenue", "min": 0.0},
+        {"column": "weighted_realized_discount", "min": 0.0, "max": 1.0},
+        {"column": "price_realization", "min": 0.0, "max": 1.0},
+        {"column": "high_discount_revenue_share", "min": 0.0, "max": 1.0},
+        {"column": "margin_proxy_pct", "min": 0.0, "max": 1.0}
+      ]
+    }
+  }
+}

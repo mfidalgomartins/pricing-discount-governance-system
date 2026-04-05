@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  quality-gates:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Compile Check
+        run: python -m compileall -q src scripts tests
+
+      - name: Repository Preflight
+        run: python scripts/preflight_check.py
+
+      - name: Run Unit Tests
+        run: pytest -q
+
+      - name: Pipeline Smoke Run
+        env:
+          MPLCONFIGDIR: /tmp/mplconfig
+        run: |
+          python scripts/run_pipeline.py \
+            --seed 11 \
+            --customers 220 \
+            --products 28 \
+            --sales-reps 14 \
+            --orders 2400 \
+            --start-date 2024-01-01 \
+            --end-date 2024-12-31
+
+      - name: Release Gate
+        run: python scripts/release_gate.py
+
+      - name: Release Readiness Gate
+        run: python scripts/release_gate.py --summary outputs/final_validation_summary.json
