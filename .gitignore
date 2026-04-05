@@ -4,6 +4,10 @@ __pycache__/
 *.so
 .pytest_cache/
 .mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.log
 
 # Virtual environments
 .venv/
@@ -16,14 +20,18 @@ venv/
 
 # Data and outputs generated at runtime
 /data/raw/*.csv
+/data/raw/*.parquet
 /data/processed/*.csv
 /data/processed/*.duckdb
+/data/processed/*.parquet
 /data/processed/sql_marts/*.csv
+/data/processed/sql_marts/*.parquet
 /outputs/*.csv
 /outputs/*.json
 /outputs/*.md
 /outputs/release/*.json
 /outputs/release/*.md
+/outputs/release/*.csv
 /dashboard/*.csv
 /dashboard/*.json
 /docs/reports/*.md
