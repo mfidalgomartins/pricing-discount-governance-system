@@ -32,8 +32,8 @@ venv/
 /outputs/release/*.json
 /outputs/release/*.md
 /outputs/release/*.csv
-/dashboard/*.csv
-/dashboard/*.json
+/outputs/dashboard/*.csv
+/outputs/dashboard/*.json
 /docs/reports/*.md
 
 # Jupyter

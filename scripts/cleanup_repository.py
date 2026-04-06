@@ -39,7 +39,7 @@ def main() -> int:
             removed_dirs += 1
 
     # Dashboard legacy CSV exports are no longer used.
-    dashboard_dir = PROJECT_ROOT / "dashboard"
+    dashboard_dir = PROJECT_ROOT / "outputs" / "dashboard"
     for csv_name in [
         "monthly_pricing_performance.csv",
         "segment_channel_diagnostics.csv",

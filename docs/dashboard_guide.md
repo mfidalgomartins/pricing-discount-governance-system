@@ -4,7 +4,7 @@
 Provide a leadership-ready view of pricing health, discount dependency, margin-at-risk exposure, and governance priorities.
 
 ## Main Asset
-- `dashboard/pricing_discount_governance_dashboard.html`
+- `outputs/dashboard/pricing_discount_governance_dashboard.html`
 
 ## Included Sections
 - Executive title/subtitle and coverage metadata.
@@ -30,7 +30,7 @@ Provide a leadership-ready view of pricing health, discount dependency, margin-a
 - Dashboard payload uses governed pre-aggregated pricing slices plus customer-level filtered revenue aggregates.
 - KPI cards consume governed precomputed metric rows (`kpiRows`) rather than on-the-fly KPI math in the browser.
 - Risk table and action-priority chart are filter-consistent: customer revenue and discount values reflect the active filter context.
-- Chart interactivity uses a bundled local asset (`dashboard/vendor/chart.umd.min.js`) with CDN fallback.
+- Chart interactivity uses a bundled local asset (`outputs/dashboard/vendor/chart.umd.min.js`) with CDN fallback.
 - Dashboard is responsive and presentation-ready.
 
 ## Limitations

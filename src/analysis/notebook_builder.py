@@ -314,7 +314,7 @@ Main finding: growth appears **discount-led rather than pricing-discipline-led**
 3. Continue rep-level monitoring and escalate only if peer outlier signals become persistent.
 4. Prioritize intervention on discount-reliant products with weak margin proxy outcomes.
 
-Executive HTML dashboard: `../dashboard/pricing_discount_governance_dashboard.html`
+Executive HTML dashboard: `../outputs/dashboard/pricing_discount_governance_dashboard.html`
 
 ## Caveats
 - Synthetic dataset with realistic behavior design.

@@ -92,7 +92,7 @@
 - `scripts/release_gate.py` consumes:
   - `outputs/final_validation_summary.json`
   - `outputs/metric_contract_validation.csv`
-  - `configs/release_policy.json`
+  - `config/release_policy.json`
 - Default enforcement (portfolio mode) is policy-driven and currently requires:
   - `technically_valid = true`
   - `analytically_acceptable = true`
@@ -100,4 +100,4 @@
   - `publish_blocked = false`
   - zero failed blocker checks
   - metric-contract compliance
-- Tightening to committee-grade should be done by changing `configs/release_policy.json` once production evidence constraints are removed.
+- Tightening to committee-grade should be done by changing `config/release_policy.json` once production evidence constraints are removed.

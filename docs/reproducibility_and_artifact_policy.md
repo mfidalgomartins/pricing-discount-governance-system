@@ -10,8 +10,8 @@
 Versioned artifacts (kept in git):
 - Core source code in `src/`, `scripts/`, and `sql/`
 - Narrative docs in `docs/`
-- Dashboard deliverable in `dashboard/pricing_discount_governance_dashboard.html`
-- Dashboard local JS dependency in `dashboard/vendor/chart.umd.min.js`
+- Dashboard deliverable in `outputs/dashboard/pricing_discount_governance_dashboard.html`
+- Dashboard local JS dependency in `outputs/dashboard/vendor/chart.umd.min.js`
 - Visualization images in `outputs/visualizations/`
 
 Generated local artifacts (not fully versioned):
@@ -50,5 +50,5 @@ python scripts/cleanup_repository.py
 - `python scripts/release_gate.py`
 - CI smoke run on pull requests and pushes to `main`
 
-`release_gate.py` enforces policy defined in `configs/release_policy.json`.  
+`release_gate.py` enforces policy defined in `config/release_policy.json`.  
 By default it allows `not committee-grade` runs in portfolio synthetic mode while still requiring technical and analytical validity.

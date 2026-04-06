@@ -4,8 +4,8 @@
 Prevent silent degradation between a technically successful pipeline run and a decision-ready analytical release.
 
 ## Policy Inputs
-- `configs/metric_contracts.json`
-- `configs/release_policy.json`
+- `config/metric_contracts.json`
+- `config/release_policy.json`
 
 ## Metric Contract Layer
 Metric contracts enforce governed schema and KPI constraints for critical tables:
@@ -27,7 +27,7 @@ Each run checks:
 Release gate consumes:
 - `outputs/final_validation_summary.json`
 - `outputs/metric_contract_validation.csv`
-- `configs/release_policy.json`
+- `config/release_policy.json`
 
 Gate output artifacts:
 - `outputs/release/release_gate_report.json`
