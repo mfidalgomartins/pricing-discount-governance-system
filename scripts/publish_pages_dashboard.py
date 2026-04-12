@@ -1,61 +1,83 @@
-"""Publish the executive dashboard to GitHub Pages (docs/)."""
+"""Prepare GitHub Pages entrypoints for the dashboard (main branch root)."""
 
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DASHBOARD_FILENAME = "pricing-discipline-command-center.html"
-SOURCE_HTML = ROOT / "outputs" / "dashboard" / DASHBOARD_FILENAME
-SOURCE_VENDOR = ROOT / "outputs" / "dashboard" / "vendor" / "chart.umd.min.js"
-TARGET_DOCS = ROOT / "docs"
-TARGET_INDEX = TARGET_DOCS / "index.html"
-TARGET_NAMED = TARGET_DOCS / DASHBOARD_FILENAME
-TARGET_VENDOR_DIR = TARGET_DOCS / "vendor"
-TARGET_VENDOR = TARGET_VENDOR_DIR / "chart.umd.min.js"
-TARGET_NOJEKYLL = TARGET_DOCS / ".nojekyll"
+DASHBOARD_RELATIVE_PATH = "outputs/dashboard/pricing-discipline-command-center.html"
+DASHBOARD_PATH = ROOT / DASHBOARD_RELATIVE_PATH
+VENDOR_PATH = ROOT / "outputs" / "dashboard" / "vendor" / "chart.umd.min.js"
 
-REDIRECT_TEMPLATE = f"""<!doctype html>
+ROOT_INDEX = ROOT / "index.html"
+ROOT_NOJEKYLL = ROOT / ".nojekyll"
+OUTPUTS_INDEX = ROOT / "outputs" / "index.html"
+DASHBOARD_INDEX = ROOT / "outputs" / "dashboard" / "index.html"
+
+ROOT_INDEX_TEMPLATE = f"""<!doctype html>
 <html lang=\"en\">
 <head>
   <meta charset=\"utf-8\" />
   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
   <title>Pricing Discipline Command Center</title>
-  <meta http-equiv=\"refresh\" content=\"0; url=./{DASHBOARD_FILENAME}\" />
+  <meta http-equiv=\"refresh\" content=\"0; url=./{DASHBOARD_RELATIVE_PATH}\" />
 </head>
 <body>
-  <p>Redirecting to <a href=\"./{DASHBOARD_FILENAME}\">{DASHBOARD_FILENAME}</a>...</p>
+  <p>Redirecting to dashboard...
+    <a href=\"./{DASHBOARD_RELATIVE_PATH}\">Open dashboard</a>
+  </p>
+</body>
+</html>
+"""
+
+OUTPUTS_INDEX_TEMPLATE = """<!doctype html>
+<html lang=\"en\">
+<head>
+  <meta charset=\"utf-8\" />
+  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
+  <title>Outputs Redirect</title>
+  <meta http-equiv=\"refresh\" content=\"0; url=./dashboard/\" />
+</head>
+<body>
+  <p>Redirecting to dashboard folder...</p>
+</body>
+</html>
+"""
+
+DASHBOARD_INDEX_TEMPLATE = """<!doctype html>
+<html lang=\"en\">
+<head>
+  <meta charset=\"utf-8\" />
+  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
+  <title>Dashboard Redirect</title>
+  <meta http-equiv=\"refresh\" content=\"0; url=./pricing-discipline-command-center.html\" />
+</head>
+<body>
+  <p>Redirecting to dashboard...</p>
 </body>
 </html>
 """
 
 
-def ensure_source_files() -> None:
-    missing = [p for p in (SOURCE_HTML, SOURCE_VENDOR) if not p.exists()]
+def publish() -> None:
+    missing = [p for p in (DASHBOARD_PATH, VENDOR_PATH) if not p.exists()]
     if missing:
         missing_list = ", ".join(str(p) for p in missing)
-        raise FileNotFoundError(f"Missing source file(s): {missing_list}")
+        raise FileNotFoundError(f"Missing required dashboard asset(s): {missing_list}")
 
-
-def publish() -> None:
-    ensure_source_files()
-
-    TARGET_DOCS.mkdir(parents=True, exist_ok=True)
-    TARGET_VENDOR_DIR.mkdir(parents=True, exist_ok=True)
-
-    shutil.copy2(SOURCE_HTML, TARGET_NAMED)
-    TARGET_INDEX.write_text(REDIRECT_TEMPLATE, encoding="utf-8")
-    shutil.copy2(SOURCE_VENDOR, TARGET_VENDOR)
-    TARGET_NOJEKYLL.touch(exist_ok=True)
-
-    html_text = TARGET_NAMED.read_text(encoding="utf-8")
+    html_text = DASHBOARD_PATH.read_text(encoding="utf-8")
     if 'src="vendor/chart.umd.min.js"' not in html_text:
-        raise RuntimeError("Dashboard entrypoint is not using expected local vendor path.")
+        raise RuntimeError("Dashboard source does not reference expected local vendor path.")
 
-    print("GitHub Pages dashboard published:")
-    print(f"- {TARGET_INDEX}")
-    print(f"- {TARGET_NAMED}")
+    ROOT_INDEX.write_text(ROOT_INDEX_TEMPLATE, encoding="utf-8")
+    ROOT_NOJEKYLL.write_text("", encoding="utf-8")
+    OUTPUTS_INDEX.write_text(OUTPUTS_INDEX_TEMPLATE, encoding="utf-8")
+    DASHBOARD_INDEX.write_text(DASHBOARD_INDEX_TEMPLATE, encoding="utf-8")
+
+    print("GitHub Pages entrypoints prepared:")
+    print(f"- {ROOT_INDEX}")
+    print(f"- {OUTPUTS_INDEX}")
+    print(f"- {DASHBOARD_INDEX}")
 
 
 if __name__ == "__main__":
