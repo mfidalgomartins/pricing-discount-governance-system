@@ -1,75 +1,67 @@
-# Pricing Discipline & Discount Governance
+# Pricing Discipline & Discount Governance System
 
-Decision-focused analytics project to test whether growth quality is supported by pricing discipline or by discount dependency that weakens margin outcomes.
+A decision-support analytics system to detect when revenue growth is being bought through discounting that weakens pricing discipline and margin quality.
 
-## What this project answers
-Commercial leaders often see revenue growth before they see pricing quality deterioration. This project quantifies:
-- how much revenue is discount-supported,
-- where discounting is structurally embedded (customers, segments, products, channels),
-- where margin proxy erosion is concentrated,
-- which accounts should be prioritized for governance action.
+## Business problem
+Revenue can grow while commercial quality deteriorates. When discounting becomes structural, margin erosion is delayed in reporting and hard to reverse. The practical question is where growth is healthy and where pricing governance is failing.
 
-## What is built
-- End-to-end Python pipeline from raw tables to governed outputs.
-- Explicit, auditable metrics and validation.
-- Interpretable risk scoring (`pricing`, `dependency`, `margin`, `governance priority`).
-- Validation checks designed for portfolio credibility (not production certification).
-- One executive HTML dashboard (`outputs/dashboard/pricing_discount_governance_dashboard.html`).
+## What the system does
+- Builds a full pipeline from synthetic transactional data to governed analytical outputs.
+- Produces pricing, discount dependency, and margin erosion metrics at customer, segment, product, channel, and rep levels.
+- Scores governance risk with interpretable components and clear action mapping.
+- Publishes executive outputs: one HTML dashboard, chart pack, and auditable analysis tables.
 
-## Repository layout
-- `src/`: ingestion, transformations, analysis, scoring, validation.
-- `scripts/`: runnable entrypoints.
-- `config/`: metric contracts and dashboard posture thresholds.
-- `docs/`: core methods and governance docs.
-- `outputs/`: portfolio deliverables (`dashboard/`, `visualizations/`).
-- `tests/`: regression and governance checks.
+## Decisions supported
+- Which customers and segments need tighter discount approval thresholds.
+- Which products are discount-dependent and require pricing or packaging review.
+- Which channels or reps show inconsistent pricing behavior.
+- Where to prioritize governance actions for highest margin protection impact.
 
-## Core analytical tables
-- `order_item_pricing_metrics` (order-item grain)
-- `customer_pricing_profile` (customer grain)
-- `segment_pricing_summary` (segment grain)
-- `customer_risk_scores` (customer governance grain)
+## Project architecture
+- `ingestion`: synthetic source tables and loading.
+- `processing`: base joins, warehouse-style models, curated analytical tables.
+- `features`: pricing behavior and dependency features.
+- `scoring`: risk components and governance priority scoring.
+- `analysis`: formal reporting outputs and dashboard data feed.
+- `validation`: data quality, metric contracts, and release gate checks.
 
-## Key metric definitions
-- `weighted_realized_discount = 1 - sum(line_revenue) / sum(line_list_revenue)`
-- `price_realization = sum(line_revenue) / sum(line_list_revenue)`
-- `high_discount_revenue_share`: revenue share from lines with discount >= 20%
-- `margin_proxy_pct = (line_revenue - line_cost) / line_revenue`
+## Repository structure
+- `src/` core analytics code
+- `scripts/` runnable entrypoints
+- `sql/` staging, intermediate, mart SQL models
+- `config/` metric contracts and governance thresholds
+- `docs/` methods, data model, validation, and dashboard notes
+- `outputs/` dashboard, charts, analysis, profiling, validation, release artifacts
+- `tests/` pipeline, metric, dashboard, and release tests
 
-## Governance scoring approach
-Each score mixes peer-relative ranking with absolute policy-breach intensity:
-- `pricing_risk_score`
-- `discount_dependency_score`
-- `margin_erosion_score`
-- `governance_priority_score` (composite)
+## Core outputs
+- Executive dashboard: `outputs/dashboard/pricing_discount_governance_dashboard.html`
+- Visualization pack: `outputs/visualizations/*.png`
+- Formal analysis outputs: `outputs/analysis/*`
+- Profiling and validation evidence: `outputs/profiling/*`, `outputs/*validation*`, `outputs/release/*`
 
-Low-volume customers are reliability-shrunk to reduce false positives.
+## Why this project is strong
+- Business-first framing with explicit governance decisions, not metric dumping.
+- Clear analytical grains and metric contracts to avoid ambiguous KPI logic.
+- Validation and release discipline to reduce silent analytical failure.
+- End-to-end reproducibility with auditable outputs suitable for stakeholder review.
 
-## Validation discipline
-The project enforces hard checks for:
-- PK/FK integrity and join safety
-- discount arithmetic and pricing bounds
-- denominator correctness and bounded shares
-- metric contract compliance
-
-
-## Main deliverables
-- Dashboard: `outputs/dashboard/pricing_discount_governance_dashboard.html`
-- Charts: `outputs/visualizations/*.png`
-
-## Run locally
+## How to run
 ```bash
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 python scripts/run_pipeline.py
+python scripts/build_visualization_pack.py
+python scripts/build_dashboard.py
 python scripts/preflight_check.py
 pytest -q
 ```
 
-## Documentation
-- `docs/project_context_and_metrics.md`
-- `docs/data_model_and_grain.md`
-- `docs/validation_framework.md`
-- `docs/release_and_reproducibility.md`
-- `docs/dashboard_guide.md`
+## Limitations
+- Data is synthetic; signal realism is strong but not equivalent to production noise.
+- Margin is a proxy (`unit_cost` based), not full financial accounting margin.
+- Scoring supports prioritization and screening, not autonomous pricing decisions.
+
+## Tools
+Tools: Python, SQL, DuckDB, pandas, NumPy, Matplotlib, Seaborn, Plotly, Chart.js, pytest.
