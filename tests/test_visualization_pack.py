@@ -34,4 +34,4 @@ def test_visualization_pack_runs_headless(tmp_path) -> None:
     )
 
     assert (tmp_path / "outputs" / "visualizations" / "discount_distribution.png").exists()
-    assert (tmp_path / "docs" / "visualization_pack.md").exists()
+    assert (tmp_path / "outputs" / "visualization_pack.md").exists()

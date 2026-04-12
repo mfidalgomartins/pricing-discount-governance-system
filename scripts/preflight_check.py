@@ -14,13 +14,12 @@ REQUIRED_PATHS = [
     ".github/workflows/ci.yml",
     "scripts/run_pipeline.py",
     "scripts/cleanup_repository.py",
-    "scripts/release_gate.py",
-    "scripts/run_sql_models.py",
     "outputs/dashboard/pricing_discount_governance_dashboard.html",
-    "docs/business_problem_and_metric_framework.md",
+    "docs/project_context_and_metrics.md",
     "docs/validation_framework.md",
+    "docs/release_and_reproducibility.md",
     "config/metric_contracts.json",
-    "config/release_policy.json",
+    "config/dashboard_policy.json",
 ]
 
 FORBIDDEN_TRACKED_PATTERNS = [

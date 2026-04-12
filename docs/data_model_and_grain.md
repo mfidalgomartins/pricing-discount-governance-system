@@ -14,28 +14,7 @@
 - `order_items` (PK: `order_item_id`, FK: `order_id`, `product_id`)
 - `sales_reps` (PK: `sales_rep_id`)
 
-## Warehouse SQL Models
-
-### Staging (`sql/staging`)
-- `stg_customers` (customer grain)
-- `stg_products` (product grain)
-- `stg_orders` (order grain)
-- `stg_order_items` (order item grain)
-- `stg_sales_reps` (sales rep grain)
-
-### Intermediate (`sql/intermediate`)
-- `int_order_item_enriched` (order item grain)
-- `int_order_item_pricing_metrics` (order item grain)
-
-### Marts (`sql/marts`)
-- `mart_customer_pricing_profile` (customer grain)
-- `mart_segment_pricing_summary` (segment grain)
-- `mart_segment_channel_diagnostics` (segment x channel grain)
-- `mart_product_pricing_summary` (product grain)
-- `mart_monthly_pricing_health` (monthly grain)
-- `mart_overall_pricing_health` (snapshot grain)
-
-## Python Analytical Tables (Processed)
+## Analytical Tables (Processed)
 - `order_item_enriched` (order item grain)
 - `order_item_pricing_metrics` (order item grain)
 - `customer_pricing_profile` (customer grain)

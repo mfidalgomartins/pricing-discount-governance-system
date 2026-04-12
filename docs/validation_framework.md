@@ -38,27 +38,15 @@
 - Population consistency:
   - customer profile row count equals customer risk row count
 
-## SQL Warehouse Checks (`run_sql_warehouse_models`)
-- Positive row counts for all marts.
-- Mart primary-key uniqueness by defined grain.
-- Revenue reconciliation between intermediate and mart aggregations.
-- Customer share bounds in marts.
-- Pricing consistency in intermediate model.
-
 ## Audit Artifacts
 - `outputs/raw_validation_report.csv`
 - `outputs/processed_validation_report.csv`
 - `outputs/metric_contract_validation.csv`
-- `outputs/sql_validation_report.csv`
 - `outputs/formal_analysis_validation_checks.csv`
 - `outputs/final_validation_issues.csv`
 - `outputs/final_validation_readiness.csv`
 - `outputs/final_validation_review.md`
 - `outputs/final_validation_summary.json`
-- `outputs/release/release_readiness.json`
-- `outputs/release/release_readiness.md`
-- `outputs/release/release_gate_report.json`
-- `outputs/release/release_gate_report.md`
 
 ## Final Review Layer (`run_final_validation_review`)
 - Consolidates cross-layer spot checks into a single executive-ready review.
@@ -80,24 +68,10 @@
   - `not_committee_grade`
   - `publish_blocked`
 
-## Release Gate Semantics
+## Readiness Semantics
 - `technically_valid`: structural and blocker checks pass (PK/FK, join-explosion, pricing arithmetic).
 - `analytically_acceptable`: technical validity plus analytical consistency checks pass (denominators, totals, weighted logic).
 - `decision_support_only`: analytically acceptable but constrained by decision caveats.
 - `screening_grade_only`: technically valid but analytical checks failed; usable for directional screening only.
-- `not_committee_grade`: analytically acceptable but major evidence constraints remain (for this project: synthetic data and margin proxy).
+- `not_committee_grade`: analytically acceptable but major evidence constraints remain (synthetic data and margin proxy).
 - `publish_blocked`: blocker checks fail; outputs should not be published or used for decisions.
-
-## Release Enforcement
-- `scripts/release_gate.py` consumes:
-  - `outputs/final_validation_summary.json`
-  - `outputs/metric_contract_validation.csv`
-  - `config/release_policy.json`
-- Default enforcement (portfolio mode) is policy-driven and currently requires:
-  - `technically_valid = true`
-  - `analytically_acceptable = true`
-  - `decision_support_only = true`
-  - `publish_blocked = false`
-  - zero failed blocker checks
-  - metric-contract compliance
-- Tightening to committee-grade should be done by changing `config/release_policy.json` once production evidence constraints are removed.

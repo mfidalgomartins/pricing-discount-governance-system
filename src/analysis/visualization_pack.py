@@ -292,7 +292,6 @@ def create_visualization_pack(
     )
 
     manifest_df = pd.DataFrame(chart_manifest)
-    manifest_df.to_csv(viz_dir / "visualization_manifest.csv", index=False)
 
     markdown_lines = [
         "# Publication-Quality Visualization Pack",
@@ -310,10 +309,8 @@ def create_visualization_pack(
 
     viz_doc = "\n".join(markdown_lines)
     (outputs_dir / "visualization_pack.md").write_text(viz_doc)
-    (docs_dir / "visualization_pack.md").write_text(viz_doc)
 
     return {
-        "visualization_manifest": manifest_df,
         "segment_risk_visual_base": seg,
         "channel_pricing_visual_base": channel_cmp,
         "product_dependence_visual_base": product_dep,

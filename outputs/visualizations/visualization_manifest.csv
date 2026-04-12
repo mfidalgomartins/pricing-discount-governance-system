@@ -1,7 +1,0 @@
-chart_file,chart_type,why_appropriate,insight_focus
-discount_distribution.png,distribution histogram,Shows concentration and spread of discount depth across all transactions.,Discount distribution
-realized_price_vs_list_price.png,hexbin correlation,Compares two continuous price fields at high volume without overplotting.,Realized price versus list price
-high_risk_segments_comparison.png,dual-axis category comparison,Compares segment-level erosion intensity and risk concentration in one view.,High-risk segments comparison
-revenue_under_high_discount.png,stacked area trend,Shows composition and trend of revenue by discount intensity over time.,Revenue under high discount
-channel_pricing_comparison.png,category comparison bar,Compares discount intensity across discrete commercial channels.,Channel pricing comparison
-product_pricing_dependence_ranking.png,ranking bar,Ranks products by discount dependency intensity to prioritize governance action.,Product pricing dependence ranking

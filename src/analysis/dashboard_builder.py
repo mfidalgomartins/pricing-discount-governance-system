@@ -10,6 +10,25 @@ import pandas as pd
 
 ALL_VALUE = "All"
 
+DEFAULT_DASHBOARD_POLICY = {
+    "posture_thresholds": {
+        "weighted_discount_warn": 0.14,
+        "weighted_discount_critical": 0.20,
+        "margin_risk_share_warn": 0.12,
+        "margin_risk_share_critical": 0.20,
+        "high_risk_count_warn": 35,
+        "high_risk_count_critical": 80,
+    },
+    "kpi_card_thresholds": {
+        "weighted_discount_warn": 0.14,
+        "weighted_discount_critical": 0.20,
+        "margin_risk_share_warn": 0.12,
+        "margin_risk_share_critical": 0.20,
+        "high_risk_count_warn": 35,
+        "high_risk_count_critical": 80,
+    },
+}
+
 
 def _as_records(df: pd.DataFrame) -> list[dict]:
     return json.loads(df.to_json(orient="records", date_format="iso"))
@@ -25,6 +44,19 @@ def _round_numeric_columns(df: pd.DataFrame, precision_map: dict[str, int]) -> p
 
 def _safe_ratio(numerator: pd.Series, denominator: pd.Series) -> pd.Series:
     return np.where(denominator > 0, numerator / denominator, 0.0)
+
+
+def _load_dashboard_policy() -> dict:
+    policy_path = Path(__file__).resolve().parents[2] / "config" / "dashboard_policy.json"
+    if not policy_path.exists():
+        return DEFAULT_DASHBOARD_POLICY
+    try:
+        payload = json.loads(policy_path.read_text(encoding="utf-8"))
+        if isinstance(payload, dict):
+            return payload
+    except (OSError, json.JSONDecodeError):
+        pass
+    return DEFAULT_DASHBOARD_POLICY
 
 
 def _build_kpi_cube(pricing: pd.DataFrame, dims: list[str]) -> pd.DataFrame:
@@ -157,7 +189,7 @@ def build_executive_dashboard(
             "recommended_action",
         ]
     ].copy()
-    risk_export = risk_export.sort_values("governance_priority_score", ascending=False).head(360)
+    risk_export = risk_export.sort_values("governance_priority_score", ascending=False).head(220)
     selected_customers = set(risk_export["customer_id"].astype(str).tolist())
 
     customer_pricing = _build_customer_pricing_rows(pricing, selected_customers)
@@ -212,6 +244,7 @@ def build_executive_dashboard(
         "riskRows": _as_records(risk_export),
         "filterOptions": filter_options,
         "meta": meta,
+        "policy": _load_dashboard_policy(),
     }
     data_json = json.dumps(payload, separators=(",", ":"))
 
@@ -255,6 +288,12 @@ def build_executive_dashboard(
       --shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
       --radius: 14px;
       --focus-ring: 0 0 0 3px rgba(14, 165, 233, 0.28);
+      --ok: #0f766e;
+      --warn: #a16207;
+      --critical: #b91c1c;
+      --neutral: #2563eb;
+      --chip-bg: #eef4ff;
+      --chip-border: #c7d6ef;
     }
 
     [data-theme="dark"] {
@@ -283,6 +322,12 @@ def build_executive_dashboard(
       --chart-action: #cbd5e1cc;
       --shadow: 0 10px 28px rgba(0, 0, 0, 0.36);
       --focus-ring: 0 0 0 3px rgba(56, 189, 248, 0.26);
+      --ok: #34d399;
+      --warn: #f59e0b;
+      --critical: #f87171;
+      --neutral: #93c5fd;
+      --chip-bg: #132238;
+      --chip-border: #304261;
     }
 
     * { box-sizing: border-box; }
@@ -299,11 +344,11 @@ def build_executive_dashboard(
     }
 
     .page {
-      max-width: 1440px;
+      max-width: 1480px;
       margin: 0 auto;
-      padding: 20px clamp(12px, 2.2vw, 30px) 28px;
+      padding: 24px clamp(14px, 2.4vw, 34px) 32px;
       display: grid;
-      gap: 14px;
+      gap: 18px;
     }
 
     .hero {
@@ -311,9 +356,9 @@ def build_executive_dashboard(
       border-radius: var(--radius);
       color: var(--hero-ink);
       box-shadow: var(--shadow);
-      padding: 20px clamp(16px, 2.4vw, 30px);
+      padding: 22px clamp(16px, 2.5vw, 32px);
       display: grid;
-      gap: 10px;
+      gap: 12px;
     }
 
     .hero-top {
@@ -326,7 +371,7 @@ def build_executive_dashboard(
 
     .hero h1 {
       margin: 0;
-      font-size: clamp(1.45rem, 2vw, 1.95rem);
+      font-size: clamp(1.7rem, 2.4vw, 2.25rem);
       line-height: 1.2;
       letter-spacing: 0.01em;
     }
@@ -335,7 +380,7 @@ def build_executive_dashboard(
       margin: 0;
       color: var(--hero-muted);
       max-width: 980px;
-      font-size: clamp(0.93rem, 1.12vw, 1.02rem);
+      font-size: clamp(1rem, 1.2vw, 1.08rem);
     }
 
     .hero-meta {
@@ -356,7 +401,15 @@ def build_executive_dashboard(
       white-space: nowrap;
     }
 
-    .theme-toggle {
+    .hero-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .theme-toggle,
+    .print-btn {
       border: 1px solid var(--hero-chip-border);
       background: var(--hero-chip-bg);
       color: var(--hero-ink);
@@ -369,10 +422,67 @@ def build_executive_dashboard(
       cursor: pointer;
     }
 
-    .theme-toggle:hover { filter: brightness(1.08); }
-    .theme-toggle:focus-visible {
+    .theme-toggle:hover,
+    .print-btn:hover { filter: brightness(1.08); }
+    .theme-toggle:focus-visible,
+    .print-btn:focus-visible {
       outline: none;
       box-shadow: var(--focus-ring);
+    }
+
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: baseline;
+      flex-wrap: wrap;
+      padding: 0 2px;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-size: 1.08rem;
+      letter-spacing: 0.01em;
+    }
+
+    .section-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.86rem;
+      max-width: 760px;
+    }
+
+    .controls-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px 0;
+      flex-wrap: wrap;
+    }
+
+    .controls-meta {
+      margin: 0;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+
+    .reset-btn {
+      height: 34px;
+      border-radius: 999px;
+      border: 1px solid var(--input-border);
+      background: var(--input-bg);
+      color: var(--ink);
+      font-size: 0.8rem;
+      font-weight: 700;
+      padding: 0 12px;
+      cursor: pointer;
+    }
+    .reset-btn:hover { filter: brightness(0.98); }
+    .reset-btn:focus-visible {
+      outline: none;
+      box-shadow: var(--focus-ring);
+      border-color: transparent;
     }
 
     .panel,
@@ -387,7 +497,7 @@ def build_executive_dashboard(
     }
 
     .filters {
-      padding: 12px;
+      padding: 14px;
       display: grid;
       grid-template-columns: repeat(6, minmax(0, 1fr));
       gap: 10px;
@@ -425,16 +535,22 @@ def build_executive_dashboard(
 
     .kpis {
       display: grid;
-      gap: 12px;
+      gap: 14px;
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 
     .kpi {
-      padding: 14px;
+      padding: 16px;
       display: grid;
       gap: 8px;
       min-height: 112px;
+      border-top: 3px solid var(--border);
     }
+
+    .kpi.kpi-critical { border-top-color: var(--critical); }
+    .kpi.kpi-warn { border-top-color: var(--warn); }
+    .kpi.kpi-ok { border-top-color: var(--ok); }
+    .kpi.kpi-neutral { border-top-color: var(--neutral); }
 
     .kpi-title {
       font-size: 0.79rem;
@@ -447,7 +563,7 @@ def build_executive_dashboard(
 
     .kpi-value {
       margin: 0;
-      font-size: clamp(1.22rem, 1.95vw, 1.82rem);
+      font-size: clamp(1.3rem, 2.15vw, 2.2rem);
       font-weight: 700;
       overflow-wrap: anywhere;
       line-height: 1.2;
@@ -459,14 +575,44 @@ def build_executive_dashboard(
       color: var(--muted);
     }
 
+    .insight-strip {
+      padding: 14px 16px;
+      display: grid;
+      gap: 10px;
+      border-left: 4px solid var(--neutral);
+      background: var(--surface-soft);
+    }
+
+    .insight-main {
+      margin: 0;
+      font-size: 0.93rem;
+      line-height: 1.45;
+    }
+
+    .insight-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .insight-chip {
+      border: 1px solid var(--chip-border);
+      background: var(--chip-bg);
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 0.78rem;
+      color: var(--ink);
+      white-space: nowrap;
+    }
+
     .charts {
       display: grid;
-      gap: 12px;
+      gap: 14px;
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .chart-card {
-      padding: 12px;
+      padding: 14px;
       display: grid;
       gap: 8px;
       min-width: 0;
@@ -474,7 +620,7 @@ def build_executive_dashboard(
 
     .chart-card h3 {
       margin: 0;
-      font-size: 0.98rem;
+      font-size: 1rem;
       line-height: 1.25;
       max-width: 92%;
     }
@@ -490,7 +636,7 @@ def build_executive_dashboard(
       position: relative;
       width: 100%;
       height: 320px;
-      min-height: 280px;
+      min-height: 290px;
     }
     .chart-wrap canvas {
       width: 100% !important;
@@ -498,7 +644,7 @@ def build_executive_dashboard(
     }
 
     .table-head {
-      padding: 12px 14px;
+      padding: 14px 16px;
       border-bottom: 1px solid var(--border);
       background: var(--surface-soft);
     }
@@ -516,7 +662,7 @@ def build_executive_dashboard(
 
     .table-wrap {
       overflow: auto;
-      max-height: 560px;
+      max-height: 520px;
     }
 
     table {
@@ -527,7 +673,7 @@ def build_executive_dashboard(
 
     th,
     td {
-      padding: 9px 10px;
+      padding: 10px 12px;
       border-bottom: 1px solid var(--border);
       text-align: left;
       vertical-align: top;
@@ -574,13 +720,13 @@ def build_executive_dashboard(
       .filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .charts { grid-template-columns: 1fr; }
-      .chart-wrap { height: 300px; }
+      .chart-wrap { height: 280px; }
     }
 
     @media (max-width: 720px) {
       .page {
         padding: 14px 10px 20px;
-        gap: 10px;
+        gap: 12px;
       }
 
       .filters,
@@ -589,7 +735,7 @@ def build_executive_dashboard(
       }
 
       .chart-wrap {
-        height: 270px;
+        height: 250px;
         min-height: 240px;
       }
 
@@ -603,6 +749,83 @@ def build_executive_dashboard(
 
       .hero-top { align-items: flex-start; }
     }
+
+    @media print {
+      :root,
+      [data-theme="dark"] {
+        --bg: #ffffff;
+        --bg-radial: #ffffff;
+        --surface: #ffffff;
+        --surface-soft: #ffffff;
+        --ink: #111827;
+        --muted: #334155;
+        --border: #cbd5e1;
+        --grid: #e2e8f0;
+        --shadow: none;
+      }
+
+      body {
+        background: #ffffff !important;
+        color: #111827 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .page {
+        max-width: none;
+        padding: 8mm 10mm;
+        gap: 10px;
+      }
+
+      .theme-toggle,
+      .print-btn,
+      .reset-btn,
+      .filters {
+        display: none !important;
+      }
+
+      .controls-row {
+        padding: 0;
+      }
+
+      .hero,
+      .panel,
+      .kpi,
+      .chart-card,
+      .table-panel {
+        box-shadow: none !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .filters {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .field select {
+        appearance: none;
+        border-color: var(--border);
+        background: #fff;
+      }
+
+      .chart-wrap {
+        height: 240px;
+        min-height: 240px;
+      }
+
+      .table-wrap {
+        max-height: none;
+        overflow: visible;
+      }
+
+      table {
+        min-width: 100%;
+      }
+
+      .table-panel {
+        page-break-inside: avoid;
+      }
+    }
   </style>
 </head>
 <body>
@@ -610,7 +833,10 @@ def build_executive_dashboard(
   <section class=\"hero\">
     <div class=\"hero-top\">
       <h1>Pricing & Discount Governance Executive Dashboard</h1>
-      <button id=\"themeToggle\" class=\"theme-toggle\" type=\"button\" aria-label=\"Toggle color mode\">Dark Mode</button>
+      <div class=\"hero-actions\">
+        <button id=\"themeToggle\" class=\"theme-toggle\" type=\"button\" aria-label=\"Toggle color mode\">Dark Mode</button>
+        <button id=\"printBtn\" class=\"print-btn\" type=\"button\" aria-label=\"Print dashboard\">Print</button>
+      </div>
     </div>
     <p>Executive view of discount intensity, margin exposure, and intervention priorities across commercial segments.</p>
     <ul class=\"hero-meta\">
@@ -618,7 +844,15 @@ def build_executive_dashboard(
     </ul>
   </section>
 
-  <section class=\"panel\">
+  <div class=\"section-head\">
+    <h2>Scope Controls</h2>
+    <p>Filters update all KPIs, charts, and the action table with consistent governed aggregates.</p>
+  </div>
+  <section class=\"panel filters-panel\">
+    <div class=\"controls-row\">
+      <p class=\"controls-meta\" id=\"controlsMeta\">Scope: all segments, regions, categories, and channels.</p>
+      <button id=\"resetFiltersBtn\" class=\"reset-btn\" type=\"button\" aria-label=\"Reset filters\">Reset Filters</button>
+    </div>
     <div class=\"filters\">
       <div class=\"field\"><label for=\"segmentFilter\">Segment</label><select id=\"segmentFilter\"></select></div>
       <div class=\"field\"><label for=\"regionFilter\">Region</label><select id=\"regionFilter\"></select></div>
@@ -629,50 +863,63 @@ def build_executive_dashboard(
     </div>
   </section>
 
+  <div class=\"section-head\">
+    <h2>Portfolio Health</h2>
+    <p>Primary commercial quality indicators for the selected scope.</p>
+  </div>
   <section class=\"kpis\">
-    <article class=\"kpi\">
+    <article class=\"kpi kpi-neutral\" id=\"kpiRevenueCard\">
       <p class=\"kpi-title\">Net Revenue In Scope</p>
       <p class=\"kpi-value\" id=\"kpiRevenue\">-</p>
       <p class=\"kpi-sub\">Filtered commercial volume</p>
     </article>
-    <article class=\"kpi\">
+    <article class=\"kpi kpi-warn\" id=\"kpiDiscountCard\">
       <p class=\"kpi-title\">Weighted Discount</p>
       <p class=\"kpi-value\" id=\"kpiDiscount\">-</p>
       <p class=\"kpi-sub\">Revenue-weighted realized discount</p>
     </article>
-    <article class=\"kpi\">
+    <article class=\"kpi kpi-critical\" id=\"kpiMarginRiskCard\">
       <p class=\"kpi-title\">Margin At Risk</p>
       <p class=\"kpi-value\" id=\"kpiMarginRisk\">-</p>
       <p class=\"kpi-sub\">High-discount and low-margin proxy overlap</p>
     </article>
-    <article class=\"kpi\">
+    <article class=\"kpi kpi-warn\" id=\"kpiHighRiskCard\">
       <p class=\"kpi-title\">High-Risk Customers</p>
       <p class=\"kpi-value\" id=\"kpiHighRisk\">-</p>
       <p class=\"kpi-sub\">Critical and high tier in current scope</p>
     </article>
   </section>
 
+  <section class=\"panel insight-strip\">
+    <p class=\"insight-main\" id=\"insightMain\">Assessing current pricing posture...</p>
+    <div class=\"insight-chips\" id=\"insightChips\"></div>
+  </section>
+
+  <div class=\"section-head\">
+    <h2>Diagnostics</h2>
+    <p>Trend, concentration, and governance-action views to guide intervention priorities.</p>
+  </div>
   <section class=\"charts\">
     <article class=\"chart-card\">
-      <h3>Discount Pressure Stayed Elevated Through the Period</h3>
+      <h3>Discount Pressure Trend</h3>
       <p>Monthly weighted discount trend in the selected scope.</p>
       <div class=\"chart-wrap\"><canvas id=\"trendChart\"></canvas></div>
     </article>
 
     <article class=\"chart-card\">
-      <h3>Segment Gap Identifies Where Pricing Discipline Breaks First</h3>
+      <h3>Segment Discount Pressure</h3>
       <p>Weighted discount comparison by segment for the selected non-segment filters.</p>
       <div class=\"chart-wrap\"><canvas id=\"segmentChart\"></canvas></div>
     </article>
 
     <article class=\"chart-card\">
-      <h3>Regional Margin-Risk Concentration Is Uneven</h3>
+      <h3>Margin-At-Risk by Region</h3>
       <p>Margin-at-risk amount by region under current filters.</p>
       <div class=\"chart-wrap\"><canvas id=\"regionRiskChart\"></canvas></div>
     </article>
 
     <article class=\"chart-card\">
-      <h3>Action Mix Shows Where Governance Capacity Should Go First</h3>
+      <h3>Action Priority Mix</h3>
       <p>Revenue in scope grouped by recommended intervention action.</p>
       <div class=\"chart-wrap\"><canvas id=\"actionChart\"></canvas></div>
     </article>
@@ -708,6 +955,9 @@ def build_executive_dashboard(
 const DATA = __DATA_JSON__;
 const ALL = "__ALL_VALUE__";
 const THEME_STORAGE_KEY = 'pricing_dashboard_theme';
+const POLICY = DATA.policy || {};
+const KPI_POLICY = POLICY.kpi_card_thresholds || {};
+const POSTURE_POLICY = POLICY.posture_thresholds || {};
 
 Chart.defaults.font.family = 'IBM Plex Sans, Avenir Next, Segoe UI, sans-serif';
 Chart.defaults.color = '#475569';
@@ -724,6 +974,8 @@ const filterEls = {
   period_end: document.getElementById('periodEndFilter')
 };
 const themeToggleEl = document.getElementById('themeToggle');
+const printBtnEl = document.getElementById('printBtn');
+const resetFiltersBtnEl = document.getElementById('resetFiltersBtn');
 
 const charts = {};
 const tableState = { key: 'governance_priority_score', dir: 'desc' };
@@ -799,8 +1051,20 @@ function compactLabel(label, maxLen = 26) {
   return `${value.slice(0, maxLen - 3)}...`;
 }
 
+function escapeHtml(value) {
+  return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+}
+
 function populateSelect(el, values) {
-  el.innerHTML = values.map((v) => `<option value=\"${v}\">${v}</option>`).join('');
+  const isMonth = el.id === 'periodStartFilter' || el.id === 'periodEndFilter';
+  el.innerHTML = values
+    .map((v) => `<option value=\"${escapeHtml(v)}\">${escapeHtml(isMonth ? fmtMonth(v) : v)}</option>`)
+    .join('');
 }
 
 function getFilters() {
@@ -908,12 +1172,62 @@ function scopedRiskRows(filters) {
 
 function updateKpis(filters, riskRows) {
   const kpi = aggregateScopedPricing(filters);
+  const marginRiskShare = (Number(kpi.net_revenue) || 0) > 0 ? (Number(kpi.margin_at_risk) || 0) / Number(kpi.net_revenue) : 0;
   document.getElementById('kpiRevenue').textContent = fmtCurrency(Number(kpi.net_revenue) || 0);
   document.getElementById('kpiDiscount').textContent = fmtPct(Number(kpi.weighted_discount_pct) || 0);
   document.getElementById('kpiMarginRisk').textContent = fmtCurrency(Number(kpi.margin_at_risk) || 0);
 
   const highRiskCount = riskRows.filter((r) => r.risk_tier === 'High' || r.risk_tier === 'Critical').length;
   document.getElementById('kpiHighRisk').textContent = highRiskCount.toLocaleString('en-US');
+
+  const discountCard = document.getElementById('kpiDiscountCard');
+  const discountWarn = Number(KPI_POLICY.weighted_discount_warn ?? 0.14);
+  const discountCritical = Number(KPI_POLICY.weighted_discount_critical ?? 0.20);
+  const marginWarn = Number(KPI_POLICY.margin_risk_share_warn ?? 0.12);
+  const marginCritical = Number(KPI_POLICY.margin_risk_share_critical ?? 0.20);
+  const riskWarn = Number(KPI_POLICY.high_risk_count_warn ?? 35);
+  const riskCritical = Number(KPI_POLICY.high_risk_count_critical ?? 80);
+
+  discountCard.className = `kpi ${kpi.weighted_discount_pct >= discountCritical ? 'kpi-critical' : kpi.weighted_discount_pct >= discountWarn ? 'kpi-warn' : 'kpi-ok'}`;
+  const marginCard = document.getElementById('kpiMarginRiskCard');
+  marginCard.className = `kpi ${marginRiskShare >= marginCritical ? 'kpi-critical' : marginRiskShare >= marginWarn ? 'kpi-warn' : 'kpi-ok'}`;
+  const highRiskCard = document.getElementById('kpiHighRiskCard');
+  highRiskCard.className = `kpi ${highRiskCount >= riskCritical ? 'kpi-critical' : highRiskCount >= riskWarn ? 'kpi-warn' : 'kpi-ok'}`;
+
+  return { ...kpi, high_risk_count: highRiskCount, margin_risk_share: marginRiskShare };
+}
+
+function updateInsight(filters, kpi, riskRows) {
+  const topDriverMap = new Map();
+  riskRows.forEach((r) => {
+    const d = r.main_risk_driver || 'unknown';
+    topDriverMap.set(d, (topDriverMap.get(d) || 0) + (Number(r.filtered_revenue) || 0));
+  });
+  const topDriver = [...topDriverMap.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || 'mixed';
+
+  const discountWarn = Number(POSTURE_POLICY.weighted_discount_warn ?? 0.14);
+  const discountCritical = Number(POSTURE_POLICY.weighted_discount_critical ?? 0.20);
+  const marginWarn = Number(POSTURE_POLICY.margin_risk_share_warn ?? 0.12);
+  const marginCritical = Number(POSTURE_POLICY.margin_risk_share_critical ?? 0.20);
+  const riskWarn = Number(POSTURE_POLICY.high_risk_count_warn ?? 35);
+  const riskCritical = Number(POSTURE_POLICY.high_risk_count_critical ?? 80);
+
+  let posture = 'Pricing discipline is currently within monitor range.';
+  if (kpi.weighted_discount_pct >= discountCritical || kpi.margin_risk_share >= marginCritical || kpi.high_risk_count >= riskCritical) {
+    posture = 'Current scope shows discount-led risk concentration; governance intervention should be prioritized.';
+  } else if (kpi.weighted_discount_pct >= discountWarn || kpi.margin_risk_share >= marginWarn || kpi.high_risk_count >= riskWarn) {
+    posture = 'Current scope is mixed: targeted governance intervention is recommended before risk broadens.';
+  }
+
+  document.getElementById('insightMain').textContent = posture;
+  const chips = [
+    `Scope: ${filters.segment === ALL ? 'All segments' : filters.segment}`,
+    `Weighted discount: ${fmtPct(kpi.weighted_discount_pct || 0)}`,
+    `Margin at risk share: ${fmtPct(kpi.margin_risk_share || 0)}`,
+    `High-risk customers: ${(kpi.high_risk_count || 0).toLocaleString('en-US')}`,
+    `Top risk driver: ${String(topDriver).replaceAll('_', ' ')}`
+  ];
+  document.getElementById('insightChips').innerHTML = chips.map((c) => `<span class="insight-chip">${c}</span>`).join('');
 }
 
 function updateTrendChart(filters) {
@@ -1033,7 +1347,9 @@ function updateSegmentChart(filters) {
         x: {
           ticks: {
             color: palette.axisText,
-            callback: (_, i) => compactLabel(rows[i]?.segment || '', 16)
+            minRotation: rows.length > 5 ? 20 : 0,
+            maxRotation: rows.length > 5 ? 35 : 0,
+            callback: (_, i) => compactLabel(rows[i]?.segment || '', 18)
           },
           grid: { display: false }
         },
@@ -1090,7 +1406,9 @@ function updateRegionRiskChart(filters) {
         x: {
           ticks: {
             color: palette.axisText,
-            callback: (_, i) => compactLabel(rows[i]?.region || '', 16)
+            minRotation: rows.length > 5 ? 20 : 0,
+            maxRotation: rows.length > 5 ? 35 : 0,
+            callback: (_, i) => compactLabel(rows[i]?.region || '', 18)
           },
           grid: { display: false }
         },
@@ -1184,7 +1502,7 @@ function sortRows(rows) {
 }
 
 function renderTable(riskRows) {
-  const sorted = sortRows(riskRows).slice(0, 160);
+  const sorted = sortRows(riskRows).slice(0, 120);
   const tbody = document.querySelector('#riskTable tbody');
 
   tbody.innerHTML = sorted.map((r) => `
@@ -1208,9 +1526,8 @@ function initMeta() {
 
 function setPeriodOptions() {
   const months = DATA.filterOptions.order_month || [];
-  const options = months.map((m) => `<option value="${m}">${m}</option>`).join('');
-  filterEls.period_start.innerHTML = options;
-  filterEls.period_end.innerHTML = options;
+  populateSelect(filterEls.period_start, months);
+  populateSelect(filterEls.period_end, months);
 
   if (months.length > 0) {
     filterEls.period_start.value = months[0];
@@ -1223,12 +1540,33 @@ function updateSelectedPeriodMeta(filters) {
     `Commercial window: ${DATA.meta.coverage_start} to ${DATA.meta.coverage_end} | Current view: ${fmtMonth(filters.period_start)} to ${fmtMonth(filters.period_end)}`;
 }
 
+function updateControlsMeta(filters) {
+  const readable = (val, label) => val === ALL ? `all ${label}` : val;
+  const text = `Scope: ${readable(filters.segment, 'segments')} · ${readable(filters.region, 'regions')} · ${readable(filters.category, 'categories')} · ${readable(filters.sales_channel, 'channels')} · ${fmtMonth(filters.period_start)} to ${fmtMonth(filters.period_end)}.`;
+  document.getElementById('controlsMeta').textContent = text;
+}
+
+function resetFilters() {
+  filterEls.segment.value = ALL;
+  filterEls.region.value = ALL;
+  filterEls.category.value = ALL;
+  filterEls.sales_channel.value = ALL;
+  const months = DATA.filterOptions.order_month || [];
+  if (months.length > 0) {
+    filterEls.period_start.value = months[0];
+    filterEls.period_end.value = months[months.length - 1];
+  }
+  updateAll();
+}
+
 function updateAll() {
   const filters = getFilters();
   const riskRows = scopedRiskRows(filters);
 
   updateSelectedPeriodMeta(filters);
-  updateKpis(filters, riskRows);
+  updateControlsMeta(filters);
+  const kpi = updateKpis(filters, riskRows);
+  updateInsight(filters, kpi, riskRows);
   updateTrendChart(filters);
   updateSegmentChart(filters);
   updateRegionRiskChart(filters);
@@ -1244,6 +1582,7 @@ function init() {
   setPeriodOptions();
 
   Object.values(filterEls).forEach((el) => el.addEventListener('change', updateAll));
+  if (resetFiltersBtnEl) resetFiltersBtnEl.addEventListener('click', resetFilters);
 
   document.querySelectorAll('#riskTable thead th').forEach((th) => {
     th.addEventListener('click', () => {
@@ -1267,10 +1606,21 @@ function init() {
       updateAll();
     });
   }
+  if (printBtnEl) {
+    printBtnEl.addEventListener('click', () => window.print());
+  }
 
   initMeta();
   updateAll();
 }
+
+window.addEventListener('beforeprint', () => {
+  Object.values(charts).forEach((chart) => chart.resize());
+});
+
+window.addEventListener('afterprint', () => {
+  Object.values(charts).forEach((chart) => chart.resize());
+});
 
 init();
 </script>

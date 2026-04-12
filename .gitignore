@@ -29,12 +29,21 @@ venv/
 /outputs/*.csv
 /outputs/*.json
 /outputs/*.md
-/outputs/release/*.json
-/outputs/release/*.md
-/outputs/release/*.csv
+/outputs/analysis/*.csv
+/outputs/analysis/*.json
+/outputs/analysis/*.md
+/outputs/profiling/*.csv
+/outputs/profiling/*.json
+/outputs/profiling/*.md
 /outputs/dashboard/*.csv
 /outputs/dashboard/*.json
 /docs/reports/*.md
+!/docs/reports/executive_summary.md
+
+# Keep curated deliverables
+!/outputs/README.md
+!/outputs/dashboard/*.html
+!/outputs/visualizations/*.png
 
 # Jupyter
 .ipynb_checkpoints/
