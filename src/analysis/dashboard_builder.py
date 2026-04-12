@@ -1633,7 +1633,7 @@ init();
 
     html = html.replace("__DATA_JSON__", data_json).replace("__ALL_VALUE__", ALL_VALUE)
 
-    dashboard_filename = "executive-pricing-discipline-command-center.html"
+    dashboard_filename = "pricing-discipline-command-center.html"
     dashboard_path = dashboard_dir / dashboard_filename
     dashboard_path.write_text(html, encoding="utf-8")
 
@@ -1647,7 +1647,7 @@ init();
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Executive Pricing Discipline Command Center</title>
+  <title>Pricing Discipline Command Center</title>
   <meta http-equiv="refresh" content="0; url=./{dashboard_filename}" />
 </head>
 <body>

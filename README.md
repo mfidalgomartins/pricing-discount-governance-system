@@ -29,7 +29,7 @@ Ingestion -> Processing -> Feature engineering -> Risk scoring -> Validation -> 
 
 ## Core outputs
 - GitHub Pages entrypoint: `index.html`
-- Final dashboard file: `outputs/dashboard/executive-pricing-discipline-command-center.html`
+- Final dashboard file: `outputs/dashboard/pricing-discipline-command-center.html`
 - Visualization pack: `outputs/visualizations/*.png`
 - Validation evidence: `outputs/*validation*`
 

@@ -4,7 +4,7 @@
 https://mfidalgomartins.github.io/pricing-discount-governance-system/
 
 ## Main assets
-- Source dashboard: `outputs/dashboard/executive-pricing-discipline-command-center.html`
+- Source dashboard: `outputs/dashboard/pricing-discipline-command-center.html`
 - GitHub Pages entrypoint: `index.html`
 
 ## Functional scope

@@ -15,7 +15,7 @@ REQUIRED_PATHS = [
     "scripts/run_pipeline.py",
     "scripts/cleanup_repository.py",
     "index.html",
-    "outputs/dashboard/executive-pricing-discipline-command-center.html",
+    "outputs/dashboard/pricing-discipline-command-center.html",
     "docs/project_context_and_metrics.md",
     "docs/validation_framework.md",
     "docs/release_and_reproducibility.md",
