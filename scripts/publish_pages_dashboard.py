@@ -10,7 +10,7 @@ import shutil
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DASHBOARD_FILENAME = "pricing-discipline-command-center.html"
+DASHBOARD_FILENAME = "executive-pricing-discipline-command-center.html"
 
 SOURCE_HTML = ROOT / "outputs" / "dashboard" / DASHBOARD_FILENAME
 SOURCE_VENDOR = ROOT / "outputs" / "dashboard" / "vendor" / "chart.umd.min.js"

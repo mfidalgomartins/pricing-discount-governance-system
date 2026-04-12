@@ -4,9 +4,9 @@
 Provide a leadership-ready view of pricing health, discount dependency, margin-at-risk exposure, and governance priorities.
 
 ## Main Assets
-- Source dashboard: `outputs/dashboard/pricing-discipline-command-center.html`
+- Source dashboard: `outputs/dashboard/executive-pricing-discipline-command-center.html`
 - Pages entry: `docs/index.html`
-- Pages named file: `docs/pricing-discipline-command-center.html`
+- Pages named file: `docs/executive-pricing-discipline-command-center.html`
 
 ## Included Sections
 - Executive title/subtitle and coverage metadata.

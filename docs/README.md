@@ -5,7 +5,7 @@ https://mfidalgomartins.github.io/pricing-discount-governance-system/
 
 ## GitHub Pages files
 - Entry: `index.html`
-- Named dashboard: `pricing-discipline-command-center.html`
+- Named dashboard: `executive-pricing-discipline-command-center.html`
 
 ## Core docs to read in order
 1. `project_context_and_metrics.md`
