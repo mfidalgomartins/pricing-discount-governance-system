@@ -1,0 +1,2 @@
+total_customers_raw,transacting_customers,profiled_customers,scored_customers,excluded_non_transacting_customers,excluded_non_transacting_share,transacting_not_profiled_customers,profiled_not_scored_customers
+1200,1173,1173,1173,27,0.0225,0,0

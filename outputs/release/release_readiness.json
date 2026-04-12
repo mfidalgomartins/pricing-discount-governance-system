@@ -1,0 +1,23 @@
+{
+  "generated_at_utc": "2026-04-12T12:34:31.681520+00:00",
+  "overall_assessment": "ready",
+  "release_readiness_state": "not committee-grade",
+  "readiness_flags": {
+    "technically_valid": true,
+    "analytically_acceptable": true,
+    "decision_support_only": true,
+    "screening_grade_only": false,
+    "not_committee_grade": true,
+    "publish_blocked": false
+  },
+  "failed_checks": 0,
+  "failed_blocker_checks": 0,
+  "failed_technical_checks": 0,
+  "failed_analytical_checks": 0,
+  "excluded_customers": 27,
+  "excluded_customer_pct": 0.0225,
+  "high_discount_revenue_share": 0.32337989707266335,
+  "dashboard_size_mb": 4.119,
+  "all_checks_passed": true,
+  "share_orders_high_discount_variance": 0.08462248778353747
+}

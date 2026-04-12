@@ -1,0 +1,34 @@
+contract_table,check_name,status,severity,detail
+order_item_pricing_metrics,table_exists,PASS,Low,rows=38173 cols=33
+order_item_pricing_metrics,required_columns_present,PASS,High,all present
+order_item_pricing_metrics,key_null_rate,PASS,High,max_null_rate=0.0000
+order_item_pricing_metrics,bound_line_revenue,PASS,High,"violations=0, min=0.0, max=None"
+order_item_pricing_metrics,bound_line_list_revenue,PASS,High,"violations=0, min=0.0, max=None"
+order_item_pricing_metrics,bound_discount_depth,PASS,High,"violations=0, min=0.0, max=0.7"
+order_item_pricing_metrics,bound_margin_proxy_pct,PASS,High,"violations=0, min=-0.25, max=1.0"
+customer_pricing_profile,table_exists,PASS,Low,rows=1173 cols=17
+customer_pricing_profile,required_columns_present,PASS,High,all present
+customer_pricing_profile,key_null_rate,PASS,High,max_null_rate=0.0000
+customer_pricing_profile,bound_total_orders,PASS,High,"violations=0, min=1, max=None"
+customer_pricing_profile,bound_total_revenue,PASS,High,"violations=0, min=0.0, max=None"
+customer_pricing_profile,bound_avg_discount_pct,PASS,High,"violations=0, min=0.0, max=0.7"
+customer_pricing_profile,bound_share_orders_discounted,PASS,High,"violations=0, min=0.0, max=1.0"
+customer_pricing_profile,bound_share_orders_high_discount,PASS,High,"violations=0, min=0.0, max=1.0"
+customer_pricing_profile,bound_revenue_high_discount_share,PASS,High,"violations=0, min=0.0, max=1.0"
+customer_pricing_profile,bound_avg_margin_proxy_pct,PASS,High,"violations=0, min=0.0, max=1.0"
+customer_risk_scores,table_exists,PASS,Low,rows=1173 cols=20
+customer_risk_scores,required_columns_present,PASS,High,all present
+customer_risk_scores,key_null_rate,PASS,High,max_null_rate=0.0000
+customer_risk_scores,bound_pricing_risk_score,PASS,High,"violations=0, min=0.0, max=100.0"
+customer_risk_scores,bound_discount_dependency_score,PASS,High,"violations=0, min=0.0, max=100.0"
+customer_risk_scores,bound_margin_erosion_score,PASS,High,"violations=0, min=0.0, max=100.0"
+customer_risk_scores,bound_governance_priority_score,PASS,High,"violations=0, min=0.0, max=100.0"
+customer_risk_scores,bound_low_data_flag,PASS,High,"violations=0, min=0, max=1"
+customer_risk_scores,allowed_values_risk_tier,PASS,High,invalid_rows=0
+overall_pricing_health,table_exists,PASS,Low,rows=1 cols=8
+overall_pricing_health,required_columns_present,PASS,High,all present
+overall_pricing_health,bound_total_revenue,PASS,High,"violations=0, min=0.0, max=None"
+overall_pricing_health,bound_weighted_realized_discount,PASS,High,"violations=0, min=0.0, max=1.0"
+overall_pricing_health,bound_price_realization,PASS,High,"violations=0, min=0.0, max=1.0"
+overall_pricing_health,bound_high_discount_revenue_share,PASS,High,"violations=0, min=0.0, max=1.0"
+overall_pricing_health,bound_margin_proxy_pct,PASS,High,"violations=0, min=0.0, max=1.0"

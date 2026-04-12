@@ -1,0 +1,2 @@
+table_name,column_name,severity,issue_type,detail
+customer_pricing_profile,customer_id,Medium,population_exclusion,27 customers (2.25%) have no transactions in period and are excluded

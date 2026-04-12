@@ -1,0 +1,11 @@
+check_name,status,detail
+row_count_sanity,PASS,"pricing rows=38173, enriched rows=38173"
+null_sanity_core_columns,PASS,null count in key columns=0
+magnitude_checks_positive_revenue,PASS,"total_revenue=1842490140.06, total_list_revenue=2249244147.73"
+trend_continuity_monthly,PASS,"expected_months=36, observed_months=36"
+time_window_year_coverage,PASS,"expected_years=[2023, 2024, 2025], observed_years=[2023, 2024, 2025]"
+subtotal_total_consistency,PASS,"segment_total=1842490140.06, total=1842490140.06"
+denominator_correctness_shares,PASS,"share metrics constrained to [0,1]"
+aggregation_logic_weighted_discount,PASS,"weighted_direct=0.180840, weighted_ratio=0.180840"
+aggregation_logic_weighted_margin,PASS,"weighted_direct=0.454710, weighted_totals=0.454710"
+population_coverage_transacting_customers,PASS,"transacting_customers=1173, scored_customers=1173"

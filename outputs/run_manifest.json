@@ -1,0 +1,84 @@
+{
+  "project": "Pricing Discipline & Discount Governance System",
+  "configuration": {
+    "seed": 42,
+    "n_customers": 1200,
+    "n_products": 28,
+    "n_sales_reps": 45,
+    "n_orders": 18000,
+    "start_date": "2023-01-01",
+    "end_date": "2025-12-31"
+  },
+  "row_counts": {
+    "raw": {
+      "customers": 1200,
+      "products": 28,
+      "orders": 18000,
+      "order_items": 38173,
+      "sales_reps": 45
+    },
+    "processed": {
+      "order_item_enriched": 38173,
+      "order_item_pricing_metrics": 38173,
+      "customer_pricing_profile": 1173,
+      "segment_pricing_summary": 4,
+      "segment_channel_diagnostics": 16,
+      "customer_risk_scores": 1173,
+      "risk_tier_summary": 3,
+      "main_driver_summary": 3
+    },
+    "analysis": {
+      "monthly_pricing_performance": 36,
+      "channel_pricing_summary": 4,
+      "product_pricing_summary": 28,
+      "rep_pricing_diagnostics": 45,
+      "top_risk_customers": 50,
+      "risk_by_segment": 11
+    },
+    "profiling": {
+      "table_profile_summary": 13,
+      "column_profile": 143,
+      "table_top_values": 157,
+      "table_numeric_summary": 71,
+      "data_quality_issues": 1,
+      "recommended_analytical_focus": 13,
+      "population_coverage": 1
+    },
+    "formal_analysis": {
+      "overall_pricing_health": 1,
+      "yearly_pricing_health": 3,
+      "customer_discount_dependency": 1173,
+      "segment_discount_dependency": 4,
+      "product_discount_dependency": 28,
+      "discount_dependency_concentration": 1,
+      "margin_erosion_risk": 20,
+      "rep_pricing_inconsistency": 45,
+      "channel_region_pricing_inconsistency": 16,
+      "product_price_variance": 112,
+      "product_governance_patterns": 28,
+      "threshold_sensitivity_analysis": 3,
+      "governance_action_queue": 1173,
+      "formal_analysis_validation_checks": 10
+    },
+    "visualization": {
+      "segment_risk_visual_base": 4,
+      "channel_pricing_visual_base": 4,
+      "product_dependence_visual_base": 28
+    },
+    "final_validation": {
+      "final_validation_checks": 25,
+      "final_validation_issues": 1,
+      "final_validation_summary": 1,
+      "final_validation_readiness": 6
+    }
+  },
+  "validation": {
+    "raw_passed": true,
+    "processed_passed": true,
+    "metric_contracts_passed": true,
+    "raw_report": "/Users/miguelfidalgo/Documents/pricing_discount_governance_system/outputs/raw_validation_report.csv",
+    "processed_report": "/Users/miguelfidalgo/Documents/pricing_discount_governance_system/outputs/processed_validation_report.csv",
+    "metric_contract_report": "/Users/miguelfidalgo/Documents/pricing_discount_governance_system/outputs/metric_contract_validation.csv"
+  },
+  "dashboard": "/Users/miguelfidalgo/Documents/pricing_discount_governance_system/outputs/dashboard/pricing_discount_governance_dashboard.html"
+}

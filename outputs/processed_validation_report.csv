@@ -1,0 +1,22 @@
+check_name,status,failed_rows,detail
+order_item_pricing_metrics_required_columns,PASS,0,all required columns present
+customer_pricing_profile_required_columns,PASS,0,all required columns present
+segment_pricing_summary_required_columns,PASS,0,all required columns present
+customer_risk_scores_required_columns,PASS,0,all required columns present
+order_item_pricing_metrics_unique_order_item_id,PASS,0,order-item grain uniqueness
+order_item_pricing_metrics_discount_depth_bounds,PASS,0,"discount_depth remains within [0, 1]"
+order_item_pricing_metrics_realized_lte_list,PASS,0,realized price does not exceed list price at sale
+order_item_pricing_metrics_weighted_discount_reconciliation,PASS,0,"weighted_direct=0.180840, weighted_from_totals=0.180840"
+pricing_risk_score_bounds,PASS,0,"score remains in [0, 100]"
+discount_dependency_score_bounds,PASS,0,"score remains in [0, 100]"
+margin_erosion_score_bounds,PASS,0,"score remains in [0, 100]"
+governance_priority_score_bounds,PASS,0,"score remains in [0, 100]"
+customer_risk_scores_unique_customer_id,PASS,0,customer-level grain uniqueness
+customer_risk_scores_allowed_tiers,PASS,0,risk_tier values align with policy taxonomy
+customer_risk_scores_allowed_actions,PASS,0,recommended_action values align with governance playbook
+customer_pricing_profile_unique_customer_id,PASS,0,customer-level grain uniqueness
+customer_pricing_profile_share_orders_discounted_bounds,PASS,0,"share_orders_discounted remains within [0, 1]"
+customer_pricing_profile_share_orders_high_discount_bounds,PASS,0,"share_orders_high_discount remains within [0, 1]"
+customer_pricing_profile_revenue_high_discount_share_bounds,PASS,0,"revenue_high_discount_share remains within [0, 1]"
+customer_pricing_profile_repeat_discount_behavior_bounds,PASS,0,"repeat_discount_behavior remains within [0, 1]"
+customer_profile_to_risk_rowcount_consistency,PASS,0,"profile_rows=1173, risk_rows=1173"

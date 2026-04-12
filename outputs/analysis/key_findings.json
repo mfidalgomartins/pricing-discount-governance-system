@@ -1,0 +1,21 @@
+{
+  "findings": {
+    "revenue_growth_2025_vs_2023_pct": 8.54,
+    "latest_year_avg_discount_pct": 0.1806,
+    "latest_year_avg_margin_proxy_pct": 0.4704,
+    "segment_with_highest_margin_erosion_proxy": "Enterprise",
+    "segment_margin_erosion_proxy_value": 26.53,
+    "channel_with_highest_avg_discount": "Reseller",
+    "channel_highest_avg_discount_pct": 0.1925,
+    "critical_risk_customers": 0,
+    "high_or_critical_customers": 41,
+    "high_or_critical_revenue_share": 0.0932
+  },
+  "recommendations": [
+    "tighten approval thresholds for deals above 20% discount in high-risk segments",
+    "review segment pricing where margin erosion proxy is highest before next planning cycle",
+    "investigate rep behavior for outlier discount variance by team and region",
+    "redesign discount policy for customers with sustained high discount dependency",
+    "monitor only low-risk cohorts with monthly governance reporting"
+  ]
+}

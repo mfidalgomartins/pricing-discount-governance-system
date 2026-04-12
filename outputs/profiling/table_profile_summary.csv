@@ -1,0 +1,14 @@
+table_name,grain,primary_key,foreign_keys,row_count,column_count,date_coverage_start,date_coverage_end,duplicate_rows_on_primary_key
+customers,1 row per customer account,customer_id,,1200,5,2019-01-01,2022-12-30,0
+products,1 row per product,product_id,,28,5,,,0
+sales_reps,1 row per sales rep,sales_rep_id,,45,3,,,0
+orders,1 row per order header,order_id,"customer_id->customers.customer_id, sales_rep_id->sales_reps.sales_rep_id",18000,5,2023-01-01,2025-12-31,0
+order_items,1 row per order line item,order_item_id,"order_id->orders.order_id, product_id->products.product_id",38173,7,,,0
+order_item_enriched,1 row per order line item with all dimensions attached,order_item_id,"order_id->orders.order_id, customer_id->customers.customer_id, product_id->products.product_id, sales_rep_id->sales_reps.sales_rep_id",38173,23,2023-01-01,2025-12-31,0
+order_item_pricing_metrics,1 row per order line item with pricing metrics,order_item_id,"order_id->orders.order_id, customer_id->customers.customer_id, product_id->products.product_id, sales_rep_id->sales_reps.sales_rep_id",38173,33,2023-01-01,2025-12-31,0
+customer_pricing_profile,1 row per customer pricing behavior profile,customer_id,customer_id->customers.customer_id,1173,17,,,0
+segment_pricing_summary,1 row per customer segment,segment,,4,9,,,0
+segment_channel_diagnostics,1 row per segment x sales_channel,"segment, sales_channel",,16,7,,,0
+customer_risk_scores,1 row per customer scored for pricing governance risk,customer_id,customer_id->customer_pricing_profile.customer_id,1173,20,,,0
+risk_tier_summary,1 row per risk_tier x recommended_action,"risk_tier, recommended_action",,3,5,,,0
+main_driver_summary,1 row per main risk driver,main_risk_driver,,3,4,,,0

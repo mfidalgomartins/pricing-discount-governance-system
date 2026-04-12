@@ -1,0 +1,24 @@
+check_name,status,failed_rows,detail
+customers_required_columns,PASS,0,all required columns present
+products_required_columns,PASS,0,all required columns present
+orders_required_columns,PASS,0,all required columns present
+order_items_required_columns,PASS,0,all required columns present
+sales_reps_required_columns,PASS,0,all required columns present
+customers_unique_customer_id,PASS,0,no duplicates
+products_unique_product_id,PASS,0,no duplicates
+orders_unique_order_id,PASS,0,no duplicates
+order_items_unique_order_item_id,PASS,0,no duplicates
+sales_reps_unique_sales_rep_id,PASS,0,no duplicates
+orders_customer_fk,PASS,0,all orders linked to existing customers
+orders_sales_rep_fk,PASS,0,all orders linked to existing sales reps
+order_items_order_fk,PASS,0,all order lines linked to existing orders
+order_items_product_fk,PASS,0,all order lines linked to existing products
+customers_nulls,PASS,0,no null values
+products_nulls,PASS,0,no null values
+orders_nulls,PASS,0,no null values
+order_items_nulls,PASS,0,no null values
+sales_reps_nulls,PASS,0,no null values
+order_items_discount_bounds,PASS,0,"discounts are within [0, 0.7]"
+order_items_realized_lte_list,PASS,0,realized price does not exceed list price at sale
+order_items_positive_quantity,PASS,0,all quantities are positive
+order_items_discount_formula_consistency,PASS,0,discount aligns with price arithmetic within tolerance

@@ -1,0 +1,14 @@
+table_name,best_dimensions,best_metrics,potential_join_keys,likely_hierarchies,useful_follow_up_analysis
+customer_pricing_profile,"segment, region, company_size","total_orders, total_order_items, total_revenue, avg_discount_pct, share_order_items_discounted, product_diversity, avg_margin_proxy_pct, realized_price_cv, share_orders_discounted, share_orders_high_discount",customer_id,region > segment,
+customer_risk_scores,"segment, region, company_size, risk_tier, main_risk_driver, recommended_action","total_orders, total_revenue, avg_discount_pct, share_orders_discounted, share_orders_high_discount, revenue_high_discount_share, avg_margin_proxy_pct, pricing_risk_score, discount_dependency_score, margin_erosion_score",customer_id,region > segment,risk tier drift and intervention effectiveness
+customers,"segment, region, company_size",,customer_id,region > segment,
+main_driver_summary,,"customers, total_revenue, avg_priority",main_risk_driver,,
+order_item_enriched,,"quantity, list_price_at_sale, realized_unit_price, discount_pct, list_price, unit_cost, days_since_signup","order_item_id, order_id, customer_id, sales_rep_id, product_id",order_date > order_quarter > order_month,discount distribution stability and policy threshold adherence
+order_item_pricing_metrics,,"quantity, list_price_at_sale, realized_unit_price, discount_pct, list_price, unit_cost, days_since_signup, realized_price, discount_depth, line_list_revenue","order_item_id, order_id, customer_id, sales_rep_id, product_id",order_date > order_quarter > order_month,discount distribution stability and policy threshold adherence
+order_items,,"quantity, list_price_at_sale, realized_unit_price, discount_pct","order_item_id, order_id, product_id",,discount distribution stability and policy threshold adherence
+orders,,,"order_id, customer_id, sales_rep_id",,
+products,category,"list_price, unit_cost",product_id,category > product_name,
+risk_tier_summary,,"customers, total_revenue, avg_governance_priority","risk_tier, recommended_action",,
+sales_reps,"team, region",,sales_rep_id,,
+segment_channel_diagnostics,,"revenue, avg_discount_pct, avg_margin_proxy_pct, high_discount_share, order_item_count","segment, sales_channel",,
+segment_pricing_summary,,"total_revenue, avg_discount_pct, median_discount_pct, share_high_discount, avg_margin_proxy_pct, realized_price_variance, realized_price_std, margin_erosion_proxy",segment,,

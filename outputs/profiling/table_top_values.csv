@@ -1,0 +1,158 @@
+table_name,column_name,value,count,share
+customers,segment,SMB,540,0.45
+customers,segment,Mid-Market,349,0.29083333333333333
+customers,segment,Enterprise,249,0.2075
+customers,segment,Public Sector,62,0.051666666666666666
+customers,region,North America,515,0.42916666666666664
+customers,region,Europe,323,0.26916666666666667
+customers,region,APAC,206,0.17166666666666666
+customers,region,LATAM,156,0.13
+customers,company_size,Small,381,0.3175
+customers,company_size,Medium,371,0.30916666666666665
+customers,company_size,Large,307,0.25583333333333336
+customers,company_size,Enterprise,141,0.1175
+products,product_name,Core Product 01,1,0.03571428571428571
+products,product_name,Analytics Product 02,1,0.03571428571428571
+products,product_name,Analytics Product 03,1,0.03571428571428571
+products,product_name,Collaboration Product 04,1,0.03571428571428571
+products,product_name,Core Product 05,1,0.03571428571428571
+products,category,Core Platform,13,0.4642857142857143
+products,category,Analytics,7,0.25
+products,category,Collaboration,3,0.10714285714285714
+products,category,Professional Services,3,0.10714285714285714
+products,category,Security,2,0.07142857142857142
+sales_reps,team,New Business,19,0.4222222222222222
+sales_reps,team,Expansion,14,0.3111111111111111
+sales_reps,team,Channel,12,0.26666666666666666
+sales_reps,region,North America,20,0.4444444444444444
+sales_reps,region,Europe,18,0.4
+sales_reps,region,LATAM,4,0.08888888888888889
+sales_reps,region,APAC,3,0.06666666666666667
+orders,sales_channel,Direct,8579,0.4766111111111111
+orders,sales_channel,Partner,3784,0.21022222222222223
+orders,sales_channel,Online,3569,0.19827777777777778
+orders,sales_channel,Reseller,2068,0.11488888888888889
+order_item_enriched,order_month,2025-12,1430,0.03746103266706834
+order_item_enriched,order_month,2024-12,1331,0.03486757655934823
+order_item_enriched,order_month,2023-12,1319,0.03455321824326094
+order_item_enriched,order_month,2025-03,1278,0.033479160663296044
+order_item_enriched,order_month,2024-03,1260,0.033007623189165114
+order_item_enriched,order_quarter,2024Q4,3694,0.09676996830220312
+order_item_enriched,order_quarter,2025Q4,3583,0.09386215387839572
+order_item_enriched,order_quarter,2023Q4,3418,0.08953972703219554
+order_item_enriched,order_quarter,2025Q1,3136,0.08215230660414428
+order_item_enriched,order_quarter,2023Q2,3119,0.08170696565635396
+order_item_enriched,segment,Enterprise,14397,0.3771513897257224
+order_item_enriched,segment,Mid-Market,10996,0.28805700364131714
+order_item_enriched,segment,SMB,10848,0.2841799177429073
+order_item_enriched,segment,Public Sector,1932,0.05061168889005318
+order_item_enriched,region,North America,16307,0.4271867550362822
+order_item_enriched,region,Europe,10178,0.26662824509470046
+order_item_enriched,region,APAC,6739,0.17653839100935215
+order_item_enriched,region,LATAM,4949,0.1296466088596652
+order_item_enriched,company_size,Large,13093,0.34299111937757054
+order_item_enriched,company_size,Medium,10058,0.2634846619338276
+order_item_enriched,company_size,Small,7575,0.19843868703009981
+order_item_enriched,company_size,Enterprise,7447,0.1950855316585021
+order_item_enriched,sales_channel,Direct,18598,0.48720299688261337
+order_item_enriched,sales_channel,Partner,7993,0.20938883504047362
+order_item_enriched,sales_channel,Online,7331,0.19204673460299165
+order_item_enriched,sales_channel,Reseller,4251,0.11136143347392136
+order_item_enriched,team,New Business,17249,0.4518638828491342
+order_item_enriched,team,Channel,11072,0.2900479396432033
+order_item_enriched,team,Expansion,9852,0.2580881775076625
+order_item_enriched,rep_region,North America,16634,0.43575301914966075
+order_item_enriched,rep_region,Europe,10923,0.28614465721845284
+order_item_enriched,rep_region,APAC,6049,0.15846278783433318
+order_item_enriched,rep_region,LATAM,4567,0.11963953579755325
+order_item_enriched,product_name,Security Product 12,4084,0.10698661357503995
+order_item_enriched,product_name,Security Product 17,4009,0.10502187409949441
+order_item_enriched,product_name,Collaboration Product 04,2349,0.061535640374086396
+order_item_enriched,product_name,Collaboration Product 19,2271,0.05949231131951903
+order_item_enriched,product_name,Collaboration Product 26,2216,0.058051502370785636
+order_item_enriched,category,Core Platform,10297,0.2697456317292327
+order_item_enriched,category,Analytics,8510,0.22293243915856759
+order_item_enriched,category,Security,8093,0.21200848767453437
+order_item_enriched,category,Collaboration,6836,0.17907945406439107
+order_item_enriched,category,Professional Services,4437,0.1162339873732743
+order_item_pricing_metrics,order_month,2025-12,1430,0.03746103266706834
+order_item_pricing_metrics,order_month,2024-12,1331,0.03486757655934823
+order_item_pricing_metrics,order_month,2023-12,1319,0.03455321824326094
+order_item_pricing_metrics,order_month,2025-03,1278,0.033479160663296044
+order_item_pricing_metrics,order_month,2024-03,1260,0.033007623189165114
+order_item_pricing_metrics,order_quarter,2024Q4,3694,0.09676996830220312
+order_item_pricing_metrics,order_quarter,2025Q4,3583,0.09386215387839572
+order_item_pricing_metrics,order_quarter,2023Q4,3418,0.08953972703219554
+order_item_pricing_metrics,order_quarter,2025Q1,3136,0.08215230660414428
+order_item_pricing_metrics,order_quarter,2023Q2,3119,0.08170696565635396
+order_item_pricing_metrics,segment,Enterprise,14397,0.3771513897257224
+order_item_pricing_metrics,segment,Mid-Market,10996,0.28805700364131714
+order_item_pricing_metrics,segment,SMB,10848,0.2841799177429073
+order_item_pricing_metrics,segment,Public Sector,1932,0.05061168889005318
+order_item_pricing_metrics,region,North America,16307,0.4271867550362822
+order_item_pricing_metrics,region,Europe,10178,0.26662824509470046
+order_item_pricing_metrics,region,APAC,6739,0.17653839100935215
+order_item_pricing_metrics,region,LATAM,4949,0.1296466088596652
+order_item_pricing_metrics,company_size,Large,13093,0.34299111937757054
+order_item_pricing_metrics,company_size,Medium,10058,0.2634846619338276
+order_item_pricing_metrics,company_size,Small,7575,0.19843868703009981
+order_item_pricing_metrics,company_size,Enterprise,7447,0.1950855316585021
+order_item_pricing_metrics,sales_channel,Direct,18598,0.48720299688261337
+order_item_pricing_metrics,sales_channel,Partner,7993,0.20938883504047362
+order_item_pricing_metrics,sales_channel,Online,7331,0.19204673460299165
+order_item_pricing_metrics,sales_channel,Reseller,4251,0.11136143347392136
+order_item_pricing_metrics,team,New Business,17249,0.4518638828491342
+order_item_pricing_metrics,team,Channel,11072,0.2900479396432033
+order_item_pricing_metrics,team,Expansion,9852,0.2580881775076625
+order_item_pricing_metrics,rep_region,North America,16634,0.43575301914966075
+order_item_pricing_metrics,rep_region,Europe,10923,0.28614465721845284
+order_item_pricing_metrics,rep_region,APAC,6049,0.15846278783433318
+order_item_pricing_metrics,rep_region,LATAM,4567,0.11963953579755325
+order_item_pricing_metrics,product_name,Security Product 12,4084,0.10698661357503995
+order_item_pricing_metrics,product_name,Security Product 17,4009,0.10502187409949441
+order_item_pricing_metrics,product_name,Collaboration Product 04,2349,0.061535640374086396
+order_item_pricing_metrics,product_name,Collaboration Product 19,2271,0.05949231131951903
+order_item_pricing_metrics,product_name,Collaboration Product 26,2216,0.058051502370785636
+order_item_pricing_metrics,category,Core Platform,10297,0.2697456317292327
+order_item_pricing_metrics,category,Analytics,8510,0.22293243915856759
+order_item_pricing_metrics,category,Security,8093,0.21200848767453437
+order_item_pricing_metrics,category,Collaboration,6836,0.17907945406439107
+order_item_pricing_metrics,category,Professional Services,4437,0.1162339873732743
+order_item_pricing_metrics,discount_bucket,10-20%,25862,0.6774945642207844
+order_item_pricing_metrics,discount_bucket,20-30%,8639,0.2263117910565059
+order_item_pricing_metrics,discount_bucket,5-10%,3480,0.09116391166531318
+order_item_pricing_metrics,discount_bucket,0-5%,164,0.004296230319859587
+order_item_pricing_metrics,discount_bucket,30%+,28,0.0007335027375370026
+customer_pricing_profile,segment,SMB,522,0.44501278772378516
+customer_pricing_profile,segment,Mid-Market,344,0.2932651321398124
+customer_pricing_profile,segment,Enterprise,247,0.21057118499573743
+customer_pricing_profile,segment,Public Sector,60,0.05115089514066496
+customer_pricing_profile,region,North America,507,0.4322250639386189
+customer_pricing_profile,region,Europe,313,0.2668371696504689
+customer_pricing_profile,region,APAC,202,0.17220801364023872
+customer_pricing_profile,region,LATAM,151,0.1287297527706735
+customer_pricing_profile,company_size,Small,366,0.31202046035805625
+customer_pricing_profile,company_size,Medium,364,0.3103154305200341
+customer_pricing_profile,company_size,Large,303,0.25831202046035806
+customer_pricing_profile,company_size,Enterprise,140,0.11935208866155157
+customer_risk_scores,segment,SMB,522,0.44501278772378516
+customer_risk_scores,segment,Mid-Market,344,0.2932651321398124
+customer_risk_scores,segment,Enterprise,247,0.21057118499573743
+customer_risk_scores,segment,Public Sector,60,0.05115089514066496
+customer_risk_scores,region,North America,507,0.4322250639386189
+customer_risk_scores,region,Europe,313,0.2668371696504689
+customer_risk_scores,region,APAC,202,0.17220801364023872
+customer_risk_scores,region,LATAM,151,0.1287297527706735
+customer_risk_scores,company_size,Small,366,0.31202046035805625
+customer_risk_scores,company_size,Medium,364,0.3103154305200341
+customer_risk_scores,company_size,Large,303,0.25831202046035806
+customer_risk_scores,company_size,Enterprise,140,0.11935208866155157
+customer_risk_scores,risk_tier,Low,937,0.7988064791133845
+customer_risk_scores,risk_tier,Medium,195,0.16624040920716113
+customer_risk_scores,risk_tier,High,41,0.03495311167945439
+customer_risk_scores,main_risk_driver,pricing_risk_score,667,0.5686274509803921
+customer_risk_scores,main_risk_driver,discount_dependency_score,360,0.3069053708439898
+customer_risk_scores,main_risk_driver,margin_erosion_score,146,0.12446717817561807
+customer_risk_scores,recommended_action,monitor only,937,0.7988064791133845
+customer_risk_scores,recommended_action,review segment pricing,195,0.16624040920716113
+customer_risk_scores,recommended_action,redesign discount policy,41,0.03495311167945439

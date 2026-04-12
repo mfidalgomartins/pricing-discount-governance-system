@@ -1,0 +1,49 @@
+{
+  "question": "Is the company growing with healthy pricing discipline, or relying on discounting patterns that erode margin?",
+  "answer": "Discount-reliant growth risk",
+  "answer_detail": "Growth is materially supported by high discounting and exposes margin quality.",
+  "analysis_window": {
+    "coverage_start": "2023-01-01",
+    "coverage_end": "2025-12-31"
+  },
+  "overall_pricing_health": {
+    "total_revenue": 1842490140.06,
+    "total_list_revenue": 2249244147.7299995,
+    "total_margin_proxy_value": 837799286.63,
+    "avg_realized_discount": 0.16335635658711656,
+    "weighted_realized_discount": 0.18084030943484153,
+    "high_discount_revenue_share": 0.32337989707266335,
+    "price_realization": 0.8191596905651585,
+    "margin_proxy_pct": 0.4547103229560389
+  },
+  "threshold_sensitivity": [
+    {
+      "high_discount_threshold": 0.15,
+      "high_discount_revenue_share": 0.7627138851468901,
+      "high_discount_order_item_share": 0.6163256752154664,
+      "margin_proxy_pct_on_high_discount": 0.46015519521858406,
+      "customer_share_over_40pct_high_discount_revenue": 0.5191815856777494,
+      "revenue_with_margin_at_risk": 138526614.92000002
+    },
+    {
+      "high_discount_threshold": 0.2,
+      "high_discount_revenue_share": 0.32337989707266335,
+      "high_discount_order_item_share": 0.2277526000052393,
+      "margin_proxy_pct_on_high_discount": 0.44502297500881655,
+      "customer_share_over_40pct_high_discount_revenue": 0.1517476555839727,
+      "revenue_with_margin_at_risk": 45339566.57
+    },
+    {
+      "high_discount_threshold": 0.25,
+      "high_discount_revenue_share": 0.035821009374764276,
+      "high_discount_order_item_share": 0.02472952086553323,
+      "margin_proxy_pct_on_high_discount": 0.4277337659217557,
+      "customer_share_over_40pct_high_discount_revenue": 0.0017050298380221654,
+      "revenue_with_margin_at_risk": 8001860.34
+    }
+  ],
+  "validation_status": {
+    "all_checks_passed": true,
+    "checks": 10
+  }
+}

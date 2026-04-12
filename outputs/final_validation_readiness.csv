@@ -1,0 +1,7 @@
+readiness_state,is_true
+technically_valid,True
+analytically_acceptable,True
+decision_support_only,True
+screening_grade_only,False
+not_committee_grade,True
+publish_blocked,False
