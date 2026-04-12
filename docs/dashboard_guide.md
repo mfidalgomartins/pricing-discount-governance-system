@@ -1,7 +1,7 @@
 # Executive Dashboard Guide
 
 ## Live access
-https://mfidalgomartins.github.io/pricing-discount-governance-system/
+https://mfidalgomartins.github.io/pricing-discount-governance-system/outputs/dashboard/pricing-discipline-command-center.html
 
 ## Main assets
 - Source dashboard: `outputs/dashboard/pricing-discipline-command-center.html`

@@ -9,7 +9,7 @@ Esta pasta contém os entregáveis analíticos e evidência do pipeline.
 - `release/`: evidência de validação
 
 Dashboard ao vivo:
-https://mfidalgomartins.github.io/pricing-discount-governance-system/
+https://mfidalgomartins.github.io/pricing-discount-governance-system/outputs/dashboard/pricing-discipline-command-center.html
 
 Para acesso direto dentro desta árvore:
 `outputs/dashboard/README.md`

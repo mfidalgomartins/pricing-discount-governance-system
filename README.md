@@ -2,7 +2,7 @@
 
 A decision-grade pricing governance system that shows where revenue is genuinely price-led and where it is structurally dependent on discounting. Built for commercial leaders who need early warning signals before margin quality erodes.
 
-Live dashboard: https://mfidalgomartins.github.io/pricing-discount-governance-system/
+Live dashboard: https://mfidalgomartins.github.io/pricing-discount-governance-system/outputs/dashboard/pricing-discipline-command-center.html
 
 ## Why this exists
 Discount-led growth can look healthy until it damages margin performance and commercial discipline. This project separates sustainable pricing from discount dependency, making exposure explicit across customer, segment, product, region, and channel views.
