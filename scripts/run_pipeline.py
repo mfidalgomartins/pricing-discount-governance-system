@@ -27,7 +27,6 @@ from src.utils.paths import (
     DASHBOARD_DIR,
     DATA_PROCESSED_DIR,
     DATA_RAW_DIR,
-    DOCS_DIR,
     DOCS_REPORTS_DIR,
     OUTPUTS_DIR,
     PROJECT_ROOT,
@@ -37,6 +36,7 @@ from src.validation.final_review import run_final_validation_review
 from src.validation.metric_contracts import validate_metric_contracts
 from src.validation.data_quality import validate_processed_tables, validate_raw_tables
 from scripts.cleanup_repository import main as cleanup_repository_main
+from scripts.publish_pages_dashboard import publish as publish_pages_dashboard
 
 
 def parse_args() -> argparse.Namespace:
@@ -132,8 +132,8 @@ def main() -> None:
     dashboard_path = build_executive_dashboard(
         processed_tables=processed_tables,
         dashboard_dir=DASHBOARD_DIR,
-        publish_dir=DOCS_DIR,
     )
+    publish_pages_dashboard()
 
     run_manifest = {
         "project": "Pricing Discipline & Discount Governance System",

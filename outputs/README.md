@@ -1,15 +1,15 @@
 # Outputs
 
-Esta pasta reúne os principais artefactos gerados pelo pipeline.
+This folder contains the published analytical deliverables and evidence artifacts.
 
-- `dashboard/` painel executivo (HTML) e assets
-- `visualizations/` gráficos exportados
-- `analysis/` tabelas e métricas analíticas
-- `profiling/` evidência de qualidade de dados
-- `release/` evidência de validação
+- `dashboard/`: executive dashboard source build and dashboard access guide
+- `visualizations/`: final chart exports used in reporting
+- `analysis/`: governed analysis tables for decision review
+- `profiling/`: formal data profiling outputs
+- `release/`: release-readiness artifacts and controls
 
-Dashboard ao vivo:
+Live Dashboard (GitHub Pages):
 https://mfidalgomartins.github.io/pricing-discount-governance-system/
 
-Para detalhes do painel:
-- `outputs/dashboard/README.md`
+Start here for dashboard access from this folder tree:
+`outputs/dashboard/README.md`

@@ -1,42 +1,23 @@
 # Executive Dashboard Guide
 
-## Purpose
-Provide a leadership-ready view of pricing health, discount dependency, margin-at-risk exposure, and governance priorities.
+## Live access
+https://mfidalgomartins.github.io/pricing-discount-governance-system/
 
-## Main Assets
-- Source dashboard: `outputs/dashboard/pricing-discipline-command-center.html`
-- Pages entry: `docs/index.html`
-- Pages named file: `docs/pricing-discipline-command-center.html`
+## Main assets
+- Source dashboard: `outputs/dashboard/executive-pricing-discipline-command-center.html`
+- GitHub Pages entrypoint: `index.html`
 
-## Included Sections
-- Executive title/subtitle and coverage metadata.
-- Filter controls: segment, region, product category, sales channel.
-- KPI cards:
-  - net revenue
-  - weighted discount
-  - margin at risk
-  - high-risk customer count
-- Charts:
-  - discount trend over time
-  - weighted discount by segment
-  - margin-at-risk by region
-  - revenue exposure by recommended action
-- Sortable detail table of highest-risk customers.
-
-## Data Used
-- `data/processed/order_item_pricing_metrics.csv` (aggregated for dashboard payload)
-- `data/processed/customer_risk_scores.csv`
+## Functional scope
+- Filters: segment, region, product category, sales channel, start/end month
+- KPI cards: net revenue, weighted discount, margin at risk, high-risk customers
+- Charts: discount trend, segment comparison, region margin-at-risk, action mix
+- Sortable risk table for top governance-priority customers
 
 ## Notes
-- Data is embedded directly into the HTML at build time.
-- Dashboard payload uses governed pre-aggregated pricing slices plus customer-level filtered revenue aggregates.
-- KPI cards consume governed precomputed metric rows (`kpiRows`) rather than on-the-fly KPI math in the browser.
-- Risk table and action-priority chart are filter-consistent: customer revenue and discount values reflect the active filter context.
-- Chart interactivity uses a bundled local asset (`outputs/dashboard/vendor/chart.umd.min.js`) with CDN fallback.
-- Dashboard is responsive and presentation-ready.
+- Data is embedded in the HTML payload at build time.
+- KPI values use governed pre-aggregated metric rows.
+- Chart interactivity uses local asset `outputs/dashboard/vendor/chart.umd.min.js` with CDN fallback.
 
-## Limitations
-- Dashboard is offline-capable if the local `vendor/chart.umd.min.js` file is kept with the HTML.
+## Limits
 - Margin at risk is a governance proxy, not accounting gross margin.
-- The underlying dataset is synthetic.
-- For production use at scale, move to API-backed data and incremental refresh.
+- Data is synthetic.
