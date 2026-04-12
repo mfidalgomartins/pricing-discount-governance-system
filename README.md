@@ -1,38 +1,42 @@
 # Pricing Discipline & Discount Governance
 
-A decision‑grade pricing governance system that surfaces where revenue is genuinely price‑led and where it is structurally dependent on discounting. Built to support commercial leaders who need early warning signals before margin quality collapses.
+A decision‑grade pricing governance system that shows where revenue is genuinely price‑led and where it is structurally dependent on discounting. Built for commercial leaders who need early warning signals before margin quality erodes.
+
+Live dashboard: https://mfidalgomartins.github.io/pricing-discount-governance-system/
 
 ## Why this exists
-Discount‑driven growth often looks healthy right up to the moment it damages margin performance and commercial credibility. This project separates sustainable pricing from dependency, and makes the trade‑offs explicit at customer, segment, product, and channel level.
+Discount‑led growth can look healthy until it damages margin performance and commercial discipline. This project separates sustainable pricing from discount dependency, making exposure explicit across customer, segment, product, region, and channel views.
 
-## What it does
-It builds a clean transactional pricing layer, quantifies realized discount and price realization, and produces governance risk scores that rank where intervention will have the highest business impact. The outputs are reproducible, auditable, and designed to support real decisions rather than just describing trends.
+## What it delivers
+It builds a governed pricing layer from transactional data, quantifies realized discount and price realization, and prioritizes governance risk with interpretable scoring and recommended actions. Outputs are reproducible, auditable, and built for decisions, not just reporting.
 
 ## Decisions it supports
-- Which customers and segments require immediate pricing governance.
-- Which products and channels carry structural discount dependency.
-- Where margin‑erosion exposure is concentrated and rising.
-- What discount intensity is still defensible by revenue quality.
+- Which customers and segments need immediate pricing governance intervention.
+- Which products and channels are structurally discount‑dependent.
+- Where margin‑at‑risk concentration is rising.
+- Which governance actions should be prioritized first.
 
-## Architecture (at a glance)
-Ingestion → Processing → Feature engineering → Risk scoring → Validation → Analysis → Executive dashboard.
+## Architecture
+Ingestion → Processing → Feature engineering → Risk scoring → Validation → Analysis outputs → Executive dashboard.
 
 ## Repository map
 - `src/` pipeline logic
 - `scripts/` runnable entrypoints
-- `docs/` methods and governance notes
-- `outputs/` dashboard, visuals, and audit trail
+- `config/` thresholds and metric contracts
+- `docs/` methods, governance notes, GitHub Pages entrypoint
+- `outputs/` analysis artifacts and source dashboard build
 - `tests/` regression checks
 
 ## Core outputs
-- Executive dashboard: `outputs/dashboard/pricing_discount_governance_dashboard.html`
+- Live GitHub Pages dashboard: `docs/index.html`
+- Source dashboard build: `outputs/dashboard/pricing_discount_governance_dashboard.html`
 - Visualization pack: `outputs/visualizations/*.png`
-- Audit trail: `outputs/final_validation_*`, `outputs/metric_contract_validation.csv`
+- Validation evidence: `outputs/*validation*`
 
-## Why this is above a typical portfolio build
-- Governance scoring tied to decision actionability, not vanity metrics.
-- Metric contracts and validation layers to prevent silent drift.
-- Outputs are reproducible and auditable, not hand‑assembled.
+## Why this is stronger than a typical portfolio build
+- Governance scoring is tied to operational actions, not vanity metrics.
+- Metric contracts and validation checks reduce silent analytical drift.
+- Business framing, outputs, and dashboard are aligned to pricing decisions.
 
 ## Run
 ```bash
@@ -43,7 +47,8 @@ python scripts/run_pipeline.py
 ```
 
 ## Limitations
-- Synthetic data; production use requires real inputs.
-- Margin is a proxy, not audited gross margin.
+- Data is synthetic; production use requires real commercial inputs.
+- Margin is a proxy, not audited accounting gross margin.
+- Scoring supports prioritization, not autonomous pricing decisions.
 
-Tools: Python, pandas, NumPy, DuckDB, Matplotlib, Seaborn, Chart.js.
+Tools: Python, pandas, NumPy, DuckDB, Matplotlib, Seaborn, Chart.js, pytest.
