@@ -1,53 +1,49 @@
-# Pricing Discipline & Discount Governance System
+# Pricing Discipline & Discount Governance
 
-Revenue growth can hide weak pricing behavior. This project was built to expose that risk early, before discount habits become structural and margin deterioration is treated as a late surprise. It combines governed metrics, interpretable risk scoring, and executive-facing outputs to support pricing decisions with evidence.
+A decision‑grade pricing governance system that surfaces where revenue is genuinely price‑led and where it is structurally dependent on discounting. Built to support commercial leaders who need early warning signals before margin quality collapses.
 
-## Why this matters
-Many commercial teams can explain revenue growth but cannot explain its quality. If growth depends on repeated discounting, pricing power is weakening, sales behavior drifts by rep or channel, and margin pressure accumulates in silence. The goal here is simple: separate healthy growth from discount-led growth.
+## Why this exists
+Discount‑driven growth often looks healthy right up to the moment it damages margin performance and commercial credibility. This project separates sustainable pricing from dependency, and makes the trade‑offs explicit at customer, segment, product, and channel level.
 
-## What this system delivers
-The pipeline starts with transactional data, builds warehouse-style analytical layers, and produces decision-ready outputs across customer, segment, product, channel, and rep views. It quantifies discount depth, price realization, margin proxy pressure, and governance risk, then translates those signals into a practical action queue.
+## What it does
+It builds a clean transactional pricing layer, quantifies realized discount and price realization, and produces governance risk scores that rank where intervention will have the highest business impact. The outputs are reproducible, auditable, and designed to support real decisions rather than just describing trends.
 
-The project is built for decisions, not just reporting. It helps answer where approval thresholds should be tightened, which products are being sold with weak pricing discipline, and where commercial behavior is inconsistent enough to require intervention.
+## Decisions it supports
+- Which customers and segments require immediate pricing governance.
+- Which products and channels carry structural discount dependency.
+- Where margin‑erosion exposure is concentrated and rising.
+- What discount intensity is still defensible by revenue quality.
 
-## Architecture at a glance
-- `src/ingestion` and `src/processing` build the base model and curated analytical tables
-- `src/features` and `src/scoring` engineer behavior signals and governance scores
-- `src/analysis` produces formal analysis outputs and dashboard-ready datasets
-- `src/validation` enforces data quality, metric contracts, and release checks
-- `sql/` contains staging, intermediate, and mart SQL models
+## Architecture (at a glance)
+Ingestion → Processing → Feature engineering → Risk scoring → Validation → Analysis → Executive dashboard.
 
-## Repository layout
-- `src/` core analytics and scoring logic
+## Repository map
+- `src/` pipeline logic
 - `scripts/` runnable entrypoints
-- `sql/` warehouse-oriented SQL layer
-- `config/` metric contracts and governance thresholds
-- `docs/` methods, model, validation, dashboard notes
-- `outputs/` dashboard, visualizations, analysis, profiling, validation, release artifacts
-- `tests/` regression and governance tests
+- `docs/` methods and governance notes
+- `outputs/` dashboard, visuals, and audit trail
+- `tests/` regression checks
 
-## Core deliverables
+## Core outputs
 - Executive dashboard: `outputs/dashboard/pricing_discount_governance_dashboard.html`
-- Visualization pack: `outputs/visualizations/`
-- Formal analysis tables and summaries: `outputs/analysis/`
-- Profiling, validation, and release evidence: `outputs/profiling/`, `outputs/release/`, `outputs/*validation*`
+- Visualization pack: `outputs/visualizations/*.png`
+- Audit trail: `outputs/final_validation_*`, `outputs/metric_contract_validation.csv`
 
-## Why this project stands out
-This is not a chart-first portfolio exercise. It uses explicit analytical grains, governed KPI definitions, release-gate checks, and traceable outputs designed for commercial leadership and finance conversations. The emphasis is on decision quality, reproducibility, and defensible logic.
+## Why this is above a typical portfolio build
+- Governance scoring tied to decision actionability, not vanity metrics.
+- Metric contracts and validation layers to prevent silent drift.
+- Outputs are reproducible and auditable, not hand‑assembled.
 
-## Run locally
+## Run
 ```bash
-python -m venv .venv
-source .venv/bin/activate
+python3 -m venv .venv
+. .venv/bin/activate
 pip install -r requirements.txt
 python scripts/run_pipeline.py
-python scripts/build_visualization_pack.py
-python scripts/build_dashboard.py
-python scripts/preflight_check.py
-pytest -q
 ```
 
-## Limits to keep in mind
-The data is synthetic, so behavior realism is strong but still simulated. Margin is a proxy based on unit cost, not full accounting margin. Risk scores are decision-support signals for prioritization, not autonomous pricing rules.
+## Limitations
+- Synthetic data; production use requires real inputs.
+- Margin is a proxy, not audited gross margin.
 
-Tools: Python, SQL, DuckDB, pandas, NumPy, Matplotlib, Seaborn, Plotly, Chart.js, pytest.
+Tools: Python, pandas, NumPy, DuckDB, Matplotlib, Seaborn, Chart.js.
