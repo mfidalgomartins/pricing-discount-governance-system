@@ -132,6 +132,7 @@ def main() -> None:
     dashboard_path = build_executive_dashboard(
         processed_tables=processed_tables,
         dashboard_dir=DASHBOARD_DIR,
+        publish_dir=DOCS_DIR,
     )
 
     run_manifest = {

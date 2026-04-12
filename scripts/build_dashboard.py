@@ -10,7 +10,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from src.analysis.dashboard_builder import build_executive_dashboard
-from src.utils.paths import DASHBOARD_DIR, DATA_PROCESSED_DIR
+from src.utils.paths import DASHBOARD_DIR, DATA_PROCESSED_DIR, DOCS_DIR
 
 
 def load_processed_tables() -> dict[str, pd.DataFrame]:
@@ -25,6 +25,7 @@ def main() -> None:
     dashboard_path = build_executive_dashboard(
         processed_tables=tables,
         dashboard_dir=DASHBOARD_DIR,
+        publish_dir=DOCS_DIR,
     )
     print(f"Dashboard created: {dashboard_path}")
 

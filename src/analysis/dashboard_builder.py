@@ -158,8 +158,11 @@ def _build_customer_pricing_rows(pricing: pd.DataFrame, selected_customers: set[
 def build_executive_dashboard(
     processed_tables: Dict[str, pd.DataFrame],
     dashboard_dir: Path,
+    publish_dir: Path | None = None,
 ) -> Path:
     dashboard_dir.mkdir(parents=True, exist_ok=True)
+    if publish_dir is not None:
+        publish_dir.mkdir(parents=True, exist_ok=True)
 
     pricing = processed_tables["order_item_pricing_metrics"].copy()
     risk = processed_tables["customer_risk_scores"].copy()
@@ -1632,4 +1635,15 @@ init();
 
     dashboard_path = dashboard_dir / "pricing_discount_governance_dashboard.html"
     dashboard_path.write_text(html, encoding="utf-8")
+
+    if publish_dir is not None:
+        publish_path = publish_dir / "index.html"
+        publish_path.write_text(html, encoding="utf-8")
+        (publish_dir / ".nojekyll").write_text("", encoding="utf-8")
+        vendor_src = dashboard_dir / "vendor" / "chart.umd.min.js"
+        vendor_dst = publish_dir / "vendor"
+        if vendor_src.exists():
+            vendor_dst.mkdir(parents=True, exist_ok=True)
+            (vendor_dst / "chart.umd.min.js").write_bytes(vendor_src.read_bytes())
+
     return dashboard_path
