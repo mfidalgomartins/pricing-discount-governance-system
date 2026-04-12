@@ -14,7 +14,7 @@ REQUIRED_PATHS = [
     ".github/workflows/ci.yml",
     "scripts/run_pipeline.py",
     "scripts/cleanup_repository.py",
-    "outputs/dashboard/pricing_discount_governance_dashboard.html",
+    "outputs/dashboard/pricing-discipline-command-center.html",
     "docs/project_context_and_metrics.md",
     "docs/validation_framework.md",
     "docs/release_and_reproducibility.md",

@@ -29,7 +29,8 @@ Ingestion → Processing → Feature engineering → Risk scoring → Validation
 
 ## Core outputs
 - Live GitHub Pages dashboard: `docs/index.html`
-- Source dashboard build: `outputs/dashboard/pricing_discount_governance_dashboard.html`
+- Named dashboard file: `docs/pricing-discipline-command-center.html`
+- Source dashboard build: `outputs/dashboard/pricing-discipline-command-center.html`
 - Visualization pack: `outputs/visualizations/*.png`
 - Validation evidence: `outputs/*validation*`
 

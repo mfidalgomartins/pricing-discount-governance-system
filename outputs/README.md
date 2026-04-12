@@ -1,15 +1,13 @@
 # Outputs Structure
 
-`outputs/` is organized into two groups:
+`outputs/` is organized for reviewer-friendly navigation and reproducibility.
 
-- Stable deliverables for portfolio and review:
-  - `dashboard/` (official executive HTML dashboard)
-  - `visualizations/` (curated chart exports)
+- `dashboard/` source executive dashboard artifacts
+- `visualizations/` curated chart exports
+- `analysis/` governed analytical extracts
+- `profiling/` data profiling evidence
+- `release/` release-readiness artifacts
 
-- Runtime artifacts grouped by purpose (created during pipeline runs and cleaned by `scripts/cleanup_repository.py`):
-  - `analysis/`
-  - `profiling/`
-
-The canonical narrative is `docs/reports/executive_summary.md` to avoid duplicated report surfaces.
-
-This keeps the repository clean on GitHub while preserving operational reproducibility.
+For quickest dashboard access when browsing this folder tree:
+- open `outputs/dashboard/README.md`
+- use the **Live Dashboard** link there

@@ -1633,12 +1633,30 @@ init();
 
     html = html.replace("__DATA_JSON__", data_json).replace("__ALL_VALUE__", ALL_VALUE)
 
-    dashboard_path = dashboard_dir / "pricing_discount_governance_dashboard.html"
+    dashboard_filename = "pricing-discipline-command-center.html"
+    dashboard_path = dashboard_dir / dashboard_filename
     dashboard_path.write_text(html, encoding="utf-8")
 
     if publish_dir is not None:
-        publish_path = publish_dir / "index.html"
-        publish_path.write_text(html, encoding="utf-8")
+        publish_named_path = publish_dir / dashboard_filename
+        publish_named_path.write_text(html, encoding="utf-8")
+        publish_index_path = publish_dir / "index.html"
+        publish_index_path.write_text(
+            f"""<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Executive Pricing Discipline Command Center</title>
+  <meta http-equiv="refresh" content="0; url=./{dashboard_filename}" />
+</head>
+<body>
+  <p>Redirecting to <a href="./{dashboard_filename}">{dashboard_filename}</a>...</p>
+</body>
+</html>
+""",
+            encoding="utf-8",
+        )
         (publish_dir / ".nojekyll").write_text("", encoding="utf-8")
         vendor_src = dashboard_dir / "vendor" / "chart.umd.min.js"
         vendor_dst = publish_dir / "vendor"
