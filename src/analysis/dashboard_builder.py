@@ -1633,7 +1633,7 @@ init();
 
     html = html.replace("__DATA_JSON__", data_json).replace("__ALL_VALUE__", ALL_VALUE)
 
-    dashboard_filename = "executive-pricing-discipline-command-center.html"
+    dashboard_filename = "pricing-discipline-command-center.html"
     dashboard_path = dashboard_dir / dashboard_filename
     dashboard_path.write_text(html, encoding="utf-8")
 
