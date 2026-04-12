@@ -1,11 +1,12 @@
-# Executive Dashboard
+# Acesso ao Dashboard Executivo
 
-This folder contains the source build of the pricing governance dashboard.
+Esta pasta contém o build fonte do command center de pricing.
 
-**Open the live, interactive dashboard:**
+## Acesso principal (recomendado)
+GitHub Pages (URL pública):
 https://mfidalgomartins.github.io/pricing-discount-governance-system/
 
-Secondary option (offline/local use):
-- `pricing-discipline-command-center.html`
+## Acesso alternativo
+Ficheiro fonte local: `executive-pricing-discipline-command-center.html`
 
-Note: GitHub renders HTML files as code. Use the live link for the interactive experience.
+No GitHub, ficheiros `.html` aparecem como código. Para a experiência interativa completa, use o URL público acima.
