@@ -1,0 +1,17 @@
+check_name,status,detail
+mart_customer_pricing_profile_row_count_positive,PASS,row_count=1173
+mart_segment_pricing_summary_row_count_positive,PASS,row_count=4
+mart_segment_channel_diagnostics_row_count_positive,PASS,row_count=16
+mart_product_pricing_summary_row_count_positive,PASS,row_count=28
+mart_monthly_pricing_health_row_count_positive,PASS,row_count=36
+mart_overall_pricing_health_row_count_positive,PASS,row_count=1
+mart_customer_pricing_profile_primary_key_uniqueness,PASS,"rows=1173, distinct_keys=1173"
+mart_segment_pricing_summary_primary_key_uniqueness,PASS,"rows=4, distinct_keys=4"
+mart_segment_channel_diagnostics_primary_key_uniqueness,PASS,"rows=16, distinct_keys=16"
+mart_product_pricing_summary_primary_key_uniqueness,PASS,"rows=28, distinct_keys=28"
+mart_monthly_pricing_health_primary_key_uniqueness,PASS,"rows=36, distinct_keys=36"
+mart_overall_pricing_health_primary_key_uniqueness,PASS,"rows=1, distinct_keys=1"
+mart_revenue_reconciliation_segment,PASS,"base=1842490140.06, segment=1842490140.06"
+mart_revenue_reconciliation_monthly,PASS,"base=1842490140.06, monthly=1842490140.06"
+mart_customer_share_bounds,PASS,violations=0
+int_pricing_consistency,PASS,violations=0

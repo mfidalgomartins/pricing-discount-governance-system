@@ -64,7 +64,7 @@ def main() -> int:
             _safe_unlink(path)
             removed_files += 1
 
-    # No report relocation; reports are not versioned in this portfolio.
+    # Keep report files inside outputs as the canonical generated evidence surface.
 
     # Organize non-critical runtime output artifacts under domain folders.
     outputs_dir = PROJECT_ROOT / "outputs"
@@ -109,7 +109,16 @@ def main() -> int:
             "profiling_summary.md",
         ],
     )
-    # Reports are kept canonical under docs/reports to avoid duplicated narrative surfaces.
+    # SQL warehouse artifacts belong in outputs/warehouse.
+    moved_files += _move_many(
+        outputs_dir,
+        "warehouse",
+        [
+            "sql_model_run_log.csv",
+            "sql_validation_report.csv",
+            "sql_model_manifest.json",
+        ],
+    )
 
     # Remove OS clutter inside outputs.
     for p in (PROJECT_ROOT / "outputs").rglob(".DS_Store"):

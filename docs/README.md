@@ -7,5 +7,7 @@ Core docs to read in order:
 4. `release_and_reproducibility.md`
 5. `dashboard_guide.md`
 
-Canonical business report:
-- `reports/executive_summary.md`
+Generated analytical reports are canonical in `outputs/`:
+- `outputs/formal_analysis_report.md`
+- `outputs/final_validation_review.md`
+- `outputs/executive_summary.md`

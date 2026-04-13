@@ -18,7 +18,7 @@ def main() -> None:
             sql_dir=SQL_DIR,
             db_path=WAREHOUSE_DB_PATH,
             marts_output_dir=SQL_MARTS_DIR,
-            outputs_dir=OUTPUTS_DIR,
+            outputs_dir=OUTPUTS_DIR / "warehouse",
         )
     )
     print("SQL warehouse models executed successfully.")

@@ -716,7 +716,6 @@ def run_data_profiling(
         population_coverage=population_coverage_df,
     )
     (outputs_dir / "profiling_summary.md").write_text(markdown)
-    (docs_dir / "data_profiling_report.md").write_text(markdown)
 
     return {
         "table_profile_summary": profile_summary_df,

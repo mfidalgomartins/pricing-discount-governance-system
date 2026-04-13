@@ -1,15 +1,16 @@
 # Outputs
 
-Esta pasta contém os entregáveis analíticos e evidência do pipeline.
+This folder contains generated analytical deliverables and validation evidence.
 
-- `dashboard/`: painel executivo e guia de acesso
-- `visualizations/`: gráficos finais para comunicação
-- `analysis/`: tabelas analíticas governadas
-- `profiling/`: evidência de qualidade de dados
-- `release/`: evidência de validação
+- `dashboard/`: executive interactive dashboard
+- `visualizations/`: publication-ready chart pack
+- `analysis/`: governed analytical tables and summaries
+- `profiling/`: formal profiling and data-quality outputs
+- `warehouse/`: SQL warehouse model logs and validation checks
+- `release/`: release-readiness and gate evidence
 
-Dashboard ao vivo:
-https://mfidalgomartins.github.io/pricing-discount-governance-system/outputs/dashboard/pricing-discipline-command-center.html
+Live dashboard:
+https://mfidalgomartins.github.io/pricing-discount-governance-system/
 
-Para acesso direto dentro desta árvore:
+Direct folder-level dashboard access:
 `outputs/dashboard/README.md`

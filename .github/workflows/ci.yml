@@ -48,6 +48,3 @@ jobs:
 
       - name: Release Gate
         run: python scripts/release_gate.py
-
-      - name: Release Readiness Gate
-        run: python scripts/release_gate.py --summary outputs/final_validation_summary.json

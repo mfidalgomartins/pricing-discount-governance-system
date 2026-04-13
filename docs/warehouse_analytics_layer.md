@@ -18,7 +18,7 @@ This layer improves realism by separating:
 - Core implementation: `src/processing/sql_warehouse.py`
 - Warehouse file: `data/processed/pricing_governance.duckdb`
 - Mart exports: `data/processed/sql_marts/*.csv`
-- SQL run logs: `outputs/sql_model_run_log.csv`, `outputs/sql_validation_report.csv`, `outputs/sql_model_manifest.json`
+- SQL run logs: `outputs/warehouse/sql_model_run_log.csv`, `outputs/warehouse/sql_validation_report.csv`, `outputs/warehouse/sql_model_manifest.json`
 
 ## Layer Details
 

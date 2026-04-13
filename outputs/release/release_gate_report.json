@@ -1,0 +1,55 @@
+{
+  "evaluated_at_utc": "2026-04-13T00:55:16.935704+00:00",
+  "gate_passed": true,
+  "release_readiness_state": "not committee-grade",
+  "failed_checks": 0,
+  "failed_blocker_checks": 0,
+  "dashboard_size_mb": 3.529,
+  "metric_contract_failures": 0,
+  "policy_path": "/Users/miguelfidalgo/Documents/pricing_discount_governance_system/config/release_policy.json",
+  "summary_path": "/Users/miguelfidalgo/Documents/pricing_discount_governance_system/outputs/final_validation_summary.json",
+  "metric_contract_report_path": "/Users/miguelfidalgo/Documents/pricing_discount_governance_system/outputs/metric_contract_validation.csv",
+  "rule_evaluation": [
+    {
+      "rule_name": "readiness_flag_technically_valid",
+      "status": "PASS",
+      "detail": "expected=True, observed=True"
+    },
+    {
+      "rule_name": "readiness_flag_analytically_acceptable",
+      "status": "PASS",
+      "detail": "expected=True, observed=True"
+    },
+    {
+      "rule_name": "readiness_flag_decision_support_only",
+      "status": "PASS",
+      "detail": "expected=True, observed=True"
+    },
+    {
+      "rule_name": "readiness_flag_publish_blocked",
+      "status": "PASS",
+      "detail": "expected=False, observed=False"
+    },
+    {
+      "rule_name": "max_failed_checks",
+      "status": "PASS",
+      "detail": "max=0, observed=0"
+    },
+    {
+      "rule_name": "max_failed_blocker_checks",
+      "status": "PASS",
+      "detail": "max=0, observed=0"
+    },
+    {
+      "rule_name": "max_dashboard_size_mb",
+      "status": "PASS",
+      "detail": "max=4.500, observed=3.529"
+    },
+    {
+      "rule_name": "metric_contract_failures",
+      "status": "PASS",
+      "detail": "max=0, observed=0"
+    }
+  ],
+  "blocking_reasons": []
+}

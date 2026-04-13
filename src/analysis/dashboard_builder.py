@@ -158,11 +158,8 @@ def _build_customer_pricing_rows(pricing: pd.DataFrame, selected_customers: set[
 def build_executive_dashboard(
     processed_tables: Dict[str, pd.DataFrame],
     dashboard_dir: Path,
-    publish_dir: Path | None = None,
 ) -> Path:
     dashboard_dir.mkdir(parents=True, exist_ok=True)
-    if publish_dir is not None:
-        publish_dir.mkdir(parents=True, exist_ok=True)
 
     pricing = processed_tables["order_item_pricing_metrics"].copy()
     risk = processed_tables["customer_risk_scores"].copy()
@@ -192,7 +189,7 @@ def build_executive_dashboard(
             "recommended_action",
         ]
     ].copy()
-    risk_export = risk_export.sort_values("governance_priority_score", ascending=False).head(220)
+    risk_export = risk_export.sort_values("governance_priority_score", ascending=False).head(140)
     selected_customers = set(risk_export["customer_id"].astype(str).tolist())
 
     customer_pricing = _build_customer_pricing_rows(pricing, selected_customers)
@@ -1636,32 +1633,5 @@ init();
     dashboard_filename = "pricing-discipline-command-center.html"
     dashboard_path = dashboard_dir / dashboard_filename
     dashboard_path.write_text(html, encoding="utf-8")
-
-    if publish_dir is not None:
-        publish_named_path = publish_dir / dashboard_filename
-        publish_named_path.write_text(html, encoding="utf-8")
-        publish_index_path = publish_dir / "index.html"
-        publish_index_path.write_text(
-            f"""<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Pricing Discipline Command Center</title>
-  <meta http-equiv="refresh" content="0; url=./{dashboard_filename}" />
-</head>
-<body>
-  <p>Redirecting to <a href="./{dashboard_filename}">{dashboard_filename}</a>...</p>
-</body>
-</html>
-""",
-            encoding="utf-8",
-        )
-        (publish_dir / ".nojekyll").write_text("", encoding="utf-8")
-        vendor_src = dashboard_dir / "vendor" / "chart.umd.min.js"
-        vendor_dst = publish_dir / "vendor"
-        if vendor_src.exists():
-            vendor_dst.mkdir(parents=True, exist_ok=True)
-            (vendor_dst / "chart.umd.min.js").write_bytes(vendor_src.read_bytes())
 
     return dashboard_path

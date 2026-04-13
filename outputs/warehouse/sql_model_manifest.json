@@ -1,0 +1,34 @@
+{
+  "database_path": "/Users/miguelfidalgo/Documents/pricing_discount_governance_system/data/processed/pricing_governance.duckdb",
+  "sql_directory": "/Users/miguelfidalgo/Documents/pricing_discount_governance_system/sql",
+  "layers": {
+    "staging": [
+      "stg_customers.sql",
+      "stg_products.sql",
+      "stg_orders.sql",
+      "stg_order_items.sql",
+      "stg_sales_reps.sql"
+    ],
+    "intermediate": [
+      "int_order_item_enriched.sql",
+      "int_order_item_pricing_metrics.sql"
+    ],
+    "marts": [
+      "mart_customer_pricing_profile.sql",
+      "mart_segment_pricing_summary.sql",
+      "mart_segment_channel_diagnostics.sql",
+      "mart_product_pricing_summary.sql",
+      "mart_monthly_pricing_health.sql",
+      "mart_overall_pricing_health.sql"
+    ]
+  },
+  "marts_exported": [
+    "mart_customer_pricing_profile",
+    "mart_monthly_pricing_health",
+    "mart_overall_pricing_health",
+    "mart_product_pricing_summary",
+    "mart_segment_channel_diagnostics",
+    "mart_segment_pricing_summary"
+  ],
+  "all_sql_checks_passed": true
+}

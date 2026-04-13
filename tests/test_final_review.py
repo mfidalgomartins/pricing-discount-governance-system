@@ -67,7 +67,6 @@ def test_final_validation_review_generates_outputs(tmp_path: Path) -> None:
     assert "metric_contract_validation_passthrough" in set(result_tables["final_validation_checks"]["check_name"])
     assert "final_validation_readiness" in result_tables
     assert (tmp_path / "outputs" / "final_validation_review.md").exists()
-    assert (tmp_path / "docs" / "final_validation_review.md").exists()
     assert (tmp_path / "outputs" / "final_validation_summary.json").exists()
     assert (tmp_path / "outputs" / "final_validation_readiness.csv").exists()
     assert (tmp_path / "outputs" / "release" / "release_readiness.json").exists()

@@ -65,6 +65,16 @@
       "channel_pricing_visual_base": 4,
       "product_dependence_visual_base": 28
     },
+    "sql_warehouse": {
+      "sql_model_run_log": 13,
+      "sql_validation_report": 16,
+      "mart_customer_pricing_profile": 1173,
+      "mart_segment_pricing_summary": 4,
+      "mart_segment_channel_diagnostics": 16,
+      "mart_product_pricing_summary": 28,
+      "mart_monthly_pricing_health": 36,
+      "mart_overall_pricing_health": 1
+    },
     "final_validation": {
       "final_validation_checks": 25,
       "final_validation_issues": 1,
@@ -76,9 +86,13 @@
     "raw_passed": true,
     "processed_passed": true,
     "metric_contracts_passed": true,
+    "sql_warehouse_passed": true,
     "raw_report": "/Users/miguelfidalgo/Documents/pricing_discount_governance_system/outputs/raw_validation_report.csv",
     "processed_report": "/Users/miguelfidalgo/Documents/pricing_discount_governance_system/outputs/processed_validation_report.csv",
-    "metric_contract_report": "/Users/miguelfidalgo/Documents/pricing_discount_governance_system/outputs/metric_contract_validation.csv"
+    "metric_contract_report": "/Users/miguelfidalgo/Documents/pricing_discount_governance_system/outputs/metric_contract_validation.csv",
+    "sql_validation_report": "/Users/miguelfidalgo/Documents/pricing_discount_governance_system/outputs/warehouse/sql_validation_report.csv",
+    "release_gate_passed": true,
+    "release_readiness_state": "not committee-grade"
   },
   "dashboard": "/Users/miguelfidalgo/Documents/pricing_discount_governance_system/outputs/dashboard/pricing-discipline-command-center.html"
 }

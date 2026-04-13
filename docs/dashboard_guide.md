@@ -1,11 +1,12 @@
 # Executive Dashboard Guide
 
 ## Live access
-https://mfidalgomartins.github.io/pricing-discount-governance-system/outputs/dashboard/pricing-discipline-command-center.html
+https://mfidalgomartins.github.io/pricing-discount-governance-system/
 
 ## Main assets
-- Source dashboard: `outputs/dashboard/pricing-discipline-command-center.html`
-- GitHub Pages entrypoint: `index.html`
+- Final dashboard source artifact: `outputs/dashboard/pricing-discipline-command-center.html`
+- GitHub Pages published artifact: `docs/pricing-discipline-command-center.html`
+- GitHub Pages entrypoint: `docs/index.html`
 
 ## Functional scope
 - Filters: segment, region, product category, sales channel, start/end month
@@ -16,7 +17,8 @@ https://mfidalgomartins.github.io/pricing-discount-governance-system/outputs/das
 ## Notes
 - Data is embedded in the HTML payload at build time.
 - KPI values use governed pre-aggregated metric rows.
-- Chart interactivity uses local asset `outputs/dashboard/vendor/chart.umd.min.js` with CDN fallback.
+- Chart interactivity uses local asset `docs/vendor/chart.umd.min.js` with CDN fallback.
+- The dashboard is maintained in a single canonical location under `outputs/dashboard`.
 
 ## Limits
 - Margin at risk is a governance proxy, not accounting gross margin.

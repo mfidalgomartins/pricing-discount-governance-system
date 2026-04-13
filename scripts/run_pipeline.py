@@ -21,6 +21,7 @@ from src.features.pricing_features import build_feature_tables
 from src.ingestion.load_raw import save_raw_tables
 from src.ingestion.synthetic_data import SyntheticDataConfig, generate_synthetic_business_data
 from src.processing.build_base_tables import build_order_item_enriched
+from src.processing.sql_warehouse import SqlLayerRunConfig, run_sql_warehouse_models
 from src.scoring.risk_scoring import build_risk_outputs
 from src.utils.paths import (
     CONFIGS_DIR,
@@ -30,11 +31,15 @@ from src.utils.paths import (
     DOCS_REPORTS_DIR,
     OUTPUTS_DIR,
     PROJECT_ROOT,
+    SQL_DIR,
+    SQL_MARTS_DIR,
+    WAREHOUSE_DB_PATH,
     ensure_project_directories,
 )
 from src.validation.final_review import run_final_validation_review
 from src.validation.metric_contracts import validate_metric_contracts
 from src.validation.data_quality import validate_processed_tables, validate_raw_tables
+from src.validation.release_gate import evaluate_release_gate
 from scripts.cleanup_repository import main as cleanup_repository_main
 from scripts.publish_pages_dashboard import publish as publish_pages_dashboard
 
@@ -73,6 +78,19 @@ def main() -> None:
 
     raw_tables = generate_synthetic_business_data(config)
     save_raw_tables(raw_tables, DATA_RAW_DIR)
+    sql_tables = run_sql_warehouse_models(
+        SqlLayerRunConfig(
+            raw_dir=DATA_RAW_DIR,
+            sql_dir=SQL_DIR,
+            db_path=WAREHOUSE_DB_PATH,
+            marts_output_dir=SQL_MARTS_DIR,
+            outputs_dir=OUTPUTS_DIR / "warehouse",
+        )
+    )
+    sql_validation_report = sql_tables["sql_validation_report"]
+    sql_validation_passed = bool((sql_validation_report["status"] == "PASS").all())
+    if not sql_validation_passed:
+        raise RuntimeError("SQL warehouse validation failed. Check outputs/warehouse/sql_validation_report.csv")
 
     raw_validation_report, raw_valid = validate_raw_tables(raw_tables)
     raw_validation_report.to_csv(OUTPUTS_DIR / "raw_validation_report.csv", index=False)
@@ -153,14 +171,17 @@ def main() -> None:
             "profiling": {k: int(len(v)) for k, v in profiling_tables.items()},
             "formal_analysis": {k: int(len(v)) for k, v in formal_analysis_tables.items()},
             "visualization": {k: int(len(v)) for k, v in visualization_tables.items()},
+            "sql_warehouse": {k: int(len(v)) for k, v in sql_tables.items() if isinstance(v, pd.DataFrame)},
         },
         "validation": {
             "raw_passed": raw_valid,
             "processed_passed": processed_valid,
             "metric_contracts_passed": metric_contract_valid,
+            "sql_warehouse_passed": sql_validation_passed,
             "raw_report": str(OUTPUTS_DIR / "raw_validation_report.csv"),
             "processed_report": str(OUTPUTS_DIR / "processed_validation_report.csv"),
             "metric_contract_report": str(OUTPUTS_DIR / "metric_contract_validation.csv"),
+            "sql_validation_report": str(OUTPUTS_DIR / "warehouse" / "sql_validation_report.csv"),
         },
         "dashboard": str(dashboard_path),
     }
@@ -176,6 +197,15 @@ def main() -> None:
     )
     run_manifest["row_counts"]["final_validation"] = {k: int(len(v)) for k, v in final_validation_tables.items()}
 
+    release_report, release_gate_passed = evaluate_release_gate(
+        summary_path=OUTPUTS_DIR / "final_validation_summary.json",
+        metric_contract_report_path=OUTPUTS_DIR / "metric_contract_validation.csv",
+        policy_path=CONFIGS_DIR / "release_policy.json",
+        outputs_dir=OUTPUTS_DIR,
+    )
+    run_manifest["validation"]["release_gate_passed"] = bool(release_gate_passed)
+    run_manifest["validation"]["release_readiness_state"] = release_report.get("release_readiness_state")
+
     (OUTPUTS_DIR / "run_manifest.json").write_text(json.dumps(run_manifest, indent=2))
     cleanup_repository_main()
 
@@ -183,7 +213,9 @@ def main() -> None:
     print(f"Raw tables: {', '.join(raw_tables.keys())}")
     print(f"Processed tables: {', '.join(processed_tables.keys())}")
     print(f"Metric contracts passed: {metric_contract_valid}")
-    print("Release gate: not applicable in portfolio mode.")
+    print(f"Release gate passed: {release_gate_passed}")
+    if not release_gate_passed:
+        raise RuntimeError("Release gate failed. Check outputs/release/release_gate_report.json")
 
 
 if __name__ == "__main__":

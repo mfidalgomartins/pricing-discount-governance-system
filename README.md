@@ -1,8 +1,8 @@
 # Pricing Discipline & Discount Governance
 
-A decision-grade pricing governance system that shows where revenue is genuinely price-led and where it is structurally dependent on discounting. Built for commercial leaders who need early warning signals before margin quality erodes.
+A governed pricing analytics system that identifies where growth is price-led versus structurally discount-dependent. Built as decision-support for commercial leadership, finance, and RevOps.
 
-Live dashboard: https://mfidalgomartins.github.io/pricing-discount-governance-system/outputs/dashboard/pricing-discipline-command-center.html
+Live dashboard: https://mfidalgomartins.github.io/pricing-discount-governance-system/
 
 ## Why this exists
 Discount-led growth can look healthy until it damages margin performance and commercial discipline. This project separates sustainable pricing from discount dependency, making exposure explicit across customer, segment, product, region, and channel views.
@@ -28,14 +28,17 @@ Ingestion -> Processing -> Feature engineering -> Risk scoring -> Validation -> 
 - `tests/` regression checks
 
 ## Core outputs
-- GitHub Pages entrypoint: `index.html`
+- GitHub Pages entrypoint: `docs/index.html` (published at repository root URL)
 - Final dashboard file: `outputs/dashboard/pricing-discipline-command-center.html`
+- Published dashboard artifact: `docs/pricing-discipline-command-center.html`
 - Visualization pack: `outputs/visualizations/*.png`
 - Validation evidence: `outputs/*validation*`
+- SQL warehouse evidence: `outputs/warehouse/*`
 
 ## Why this is stronger than a typical portfolio build
 - Governance scoring is tied to operational actions, not vanity metrics.
 - Metric contracts and validation checks reduce silent analytical drift.
+- Release readiness is explicitly gated before publication.
 - Business framing, outputs, and dashboard are aligned to pricing decisions.
 
 ## Run
@@ -50,6 +53,6 @@ python scripts/publish_pages_dashboard.py
 ## Limitations
 - Data is synthetic; production use requires real commercial inputs.
 - Margin is a proxy, not audited accounting gross margin.
-- Scoring supports prioritization, not autonomous pricing decisions.
+- Scoring supports prioritization, not autonomous pricing decisions or committee-grade attribution.
 
 Tools: Python, SQL, DuckDB, pandas, NumPy, Matplotlib, Seaborn, Chart.js, pytest.

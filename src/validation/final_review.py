@@ -738,7 +738,6 @@ def run_final_validation_review(
         suggestions,
     )
     (outputs_dir / "final_validation_review.md").write_text(report_md)
-    (docs_dir / "final_validation_review.md").write_text(report_md)
 
     readiness_df = pd.DataFrame(
         [{"readiness_state": state, "is_true": value} for state, value in readiness_flags.items()]

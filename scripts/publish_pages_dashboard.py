@@ -1,59 +1,32 @@
-"""Prepare GitHub Pages entrypoints for the dashboard (main branch root)."""
+"""Publish dashboard assets for GitHub Pages using docs/ as the source."""
 
 from __future__ import annotations
 
+import shutil
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-DASHBOARD_RELATIVE_PATH = "outputs/dashboard/pricing-discipline-command-center.html"
-DASHBOARD_PATH = ROOT / DASHBOARD_RELATIVE_PATH
+DASHBOARD_FILENAME = "pricing-discipline-command-center.html"
+DASHBOARD_PATH = ROOT / "outputs" / "dashboard" / DASHBOARD_FILENAME
 VENDOR_PATH = ROOT / "outputs" / "dashboard" / "vendor" / "chart.umd.min.js"
 
-ROOT_INDEX = ROOT / "index.html"
-ROOT_NOJEKYLL = ROOT / ".nojekyll"
-OUTPUTS_INDEX = ROOT / "outputs" / "index.html"
-DASHBOARD_INDEX = ROOT / "outputs" / "dashboard" / "index.html"
+DOCS_DIR = ROOT / "docs"
+DOCS_INDEX = DOCS_DIR / "index.html"
+DOCS_DASHBOARD = DOCS_DIR / DASHBOARD_FILENAME
+DOCS_VENDOR_DIR = DOCS_DIR / "vendor"
+DOCS_VENDOR = DOCS_VENDOR_DIR / "chart.umd.min.js"
+DOCS_NOJEKYLL = DOCS_DIR / ".nojekyll"
 
-ROOT_INDEX_TEMPLATE = f"""<!doctype html>
+DOCS_INDEX_TEMPLATE = f"""<!doctype html>
 <html lang=\"en\">
 <head>
   <meta charset=\"utf-8\" />
   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
   <title>Pricing Discipline Command Center</title>
-  <meta http-equiv=\"refresh\" content=\"0; url=./{DASHBOARD_RELATIVE_PATH}\" />
+  <meta http-equiv=\"refresh\" content=\"0; url=./{DASHBOARD_FILENAME}\" />
 </head>
 <body>
-  <p>Redirecting to dashboard...
-    <a href=\"./{DASHBOARD_RELATIVE_PATH}\">Open dashboard</a>
-  </p>
-</body>
-</html>
-"""
-
-OUTPUTS_INDEX_TEMPLATE = """<!doctype html>
-<html lang=\"en\">
-<head>
-  <meta charset=\"utf-8\" />
-  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
-  <title>Outputs Redirect</title>
-  <meta http-equiv=\"refresh\" content=\"0; url=./dashboard/\" />
-</head>
-<body>
-  <p>Redirecting to dashboard folder...</p>
-</body>
-</html>
-"""
-
-DASHBOARD_INDEX_TEMPLATE = """<!doctype html>
-<html lang=\"en\">
-<head>
-  <meta charset=\"utf-8\" />
-  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
-  <title>Dashboard Redirect</title>
-  <meta http-equiv=\"refresh\" content=\"0; url=./pricing-discipline-command-center.html\" />
-</head>
-<body>
-  <p>Redirecting to dashboard...</p>
+  <p>Redirecting to <a href=\"./{DASHBOARD_FILENAME}\">{DASHBOARD_FILENAME}</a>...</p>
 </body>
 </html>
 """
@@ -69,15 +42,17 @@ def publish() -> None:
     if 'src="vendor/chart.umd.min.js"' not in html_text:
         raise RuntimeError("Dashboard source does not reference expected local vendor path.")
 
-    ROOT_INDEX.write_text(ROOT_INDEX_TEMPLATE, encoding="utf-8")
-    ROOT_NOJEKYLL.write_text("", encoding="utf-8")
-    OUTPUTS_INDEX.write_text(OUTPUTS_INDEX_TEMPLATE, encoding="utf-8")
-    DASHBOARD_INDEX.write_text(DASHBOARD_INDEX_TEMPLATE, encoding="utf-8")
+    DOCS_DIR.mkdir(parents=True, exist_ok=True)
+    DOCS_VENDOR_DIR.mkdir(parents=True, exist_ok=True)
 
-    print("GitHub Pages entrypoints prepared:")
-    print(f"- {ROOT_INDEX}")
-    print(f"- {OUTPUTS_INDEX}")
-    print(f"- {DASHBOARD_INDEX}")
+    shutil.copy2(DASHBOARD_PATH, DOCS_DASHBOARD)
+    shutil.copy2(VENDOR_PATH, DOCS_VENDOR)
+    DOCS_INDEX.write_text(DOCS_INDEX_TEMPLATE, encoding="utf-8")
+    DOCS_NOJEKYLL.write_text("", encoding="utf-8")
+
+    print("GitHub Pages dashboard published:")
+    print(f"- {DOCS_INDEX}")
+    print(f"- {DOCS_DASHBOARD}")
 
 
 if __name__ == "__main__":

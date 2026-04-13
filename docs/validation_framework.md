@@ -59,7 +59,7 @@
   - period completeness
   - score variance sanity
   - run manifest row-count consistency vs current data
-- Writes synchronized outputs to both `outputs/` and `docs/` to avoid stale "final" narratives.
+- Writes canonical outputs to `outputs/` to keep one governed report surface.
 - Adds explicit release-readiness classification with governance gates:
   - `technically_valid`
   - `analytically_acceptable`

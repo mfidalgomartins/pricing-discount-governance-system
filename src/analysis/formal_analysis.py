@@ -228,10 +228,15 @@ def _discount_dependency(pricing: pd.DataFrame, customer_profile: pd.DataFrame) 
             avg_discount_pct=("discount_depth", "mean"),
             avg_margin_proxy_pct=("margin_proxy_pct", "mean"),
             high_discount_revenue=("line_revenue", lambda s: s[pricing.loc[s.index, "discount_depth"] >= 0.20].sum()),
-            repeat_discount_behavior=("discounted_flag", "mean"),
         )
         .sort_values("high_discount_revenue", ascending=False)
     )
+    segment_repeat_behavior = (
+        customer_profile.groupby("segment", as_index=False)
+        .agg(repeat_discount_behavior=("repeat_discount_behavior", "mean"))
+    )
+    segment_dependency = segment_dependency.merge(segment_repeat_behavior, on="segment", how="left")
+    segment_dependency["repeat_discount_behavior"] = segment_dependency["repeat_discount_behavior"].fillna(0.0)
     segment_dependency["high_discount_revenue_share"] = np.where(
         segment_dependency["revenue"] > 0,
         segment_dependency["high_discount_revenue"] / segment_dependency["revenue"],
@@ -716,7 +721,6 @@ def run_formal_pricing_analysis(
 
     formal_report_md = _render_formal_report(payload)
     (outputs_dir / "formal_analysis_report.md").write_text(formal_report_md)
-    (docs_dir / "formal_analysis_report.md").write_text(formal_report_md)
 
     overall_health.to_csv(outputs_dir / "overall_pricing_health.csv", index=False)
     yearly_health.to_csv(outputs_dir / "yearly_pricing_health.csv", index=False)
@@ -769,7 +773,6 @@ def run_formal_pricing_analysis(
         ]
     )
     (outputs_dir / "executive_summary.md").write_text(executive_summary)
-    (docs_dir / "executive_summary.md").write_text(executive_summary)
 
     return {
         "overall_pricing_health": overall_health,

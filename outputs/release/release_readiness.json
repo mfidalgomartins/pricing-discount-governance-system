@@ -1,5 +1,5 @@
 {
-  "generated_at_utc": "2026-04-12T13:20:47.509693+00:00",
+  "generated_at_utc": "2026-04-13T00:55:16.931460+00:00",
   "overall_assessment": "ready",
   "release_readiness_state": "not committee-grade",
   "readiness_flags": {
@@ -17,7 +17,7 @@
   "excluded_customers": 27,
   "excluded_customer_pct": 0.0225,
   "high_discount_revenue_share": 0.32337989707266335,
-  "dashboard_size_mb": 4.119,
+  "dashboard_size_mb": 3.529,
   "all_checks_passed": true,
   "share_orders_high_discount_variance": 0.08462248778353747
 }

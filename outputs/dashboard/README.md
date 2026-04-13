@@ -1,11 +1,11 @@
-# Painel Executivo
+# Executive Dashboard
 
-Este diretório contém o ficheiro final do dashboard interativo.
+This folder contains the final interactive dashboard artifact.
 
-**Aceder ao dashboard (recomendado):**
-https://mfidalgomartins.github.io/pricing-discount-governance-system/outputs/dashboard/pricing-discipline-command-center.html
+Primary access (recommended):
+https://mfidalgomartins.github.io/pricing-discount-governance-system/
 
-Acesso alternativo (ficheiro local):
+Alternative local file:
 - `pricing-discipline-command-center.html`
 
-Nota: o GitHub mostra HTML como código. Use o link acima para a experiência interativa.
+Note: GitHub renders raw `.html` as code preview. Use the live URL above for the interactive experience.

@@ -9,8 +9,10 @@ Core entrypoints:
 
 Primary persisted artifacts:
 - Executive dashboard in `outputs/dashboard/`
+- GitHub Pages publish artifacts in `docs/`
 - Visualization pack charts in `outputs/visualizations/` (with an optional `outputs/visualization_pack.md` manifest)
 - Validation evidence in `outputs/` (raw, processed, metric-contract, and final review files)
+- SQL warehouse evidence in `outputs/warehouse/`
 
 ## What Is Versioned vs Generated
 Versioned:
@@ -20,6 +22,7 @@ Versioned:
 
 Generated at run time:
 - Runtime artifacts in `outputs/analysis` and `outputs/profiling`
+- SQL warehouse logs in `outputs/warehouse`
 - Most `data/processed/*`
 - Intermediate run diagnostics and manifests
 
