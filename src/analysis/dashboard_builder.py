@@ -263,90 +263,118 @@ def build_executive_dashboard(
   <style>
     :root {
       color-scheme: light;
-      --bg: #edf2fa;
-      --bg-radial: #dfeafc;
+      --bg: #eef3fb;
+      --bg-radial: #d4e1f6;
       --surface: #ffffff;
-      --surface-soft: #f5f9ff;
+      --surface-soft: #f3f7fd;
+      --surface-soft-alt: #eaf1fb;
       --ink: #0f172a;
-      --muted: #4b5f78;
-      --border: #d3deee;
-      --hero-start: #10213d;
-      --hero-end: #18385f;
-      --hero-ink: #eaf2ff;
-      --hero-muted: #cfe0ff;
-      --hero-chip-bg: rgba(10, 18, 33, 0.35);
-      --hero-chip-border: rgba(213, 230, 255, 0.28);
+      --muted: #51647c;
+      --border: #d7e1ef;
+      --hero-start: #0f1f38;
+      --hero-end: #1e426a;
+      --hero-ink: #edf4ff;
+      --hero-muted: #c4d7f3;
+      --hero-chip-bg: rgba(7, 16, 31, 0.34);
+      --hero-chip-border: rgba(208, 224, 248, 0.2);
       --input-bg: #ffffff;
-      --input-border: #c5d3e8;
-      --grid: #e2e8f0;
-      --row-hover: #f2f7ff;
+      --input-border: #c6d2e3;
+      --grid: #d8e3f2;
+      --row-hover: #eff5fd;
+      --row-alt: #f8fbff;
       --chart-trend-line: #0f766e;
       --chart-trend-fill: rgba(15, 118, 110, 0.12);
-      --chart-segment: #0ea5e9cc;
-      --chart-region: #f97316cc;
-      --chart-action: #334155cc;
-      --shadow: 0 10px 28px rgba(15, 23, 42, 0.08);
-      --radius: 14px;
+      --chart-segment: #0f7bb7;
+      --chart-region: #d97706;
+      --chart-action: #334155;
+      --shadow: 0 18px 46px rgba(15, 23, 42, 0.08);
+      --shadow-soft: 0 8px 22px rgba(15, 23, 42, 0.05);
+      --radius: 18px;
+      --radius-sm: 12px;
       --focus-ring: 0 0 0 3px rgba(14, 165, 233, 0.28);
       --ok: #0f766e;
       --warn: #a16207;
       --critical: #b91c1c;
-      --neutral: #2563eb;
-      --chip-bg: #eef4ff;
-      --chip-border: #c7d6ef;
+      --neutral: #1d4ed8;
+      --chip-bg: #edf3fd;
+      --chip-border: #ccd7e6;
+      --tone-ok-bg: #ebfbf6;
+      --tone-ok-border: #9ce7d6;
+      --tone-warn-bg: #fff7e8;
+      --tone-warn-border: #f8d597;
+      --tone-critical-bg: #fff0f1;
+      --tone-critical-border: #f9b1b6;
+      --tone-neutral-bg: #edf3ff;
+      --tone-neutral-border: #c6d8ff;
+      --table-head-bg: rgba(243, 247, 253, 0.96);
     }
 
     [data-theme="dark"] {
       color-scheme: dark;
-      --bg: #0b1322;
-      --bg-radial: #13233d;
-      --surface: #111a2d;
-      --surface-soft: #162238;
-      --ink: #e6edf8;
-      --muted: #9ab0c9;
-      --border: #2b3a54;
-      --hero-start: #111b2e;
-      --hero-end: #1c3152;
+      --bg: #08111d;
+      --bg-radial: #12253f;
+      --surface: #0f1a2c;
+      --surface-soft: #132136;
+      --surface-soft-alt: #18273f;
+      --ink: #e7eef9;
+      --muted: #9fb4cc;
+      --border: #2a3b56;
+      --hero-start: #0f182b;
+      --hero-end: #1b3557;
       --hero-ink: #f0f5ff;
-      --hero-muted: #b9cbe4;
+      --hero-muted: #c0d2ea;
       --hero-chip-bg: rgba(7, 12, 21, 0.72);
-      --hero-chip-border: rgba(154, 176, 201, 0.3);
-      --input-bg: #0f1a2d;
-      --input-border: #304261;
-      --grid: #273750;
-      --row-hover: #16253d;
+      --hero-chip-border: rgba(159, 180, 204, 0.3);
+      --input-bg: #0d182a;
+      --input-border: #2e4563;
+      --grid: #293a55;
+      --row-hover: #15263d;
+      --row-alt: #132034;
       --chart-trend-line: #34d399;
-      --chart-trend-fill: rgba(52, 211, 153, 0.16);
-      --chart-segment: #38bdf8cc;
-      --chart-region: #fb923ccc;
-      --chart-action: #cbd5e1cc;
-      --shadow: 0 10px 28px rgba(0, 0, 0, 0.36);
-      --focus-ring: 0 0 0 3px rgba(56, 189, 248, 0.26);
+      --chart-trend-fill: rgba(52, 211, 153, 0.14);
+      --chart-segment: #38bdf8;
+      --chart-region: #fb923c;
+      --chart-action: #cbd5e1;
+      --shadow: 0 16px 42px rgba(0, 0, 0, 0.34);
+      --shadow-soft: 0 8px 22px rgba(0, 0, 0, 0.24);
+      --focus-ring: 0 0 0 3px rgba(56, 189, 248, 0.24);
       --ok: #34d399;
-      --warn: #f59e0b;
+      --warn: #fbbf24;
       --critical: #f87171;
       --neutral: #93c5fd;
-      --chip-bg: #132238;
-      --chip-border: #304261;
+      --chip-bg: #14253d;
+      --chip-border: #304662;
+      --tone-ok-bg: #14352a;
+      --tone-ok-border: #1f7f66;
+      --tone-warn-bg: #3f2f13;
+      --tone-warn-border: #8e661f;
+      --tone-critical-bg: #3e1f28;
+      --tone-critical-border: #8b3442;
+      --tone-neutral-bg: #1a2c50;
+      --tone-neutral-border: #395c9b;
+      --table-head-bg: rgba(19, 33, 54, 0.96);
     }
 
     * { box-sizing: border-box; }
 
     body {
       margin: 0;
-      background: radial-gradient(circle at top left, var(--bg-radial) 0, var(--bg) 42%);
+      background:
+        radial-gradient(circle at 16% -6%, var(--bg-radial) 0, transparent 40%),
+        radial-gradient(circle at 88% -10%, var(--bg-radial) 0, transparent 32%),
+        var(--bg);
       color: var(--ink);
       font-family: \"IBM Plex Sans\", \"Avenir Next\", \"Segoe UI\", sans-serif;
-      line-height: 1.45;
+      line-height: 1.5;
       -webkit-font-smoothing: antialiased;
       text-rendering: optimizeLegibility;
       transition: background-color 0.2s ease, color 0.2s ease;
     }
 
     .page {
-      max-width: 1480px;
+      max-width: 1520px;
       margin: 0 auto;
-      padding: 24px clamp(14px, 2.4vw, 34px) 32px;
+      padding: 26px clamp(14px, 2.6vw, 36px) 40px;
       display: grid;
       gap: 18px;
     }
@@ -356,31 +384,43 @@ def build_executive_dashboard(
       border-radius: var(--radius);
       color: var(--hero-ink);
       box-shadow: var(--shadow);
-      padding: 22px clamp(16px, 2.5vw, 32px);
+      padding: 24px clamp(18px, 2.5vw, 34px);
+    }
+
+    .hero-grid {
       display: grid;
-      gap: 12px;
+      grid-template-columns: minmax(0, 1.4fr) minmax(300px, 0.92fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .hero-copy {
+      display: grid;
+      gap: 14px;
+      min-width: 0;
     }
 
     .hero-top {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      gap: 10px;
+      align-items: flex-start;
+      gap: 14px;
       flex-wrap: wrap;
     }
 
     .hero h1 {
       margin: 0;
-      font-size: clamp(1.7rem, 2.4vw, 2.25rem);
-      line-height: 1.2;
-      letter-spacing: 0.01em;
+      font-size: clamp(1.82rem, 2.55vw, 2.48rem);
+      line-height: 1.14;
+      letter-spacing: 0.012em;
+      max-width: 920px;
     }
 
-    .hero p {
+    .hero-subtitle {
       margin: 0;
       color: var(--hero-muted);
-      max-width: 980px;
-      font-size: clamp(1rem, 1.2vw, 1.08rem);
+      max-width: 900px;
+      font-size: clamp(1rem, 1.18vw, 1.08rem);
     }
 
     .hero-meta {
@@ -397,8 +437,114 @@ def build_executive_dashboard(
       background: var(--hero-chip-bg);
       border: 1px solid var(--hero-chip-border);
       border-radius: 999px;
-      padding: 4px 9px;
+      padding: 5px 10px;
       white-space: nowrap;
+    }
+
+    .hero-callout {
+      margin: 0;
+      max-width: 900px;
+      font-size: 0.95rem;
+      line-height: 1.55;
+      color: var(--hero-ink);
+    }
+
+    .hero-rail {
+      background: rgba(7, 16, 31, 0.18);
+      border: 1px solid var(--hero-chip-border);
+      border-radius: calc(var(--radius) - 2px);
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+      min-width: 0;
+      align-content: start;
+    }
+
+    .hero-status {
+      display: grid;
+      gap: 6px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid transparent;
+      background: rgba(8, 18, 35, 0.28);
+    }
+
+    .hero-status-label,
+    .summary-label,
+    .insight-label,
+    .chart-kicker,
+    .section-kicker,
+    .table-stat-label {
+      display: inline-block;
+      font-size: 0.74rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .hero-status-label {
+      color: var(--hero-muted);
+    }
+
+    .hero-status-value {
+      font-size: 1.28rem;
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .hero-status-note {
+      font-size: 0.82rem;
+      color: var(--hero-muted);
+      line-height: 1.45;
+    }
+
+    .hero-status.hero-status-ok {
+      background: rgba(15, 118, 110, 0.16);
+      border-color: rgba(52, 211, 153, 0.22);
+    }
+
+    .hero-status.hero-status-warn {
+      background: rgba(161, 98, 7, 0.18);
+      border-color: rgba(251, 191, 36, 0.24);
+    }
+
+    .hero-status.hero-status-critical {
+      background: rgba(185, 28, 28, 0.16);
+      border-color: rgba(248, 113, 113, 0.22);
+    }
+
+    .hero-summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .summary-card {
+      border-radius: 14px;
+      padding: 12px 13px;
+      background: rgba(8, 18, 35, 0.18);
+      border: 1px solid var(--hero-chip-border);
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .summary-label {
+      color: var(--hero-muted);
+    }
+
+    .summary-value {
+      font-size: 1.15rem;
+      font-weight: 700;
+      line-height: 1.2;
+      color: var(--hero-ink);
+      overflow-wrap: anywhere;
+    }
+
+    .summary-note {
+      font-size: 0.8rem;
+      color: var(--hero-muted);
+      line-height: 1.4;
     }
 
     .hero-actions {
@@ -413,10 +559,10 @@ def build_executive_dashboard(
       border: 1px solid var(--hero-chip-border);
       background: var(--hero-chip-bg);
       color: var(--hero-ink);
-      min-height: 34px;
+      min-height: 36px;
       padding: 0 14px;
       border-radius: 999px;
-      font-size: 0.82rem;
+      font-size: 0.8rem;
       font-weight: 700;
       letter-spacing: 0.01em;
       cursor: pointer;
@@ -433,22 +579,22 @@ def build_executive_dashboard(
     .section-head {
       display: flex;
       justify-content: space-between;
-      gap: 12px;
+      gap: 14px;
       align-items: baseline;
       flex-wrap: wrap;
-      padding: 0 2px;
+      padding: 2px 2px 0;
     }
 
     .section-head h2 {
       margin: 0;
-      font-size: 1.08rem;
-      letter-spacing: 0.01em;
+      font-size: 1.12rem;
+      letter-spacing: 0.012em;
     }
 
     .section-head p {
       margin: 0;
       color: var(--muted);
-      font-size: 0.86rem;
+      font-size: 0.84rem;
       max-width: 760px;
     }
 
@@ -456,26 +602,26 @@ def build_executive_dashboard(
       display: flex;
       justify-content: space-between;
       align-items: center;
-      gap: 10px;
-      padding: 10px 12px 0;
+      gap: 12px;
+      padding: 12px 14px 0;
       flex-wrap: wrap;
     }
 
     .controls-meta {
       margin: 0;
-      font-size: 0.8rem;
+      font-size: 0.81rem;
       color: var(--muted);
     }
 
     .reset-btn {
-      height: 34px;
+      height: 36px;
       border-radius: 999px;
       border: 1px solid var(--input-border);
       background: var(--input-bg);
       color: var(--ink);
-      font-size: 0.8rem;
+      font-size: 0.79rem;
       font-weight: 700;
-      padding: 0 12px;
+      padding: 0 13px;
       cursor: pointer;
     }
     .reset-btn:hover { filter: brightness(0.98); }
@@ -496,11 +642,15 @@ def build_executive_dashboard(
       min-width: 0;
     }
 
+    .filters-panel {
+      overflow: hidden;
+    }
+
     .filters {
-      padding: 14px;
+      padding: 14px 14px 16px;
       display: grid;
       grid-template-columns: repeat(6, minmax(0, 1fr));
-      gap: 10px;
+      gap: 11px;
       align-items: end;
     }
 
@@ -508,24 +658,24 @@ def build_executive_dashboard(
 
     .field label {
       display: block;
-      margin-bottom: 6px;
-      font-size: 0.79rem;
+      margin-bottom: 7px;
+      font-size: 0.76rem;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.03em;
+      letter-spacing: 0.035em;
       color: var(--muted);
     }
 
     .field select {
       width: 100%;
       min-width: 0;
-      height: 40px;
-      border-radius: 9px;
+      height: 41px;
+      border-radius: var(--radius-sm);
       border: 1px solid var(--input-border);
       background: var(--input-bg);
       color: var(--ink);
-      font-size: 0.92rem;
-      padding: 0 10px;
+      font-size: 0.9rem;
+      padding: 0 11px;
     }
     .field select:focus-visible {
       outline: none;
@@ -535,16 +685,17 @@ def build_executive_dashboard(
 
     .kpis {
       display: grid;
-      gap: 14px;
+      gap: 15px;
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 
     .kpi {
-      padding: 16px;
+      padding: 16px 16px 15px;
       display: grid;
       gap: 8px;
-      min-height: 112px;
+      min-height: 124px;
       border-top: 3px solid var(--border);
+      position: relative;
     }
 
     .kpi.kpi-critical { border-top-color: var(--critical); }
@@ -553,7 +704,7 @@ def build_executive_dashboard(
     .kpi.kpi-neutral { border-top-color: var(--neutral); }
 
     .kpi-title {
-      font-size: 0.79rem;
+      font-size: 0.75rem;
       text-transform: uppercase;
       letter-spacing: 0.03em;
       color: var(--muted);
@@ -561,9 +712,51 @@ def build_executive_dashboard(
       margin: 0;
     }
 
+    .kpi-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .kpi-state {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      padding: 2px 8px;
+      font-size: 0.69rem;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .kpi-state-ok {
+      background: var(--tone-ok-bg);
+      border-color: var(--tone-ok-border);
+      color: var(--ok);
+    }
+
+    .kpi-state-warn {
+      background: var(--tone-warn-bg);
+      border-color: var(--tone-warn-border);
+      color: var(--warn);
+    }
+
+    .kpi-state-critical {
+      background: var(--tone-critical-bg);
+      border-color: var(--tone-critical-border);
+      color: var(--critical);
+    }
+
+    .kpi-state-neutral {
+      background: var(--tone-neutral-bg);
+      border-color: var(--tone-neutral-border);
+      color: var(--neutral);
+    }
+
     .kpi-value {
       margin: 0;
-      font-size: clamp(1.3rem, 2.15vw, 2.2rem);
+      font-size: clamp(1.36rem, 2.12vw, 2.24rem);
       font-weight: 700;
       overflow-wrap: anywhere;
       line-height: 1.2;
@@ -571,17 +764,21 @@ def build_executive_dashboard(
 
     .kpi-sub {
       margin: 0;
-      font-size: 0.78rem;
+      font-size: 0.77rem;
       color: var(--muted);
     }
 
     .insight-strip {
-      padding: 14px 16px;
+      padding: 15px 16px;
       display: grid;
       gap: 10px;
       border-left: 4px solid var(--neutral);
       background: var(--surface-soft);
     }
+
+    .insight-strip.insight-critical { border-left-color: var(--critical); }
+    .insight-strip.insight-warn { border-left-color: var(--warn); }
+    .insight-strip.insight-ok { border-left-color: var(--ok); }
 
     .insight-main {
       margin: 0;
@@ -599,35 +796,84 @@ def build_executive_dashboard(
       border: 1px solid var(--chip-border);
       background: var(--chip-bg);
       border-radius: 999px;
-      padding: 4px 10px;
-      font-size: 0.78rem;
+      padding: 4px 11px;
+      font-size: 0.76rem;
       color: var(--ink);
       white-space: nowrap;
     }
 
+    .brief-grid {
+      padding: 12px;
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .brief-card {
+      background: var(--surface-soft);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 13px;
+      display: grid;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .brief-label {
+      margin: 0;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.035em;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .brief-value {
+      margin: 0;
+      font-size: clamp(1.02rem, 1.25vw, 1.24rem);
+      font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .brief-value.brief-ok { color: var(--ok); }
+    .brief-value.brief-warn { color: var(--warn); }
+    .brief-value.brief-critical { color: var(--critical); }
+
+    .brief-sub {
+      margin: 0;
+      font-size: 0.76rem;
+      color: var(--muted);
+      line-height: 1.35;
+    }
+
     .charts {
       display: grid;
-      gap: 14px;
+      gap: 15px;
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .chart-card {
-      padding: 14px;
+      padding: 15px 15px 13px;
       display: grid;
-      gap: 8px;
+      gap: 9px;
       min-width: 0;
+    }
+
+    .chart-head {
+      display: grid;
+      gap: 4px;
     }
 
     .chart-card h3 {
       margin: 0;
-      font-size: 1rem;
+      font-size: 1.02rem;
       line-height: 1.25;
       max-width: 92%;
     }
 
     .chart-card p {
       margin: 0;
-      font-size: 0.82rem;
+      font-size: 0.8rem;
       color: var(--muted);
       max-width: 96%;
     }
@@ -635,8 +881,8 @@ def build_executive_dashboard(
     .chart-wrap {
       position: relative;
       width: 100%;
-      height: 320px;
-      min-height: 290px;
+      height: 330px;
+      min-height: 300px;
     }
     .chart-wrap canvas {
       width: 100% !important;
@@ -644,19 +890,19 @@ def build_executive_dashboard(
     }
 
     .table-head {
-      padding: 14px 16px;
+      padding: 14px 16px 13px;
       border-bottom: 1px solid var(--border);
       background: var(--surface-soft);
     }
 
     .table-head h3 {
       margin: 0;
-      font-size: 1rem;
+      font-size: 1.03rem;
     }
 
     .table-head p {
       margin: 5px 0 0 0;
-      font-size: 0.82rem;
+      font-size: 0.8rem;
       color: var(--muted);
     }
 
@@ -677,19 +923,74 @@ def build_executive_dashboard(
       border-bottom: 1px solid var(--border);
       text-align: left;
       vertical-align: top;
-      font-size: 0.85rem;
+      font-size: 0.84rem;
     }
 
     th {
       position: sticky;
       top: 0;
-      z-index: 1;
+      z-index: 2;
       background: var(--surface-soft);
       cursor: pointer;
       user-select: none;
-      font-size: 0.78rem;
+      font-size: 0.75rem;
       text-transform: uppercase;
-      letter-spacing: 0.02em;
+      letter-spacing: 0.03em;
+      white-space: nowrap;
+    }
+
+    th::after {
+      content: '↕';
+      margin-left: 6px;
+      color: var(--muted);
+      font-size: 0.68rem;
+      opacity: 0.5;
+    }
+
+    th.sort-asc::after {
+      content: '↑';
+      opacity: 1;
+    }
+
+    th.sort-desc::after {
+      content: '↓';
+      opacity: 1;
+    }
+
+    #riskTable th:first-child,
+    #riskTable td:first-child {
+      position: sticky;
+      left: 0;
+    }
+
+    #riskTable th:first-child {
+      z-index: 3;
+      background: var(--surface-soft);
+    }
+
+    #riskTable td:first-child {
+      background: var(--surface);
+      font-weight: 700;
+      min-width: 128px;
+    }
+
+    tbody tr:nth-child(even) td {
+      background: var(--row-alt);
+    }
+
+    tbody tr:hover td {
+      background: var(--row-hover);
+    }
+
+    tbody tr:hover td:first-child {
+      background: var(--row-hover);
+    }
+
+    .action-cell {
+      max-width: 320px;
+      min-width: 220px;
+      white-space: normal;
+      line-height: 1.35;
     }
 
     .tier-chip {
@@ -712,13 +1013,10 @@ def build_executive_dashboard(
     [data-theme="dark"] .tier-medium { color: #bfdbfe; background: #1c335d; border-color: #1d4ed8; }
     [data-theme="dark"] .tier-low { color: #bbf7d0; background: #173928; border-color: #166534; }
 
-    tbody tr:hover td {
-      background: var(--row-hover);
-    }
-
     @media (max-width: 1220px) {
       .filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .brief-grid { grid-template-columns: 1fr; }
       .charts { grid-template-columns: 1fr; }
       .chart-wrap { height: 280px; }
     }
@@ -731,6 +1029,10 @@ def build_executive_dashboard(
 
       .filters,
       .kpis {
+        grid-template-columns: 1fr;
+      }
+
+      .brief-grid {
         grid-template-columns: 1fr;
       }
 
@@ -791,6 +1093,7 @@ def build_executive_dashboard(
       .hero,
       .panel,
       .kpi,
+      .brief-card,
       .chart-card,
       .table-panel {
         box-shadow: none !important;
@@ -816,6 +1119,11 @@ def build_executive_dashboard(
       .table-wrap {
         max-height: none;
         overflow: visible;
+      }
+
+      #riskTable th:first-child,
+      #riskTable td:first-child {
+        position: static;
       }
 
       table {
@@ -869,22 +1177,34 @@ def build_executive_dashboard(
   </div>
   <section class=\"kpis\">
     <article class=\"kpi kpi-neutral\" id=\"kpiRevenueCard\">
-      <p class=\"kpi-title\">Net Revenue In Scope</p>
+      <div class=\"kpi-head\">
+        <p class=\"kpi-title\">Net Revenue In Scope</p>
+        <span class=\"kpi-state kpi-state-neutral\" id=\"kpiRevenueState\">Scope</span>
+      </div>
       <p class=\"kpi-value\" id=\"kpiRevenue\">-</p>
       <p class=\"kpi-sub\">Filtered commercial volume</p>
     </article>
     <article class=\"kpi kpi-warn\" id=\"kpiDiscountCard\">
-      <p class=\"kpi-title\">Weighted Discount</p>
+      <div class=\"kpi-head\">
+        <p class=\"kpi-title\">Weighted Discount</p>
+        <span class=\"kpi-state kpi-state-warn\" id=\"kpiDiscountState\">Watch</span>
+      </div>
       <p class=\"kpi-value\" id=\"kpiDiscount\">-</p>
       <p class=\"kpi-sub\">Revenue-weighted realized discount</p>
     </article>
     <article class=\"kpi kpi-critical\" id=\"kpiMarginRiskCard\">
-      <p class=\"kpi-title\">Margin At Risk</p>
+      <div class=\"kpi-head\">
+        <p class=\"kpi-title\">Margin At Risk</p>
+        <span class=\"kpi-state kpi-state-critical\" id=\"kpiMarginRiskState\">Risk</span>
+      </div>
       <p class=\"kpi-value\" id=\"kpiMarginRisk\">-</p>
       <p class=\"kpi-sub\">High-discount and low-margin proxy overlap</p>
     </article>
     <article class=\"kpi kpi-warn\" id=\"kpiHighRiskCard\">
-      <p class=\"kpi-title\">High-Risk Customers</p>
+      <div class=\"kpi-head\">
+        <p class=\"kpi-title\">High-Risk Customers</p>
+        <span class=\"kpi-state kpi-state-warn\" id=\"kpiHighRiskState\">Watch</span>
+      </div>
       <p class=\"kpi-value\" id=\"kpiHighRisk\">-</p>
       <p class=\"kpi-sub\">Critical and high tier in current scope</p>
     </article>
@@ -895,39 +1215,65 @@ def build_executive_dashboard(
     <div class=\"insight-chips\" id=\"insightChips\"></div>
   </section>
 
+  <section class=\"panel brief-grid\">
+    <article class=\"brief-card\">
+      <p class=\"brief-label\">Operating posture</p>
+      <p class=\"brief-value\" id=\"briefPosture\">-</p>
+      <p class=\"brief-sub\" id=\"briefPostureSub\">-</p>
+    </article>
+    <article class=\"brief-card\">
+      <p class=\"brief-label\">Revenue under high-risk accounts</p>
+      <p class=\"brief-value\" id=\"briefExposure\">-</p>
+      <p class=\"brief-sub\" id=\"briefExposureSub\">-</p>
+    </article>
+    <article class=\"brief-card\">
+      <p class=\"brief-label\">Primary intervention</p>
+      <p class=\"brief-value\" id=\"briefPrimaryAction\">-</p>
+      <p class=\"brief-sub\" id=\"briefPrimaryActionSub\">-</p>
+    </article>
+  </section>
+
   <div class=\"section-head\">
     <h2>Diagnostics</h2>
     <p>Trend, concentration, and governance-action views to guide intervention priorities.</p>
   </div>
   <section class=\"charts\">
     <article class=\"chart-card\">
-      <h3>Discount Pressure Trend</h3>
-      <p>Monthly weighted discount trend in the selected scope.</p>
+      <div class=\"chart-head\">
+        <h3>Discount Pressure Trend</h3>
+        <p>Monthly weighted discount pattern for the selected commercial scope.</p>
+      </div>
       <div class=\"chart-wrap\"><canvas id=\"trendChart\"></canvas></div>
     </article>
 
     <article class=\"chart-card\">
-      <h3>Segment Discount Pressure</h3>
-      <p>Weighted discount comparison by segment for the selected non-segment filters.</p>
+      <div class=\"chart-head\">
+        <h3>Where Discounting Concentrates</h3>
+        <p>Weighted discount comparison by segment after applying current regional, category, channel, and period filters.</p>
+      </div>
       <div class=\"chart-wrap\"><canvas id=\"segmentChart\"></canvas></div>
     </article>
 
     <article class=\"chart-card\">
-      <h3>Margin-At-Risk by Region</h3>
-      <p>Margin-at-risk amount by region under current filters.</p>
+      <div class=\"chart-head\">
+        <h3>Margin Exposure by Region</h3>
+        <p>Absolute margin-at-risk volume by region in the selected scope.</p>
+      </div>
       <div class=\"chart-wrap\"><canvas id=\"regionRiskChart\"></canvas></div>
     </article>
 
     <article class=\"chart-card\">
-      <h3>Action Priority Mix</h3>
-      <p>Revenue in scope grouped by recommended intervention action.</p>
+      <div class=\"chart-head\">
+        <h3>Intervention Portfolio Mix</h3>
+        <p>Revenue concentration by recommended intervention action to support operational sequencing.</p>
+      </div>
       <div class=\"chart-wrap\"><canvas id=\"actionChart\"></canvas></div>
     </article>
   </section>
 
   <section class=\"table-panel\">
     <div class=\"table-head\">
-      <h3>Highest-Priority Customers (Top 360 Governance Candidates)</h3>
+      <h3>Highest-Priority Customers (Top 120 in Current Scope)</h3>
       <p>Use this list to focus reviews on the largest commercial and margin exposures first.</p>
     </div>
     <div class=\"table-wrap\">
@@ -996,6 +1342,20 @@ const fmtAxisUsd = (value) => {
   return `$${v.toFixed(0)}`;
 };
 
+function stateClass(level) {
+  if (level === 'critical') return 'kpi-state kpi-state-critical';
+  if (level === 'warn') return 'kpi-state kpi-state-warn';
+  if (level === 'ok') return 'kpi-state kpi-state-ok';
+  return 'kpi-state kpi-state-neutral';
+}
+
+function applyStateTag(id, level, label) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.className = stateClass(level);
+  el.textContent = label;
+}
+
 const dims = ['segment', 'region', 'category', 'sales_channel'];
 
 function getCssVar(name) {
@@ -1012,6 +1372,15 @@ function getThemePalette() {
     region: getCssVar('--chart-region'),
     action: getCssVar('--chart-action')
   };
+}
+
+function tooltipPct(context) {
+  return `${context.dataset.label}: ${Number(context.parsed.y ?? context.parsed.x ?? 0).toFixed(1)}%`;
+}
+
+function tooltipCurrency(context) {
+  const parsed = Number(context.parsed.x ?? context.parsed.y ?? 0);
+  return `${context.dataset.label}: ${fmtCurrency(parsed)}`;
 }
 
 function updateThemeToggleLabel(theme) {
@@ -1170,6 +1539,45 @@ function scopedRiskRows(filters) {
   return rows;
 }
 
+function resolvePosture(kpi) {
+  const discountWarn = Number(POSTURE_POLICY.weighted_discount_warn ?? 0.14);
+  const discountCritical = Number(POSTURE_POLICY.weighted_discount_critical ?? 0.20);
+  const marginWarn = Number(POSTURE_POLICY.margin_risk_share_warn ?? 0.12);
+  const marginCritical = Number(POSTURE_POLICY.margin_risk_share_critical ?? 0.20);
+  const riskWarn = Number(POSTURE_POLICY.high_risk_count_warn ?? 35);
+  const riskCritical = Number(POSTURE_POLICY.high_risk_count_critical ?? 80);
+
+  if (
+    Number(kpi.weighted_discount_pct || 0) >= discountCritical ||
+    Number(kpi.margin_risk_share || 0) >= marginCritical ||
+    Number(kpi.high_risk_count || 0) >= riskCritical
+  ) {
+    return {
+      level: 'critical',
+      label: 'Intervene now',
+      narrative: 'Current scope shows discount-led concentration and immediate governance intervention should be prioritized.'
+    };
+  }
+
+  if (
+    Number(kpi.weighted_discount_pct || 0) >= discountWarn ||
+    Number(kpi.margin_risk_share || 0) >= marginWarn ||
+    Number(kpi.high_risk_count || 0) >= riskWarn
+  ) {
+    return {
+      level: 'warn',
+      label: 'Tight watch',
+      narrative: 'Current scope is mixed. Targeted intervention is recommended before risk concentration broadens.'
+    };
+  }
+
+  return {
+    level: 'ok',
+    label: 'Controlled',
+    narrative: 'Current scope remains within monitor range with no immediate broad intervention signal.'
+  };
+}
+
 function updateKpis(filters, riskRows) {
   const kpi = aggregateScopedPricing(filters);
   const marginRiskShare = (Number(kpi.net_revenue) || 0) > 0 ? (Number(kpi.margin_at_risk) || 0) / Number(kpi.net_revenue) : 0;
@@ -1188,11 +1596,20 @@ function updateKpis(filters, riskRows) {
   const riskWarn = Number(KPI_POLICY.high_risk_count_warn ?? 35);
   const riskCritical = Number(KPI_POLICY.high_risk_count_critical ?? 80);
 
-  discountCard.className = `kpi ${kpi.weighted_discount_pct >= discountCritical ? 'kpi-critical' : kpi.weighted_discount_pct >= discountWarn ? 'kpi-warn' : 'kpi-ok'}`;
+  const discountLevel = kpi.weighted_discount_pct >= discountCritical ? 'critical' : kpi.weighted_discount_pct >= discountWarn ? 'warn' : 'ok';
+  discountCard.className = `kpi ${discountLevel === 'critical' ? 'kpi-critical' : discountLevel === 'warn' ? 'kpi-warn' : 'kpi-ok'}`;
+  applyStateTag('kpiDiscountState', discountLevel, discountLevel === 'critical' ? 'Critical' : discountLevel === 'warn' ? 'Watch' : 'Stable');
+
   const marginCard = document.getElementById('kpiMarginRiskCard');
-  marginCard.className = `kpi ${marginRiskShare >= marginCritical ? 'kpi-critical' : marginRiskShare >= marginWarn ? 'kpi-warn' : 'kpi-ok'}`;
+  const marginLevel = marginRiskShare >= marginCritical ? 'critical' : marginRiskShare >= marginWarn ? 'warn' : 'ok';
+  marginCard.className = `kpi ${marginLevel === 'critical' ? 'kpi-critical' : marginLevel === 'warn' ? 'kpi-warn' : 'kpi-ok'}`;
+  applyStateTag('kpiMarginRiskState', marginLevel, marginLevel === 'critical' ? 'Critical' : marginLevel === 'warn' ? 'Watch' : 'Stable');
+
   const highRiskCard = document.getElementById('kpiHighRiskCard');
-  highRiskCard.className = `kpi ${highRiskCount >= riskCritical ? 'kpi-critical' : highRiskCount >= riskWarn ? 'kpi-warn' : 'kpi-ok'}`;
+  const riskLevel = highRiskCount >= riskCritical ? 'critical' : highRiskCount >= riskWarn ? 'warn' : 'ok';
+  highRiskCard.className = `kpi ${riskLevel === 'critical' ? 'kpi-critical' : riskLevel === 'warn' ? 'kpi-warn' : 'kpi-ok'}`;
+  applyStateTag('kpiHighRiskState', riskLevel, riskLevel === 'critical' ? 'Critical' : riskLevel === 'warn' ? 'Watch' : 'Stable');
+  applyStateTag('kpiRevenueState', 'neutral', 'Scope');
 
   return { ...kpi, high_risk_count: highRiskCount, margin_risk_share: marginRiskShare };
 }
@@ -1205,21 +1622,12 @@ function updateInsight(filters, kpi, riskRows) {
   });
   const topDriver = [...topDriverMap.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || 'mixed';
 
-  const discountWarn = Number(POSTURE_POLICY.weighted_discount_warn ?? 0.14);
-  const discountCritical = Number(POSTURE_POLICY.weighted_discount_critical ?? 0.20);
-  const marginWarn = Number(POSTURE_POLICY.margin_risk_share_warn ?? 0.12);
-  const marginCritical = Number(POSTURE_POLICY.margin_risk_share_critical ?? 0.20);
-  const riskWarn = Number(POSTURE_POLICY.high_risk_count_warn ?? 35);
-  const riskCritical = Number(POSTURE_POLICY.high_risk_count_critical ?? 80);
-
-  let posture = 'Pricing discipline is currently within monitor range.';
-  if (kpi.weighted_discount_pct >= discountCritical || kpi.margin_risk_share >= marginCritical || kpi.high_risk_count >= riskCritical) {
-    posture = 'Current scope shows discount-led risk concentration; governance intervention should be prioritized.';
-  } else if (kpi.weighted_discount_pct >= discountWarn || kpi.margin_risk_share >= marginWarn || kpi.high_risk_count >= riskWarn) {
-    posture = 'Current scope is mixed: targeted governance intervention is recommended before risk broadens.';
+  const posture = resolvePosture(kpi);
+  document.getElementById('insightMain').textContent = posture.narrative;
+  const insightEl = document.querySelector('.insight-strip');
+  if (insightEl) {
+    insightEl.className = `panel insight-strip insight-${posture.level}`;
   }
-
-  document.getElementById('insightMain').textContent = posture;
   const chips = [
     `Scope: ${filters.segment === ALL ? 'All segments' : filters.segment}`,
     `Weighted discount: ${fmtPct(kpi.weighted_discount_pct || 0)}`,
@@ -1228,6 +1636,41 @@ function updateInsight(filters, kpi, riskRows) {
     `Top risk driver: ${String(topDriver).replaceAll('_', ' ')}`
   ];
   document.getElementById('insightChips').innerHTML = chips.map((c) => `<span class="insight-chip">${c}</span>`).join('');
+}
+
+function updateExecutiveBrief(kpi, riskRows) {
+  const posture = resolvePosture(kpi);
+
+  const highRiskRevenue = riskRows.reduce((acc, row) => {
+    if (row.risk_tier === 'High' || row.risk_tier === 'Critical') {
+      return acc + (Number(row.filtered_revenue) || 0);
+    }
+    return acc;
+  }, 0);
+  const exposureShare = Number(kpi.net_revenue) > 0 ? highRiskRevenue / Number(kpi.net_revenue) : 0;
+
+  const actionMap = new Map();
+  riskRows.forEach((row) => {
+    const key = row.recommended_action || 'Unclassified';
+    actionMap.set(key, (actionMap.get(key) || 0) + (Number(row.filtered_revenue) || 0));
+  });
+  const topActionRow = [...actionMap.entries()].sort((a, b) => b[1] - a[1])[0];
+  const topAction = topActionRow ? topActionRow[0] : 'No intervention needed';
+  const topActionValue = topActionRow ? Number(topActionRow[1]) : 0;
+  const topActionShare = Number(kpi.net_revenue) > 0 ? topActionValue / Number(kpi.net_revenue) : 0;
+
+  const postureValueEl = document.getElementById('briefPosture');
+  if (postureValueEl) {
+    postureValueEl.textContent = posture.label;
+    postureValueEl.className = `brief-value brief-${posture.level}`;
+  }
+  document.getElementById('briefPostureSub').textContent = `Weighted discount ${fmtPct(Number(kpi.weighted_discount_pct) || 0)} · Margin risk share ${fmtPct(Number(kpi.margin_risk_share) || 0)}.`;
+
+  document.getElementById('briefExposure').textContent = fmtPct(exposureShare || 0);
+  document.getElementById('briefExposureSub').textContent = `${fmtCurrency(highRiskRevenue)} is currently concentrated in high and critical risk customers.`;
+
+  document.getElementById('briefPrimaryAction').textContent = compactLabel(topAction, 34);
+  document.getElementById('briefPrimaryActionSub').textContent = `${fmtPct(topActionShare || 0)} of scoped revenue is tied to this action.`;
 }
 
 function updateTrendChart(filters) {
@@ -1266,10 +1709,10 @@ function updateTrendChart(filters) {
         data: monthly.map((r) => r.weighted_discount_pct * 100),
         borderColor: palette.trendLine,
         backgroundColor: palette.trendFill,
-        pointRadius: 0,
+        pointRadius: 1.5,
         pointHitRadius: 8,
-        borderWidth: 2,
-        tension: 0.28,
+        borderWidth: 2.2,
+        tension: 0.24,
         fill: true
       }]
     },
@@ -1277,7 +1720,14 @@ function updateTrendChart(filters) {
       responsive: true,
       maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
-      plugins: { legend: { display: false } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: tooltipPct
+          }
+        }
+      },
       scales: {
         x: {
           ticks: {
@@ -1336,13 +1786,21 @@ function updateSegmentChart(filters) {
         data: rows.map((r) => (Number(r.weighted_discount_pct) || 0) * 100),
         backgroundColor: palette.segment,
         borderRadius: 6,
+        borderSkipped: false,
         maxBarThickness: 54
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: tooltipPct
+          }
+        }
+      },
       scales: {
         x: {
           ticks: {
@@ -1395,13 +1853,21 @@ function updateRegionRiskChart(filters) {
         data: rows.map((r) => Number(r.margin_at_risk) || 0),
         backgroundColor: palette.region,
         borderRadius: 6,
+        borderSkipped: false,
         maxBarThickness: 54
       }]
     },
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      plugins: { legend: { display: false } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: tooltipCurrency
+          }
+        }
+      },
       scales: {
         x: {
           ticks: {
@@ -1426,6 +1892,14 @@ function updateRegionRiskChart(filters) {
   });
 }
 
+function collapseTail(rows, maxItems = 6, otherLabel = 'Other actions') {
+  if (rows.length <= maxItems) return rows;
+  const keep = Math.max(1, maxItems - 1);
+  const head = rows.slice(0, keep);
+  const tailTotal = rows.slice(keep).reduce((acc, row) => acc + (Number(row.value) || 0), 0);
+  return [...head, { label: otherLabel, value: tailTotal }];
+}
+
 function updateActionChart(riskRows) {
   const palette = getThemePalette();
   const grouped = new Map();
@@ -1438,16 +1912,18 @@ function updateActionChart(riskRows) {
   const rows = [...grouped.entries()]
     .map(([label, value]) => ({ label, value }))
     .sort((a, b) => b.value - a.value);
+  const displayRows = collapseTail(rows, 6);
 
   makeOrUpdateChart('actionChart', {
     type: 'bar',
     data: {
-      labels: rows.map((r) => compactLabel(r.label, 28)),
+      labels: displayRows.map((r) => compactLabel(r.label, 28)),
       datasets: [{
         label: 'Revenue in scope',
-        data: rows.map((r) => r.value),
+        data: displayRows.map((r) => r.value),
         backgroundColor: palette.action,
         borderRadius: 6,
+        borderSkipped: false,
         maxBarThickness: 52
       }]
     },
@@ -1455,7 +1931,14 @@ function updateActionChart(riskRows) {
       responsive: true,
       maintainAspectRatio: false,
       indexAxis: 'y',
-      plugins: { legend: { display: false } },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: tooltipCurrency
+          }
+        }
+      },
       scales: {
         y: {
           ticks: { autoSkip: false, color: palette.axisText, font: { size: 11 } },
@@ -1476,6 +1959,7 @@ function updateActionChart(riskRows) {
 }
 
 function tierChip(tier) {
+  const safeTier = escapeHtml(tier || 'Unknown');
   const cls = {
     Critical: 'tier-chip tier-critical',
     High: 'tier-chip tier-high',
@@ -1483,7 +1967,7 @@ function tierChip(tier) {
     Low: 'tier-chip tier-low'
   }[tier] || 'tier-chip';
 
-  return `<span class=\"${cls}\">${tier}</span>`;
+  return `<span class=\"${cls}\">${safeTier}</span>`;
 }
 
 function sortRows(rows) {
@@ -1501,20 +1985,31 @@ function sortRows(rows) {
   });
 }
 
+function updateTableSortIndicators() {
+  document.querySelectorAll('#riskTable thead th[data-key]').forEach((th) => {
+    const key = th.getAttribute('data-key');
+    th.classList.remove('sort-asc', 'sort-desc');
+    if (key === tableState.key) {
+      th.classList.add(tableState.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+    }
+  });
+}
+
 function renderTable(riskRows) {
   const sorted = sortRows(riskRows).slice(0, 120);
   const tbody = document.querySelector('#riskTable tbody');
+  updateTableSortIndicators();
 
   tbody.innerHTML = sorted.map((r) => `
     <tr>
-      <td>${r.customer_id}</td>
-      <td>${r.segment}</td>
-      <td>${r.region}</td>
+      <td>${escapeHtml(r.customer_id)}</td>
+      <td>${escapeHtml(r.segment)}</td>
+      <td>${escapeHtml(r.region)}</td>
       <td>${fmtCurrency(Number(r.filtered_revenue) || 0)}</td>
       <td>${fmtPct(Number(r.filtered_avg_discount) || 0)}</td>
       <td>${(Number(r.governance_priority_score) || 0).toFixed(1)}</td>
       <td>${tierChip(r.risk_tier)}</td>
-      <td>${r.recommended_action}</td>
+      <td class="action-cell">${escapeHtml(r.recommended_action)}</td>
     </tr>
   `).join('');
 }
@@ -1567,6 +2062,7 @@ function updateAll() {
   updateControlsMeta(filters);
   const kpi = updateKpis(filters, riskRows);
   updateInsight(filters, kpi, riskRows);
+  updateExecutiveBrief(kpi, riskRows);
   updateTrendChart(filters);
   updateSegmentChart(filters);
   updateRegionRiskChart(filters);
