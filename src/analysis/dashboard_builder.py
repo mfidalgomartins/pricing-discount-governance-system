@@ -253,6 +253,9 @@ def build_executive_dashboard(
 <head>
   <meta charset=\"utf-8\" />
   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
+  <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">
+  <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>
+  <link href=\"https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@500;600;700;800&display=swap\" rel=\"stylesheet\">
   <title>Pricing & Discount Governance Dashboard</title>
   <script src=\"vendor/chart.umd.min.js\"></script>
   <script>
@@ -263,20 +266,22 @@ def build_executive_dashboard(
   <style>
     :root {
       color-scheme: light;
-      --bg: #eef3fb;
-      --bg-radial: #d4e1f6;
+      --font-sans: \"Manrope\", \"Avenir Next\", \"Segoe UI\", sans-serif;
+      --font-display: \"Fraunces\", Georgia, serif;
+      --bg: #eff4fb;
+      --bg-radial: #d6e3f6;
       --surface: #ffffff;
-      --surface-soft: #f3f7fd;
-      --surface-soft-alt: #eaf1fb;
+      --surface-soft: #f4f8fd;
+      --surface-soft-alt: #eaf2fb;
       --ink: #0f172a;
       --muted: #51647c;
       --border: #d7e1ef;
-      --hero-start: #0f1f38;
-      --hero-end: #1e426a;
-      --hero-ink: #edf4ff;
-      --hero-muted: #c4d7f3;
-      --hero-chip-bg: rgba(7, 16, 31, 0.34);
-      --hero-chip-border: rgba(208, 224, 248, 0.2);
+      --hero-start: #0e1d34;
+      --hero-end: #1d436c;
+      --hero-ink: #eef4ff;
+      --hero-muted: #c6d7ee;
+      --hero-chip-bg: rgba(7, 16, 31, 0.26);
+      --hero-chip-border: rgba(208, 224, 248, 0.16);
       --input-bg: #ffffff;
       --input-border: #c6d2e3;
       --grid: #d8e3f2;
@@ -287,9 +292,9 @@ def build_executive_dashboard(
       --chart-segment: #0f7bb7;
       --chart-region: #d97706;
       --chart-action: #334155;
-      --shadow: 0 18px 46px rgba(15, 23, 42, 0.08);
-      --shadow-soft: 0 8px 22px rgba(15, 23, 42, 0.05);
-      --radius: 18px;
+      --shadow: 0 20px 52px rgba(15, 23, 42, 0.08);
+      --shadow-soft: 0 10px 26px rgba(15, 23, 42, 0.055);
+      --radius: 20px;
       --radius-sm: 12px;
       --focus-ring: 0 0 0 3px rgba(14, 165, 233, 0.28);
       --ok: #0f766e;
@@ -306,15 +311,15 @@ def build_executive_dashboard(
       --tone-critical-border: #f9b1b6;
       --tone-neutral-bg: #edf3ff;
       --tone-neutral-border: #c6d8ff;
-      --table-head-bg: rgba(243, 247, 253, 0.96);
+      --table-head-bg: rgba(244, 248, 253, 0.96);
     }
 
     [data-theme="dark"] {
       color-scheme: dark;
       --bg: #08111d;
-      --bg-radial: #12253f;
+      --bg-radial: #132740;
       --surface: #0f1a2c;
-      --surface-soft: #132136;
+      --surface-soft: #132137;
       --surface-soft-alt: #18273f;
       --ink: #e7eef9;
       --muted: #9fb4cc;
@@ -323,8 +328,8 @@ def build_executive_dashboard(
       --hero-end: #1b3557;
       --hero-ink: #f0f5ff;
       --hero-muted: #c0d2ea;
-      --hero-chip-bg: rgba(7, 12, 21, 0.72);
-      --hero-chip-border: rgba(159, 180, 204, 0.3);
+      --hero-chip-bg: rgba(7, 12, 21, 0.62);
+      --hero-chip-border: rgba(159, 180, 204, 0.22);
       --input-bg: #0d182a;
       --input-border: #2e4563;
       --grid: #293a55;
@@ -335,8 +340,8 @@ def build_executive_dashboard(
       --chart-segment: #38bdf8;
       --chart-region: #fb923c;
       --chart-action: #cbd5e1;
-      --shadow: 0 16px 42px rgba(0, 0, 0, 0.34);
-      --shadow-soft: 0 8px 22px rgba(0, 0, 0, 0.24);
+      --shadow: 0 18px 48px rgba(0, 0, 0, 0.34);
+      --shadow-soft: 0 10px 24px rgba(0, 0, 0, 0.24);
       --focus-ring: 0 0 0 3px rgba(56, 189, 248, 0.24);
       --ok: #34d399;
       --warn: #fbbf24;
@@ -364,11 +369,40 @@ def build_executive_dashboard(
         radial-gradient(circle at 88% -10%, var(--bg-radial) 0, transparent 32%),
         var(--bg);
       color: var(--ink);
-      font-family: \"IBM Plex Sans\", \"Avenir Next\", \"Segoe UI\", sans-serif;
+      font-family: var(--font-sans);
       line-height: 1.5;
       -webkit-font-smoothing: antialiased;
       text-rendering: optimizeLegibility;
       transition: background-color 0.2s ease, color 0.2s ease;
+      min-height: 100vh;
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    body::before,
+    body::after {
+      content: '';
+      position: fixed;
+      inset: auto;
+      width: 34rem;
+      height: 34rem;
+      border-radius: 999px;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.5;
+      filter: blur(72px);
+    }
+
+    body::before {
+      top: -10rem;
+      right: -12rem;
+      background: color-mix(in srgb, var(--bg-radial) 80%, transparent);
+    }
+
+    body::after {
+      bottom: -14rem;
+      left: -10rem;
+      background: color-mix(in srgb, var(--surface-soft-alt) 76%, transparent);
     }
 
     .page {
@@ -377,6 +411,8 @@ def build_executive_dashboard(
       padding: 26px clamp(14px, 2.6vw, 36px) 40px;
       display: grid;
       gap: 18px;
+      position: relative;
+      z-index: 1;
     }
 
     .hero {
@@ -385,6 +421,19 @@ def build_executive_dashboard(
       color: var(--hero-ink);
       box-shadow: var(--shadow);
       padding: 24px clamp(18px, 2.5vw, 34px);
+      position: relative;
+      overflow: hidden;
+      border: 1px solid rgba(226, 237, 255, 0.08);
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 82% 18%, rgba(255, 255, 255, 0.12) 0, transparent 28%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.06) 0, transparent 28%);
+      pointer-events: none;
     }
 
     .hero-grid {
@@ -398,6 +447,8 @@ def build_executive_dashboard(
       display: grid;
       gap: 14px;
       min-width: 0;
+      position: relative;
+      z-index: 1;
     }
 
     .hero-top {
@@ -414,6 +465,9 @@ def build_executive_dashboard(
       line-height: 1.14;
       letter-spacing: 0.012em;
       max-width: 920px;
+      font-family: var(--font-display);
+      font-weight: 650;
+      text-wrap: balance;
     }
 
     .hero-subtitle {
@@ -421,6 +475,7 @@ def build_executive_dashboard(
       color: var(--hero-muted);
       max-width: 900px;
       font-size: clamp(1rem, 1.18vw, 1.08rem);
+      text-wrap: pretty;
     }
 
     .hero-meta {
@@ -450,14 +505,17 @@ def build_executive_dashboard(
     }
 
     .hero-rail {
-      background: rgba(7, 16, 31, 0.18);
+      background: linear-gradient(180deg, rgba(7, 16, 31, 0.24) 0%, rgba(7, 16, 31, 0.14) 100%);
       border: 1px solid var(--hero-chip-border);
       border-radius: calc(var(--radius) - 2px);
-      padding: 14px;
+      padding: 15px;
       display: grid;
-      gap: 12px;
+      gap: 13px;
       min-width: 0;
       align-content: start;
+      backdrop-filter: blur(10px);
+      position: relative;
+      z-index: 1;
     }
 
     .hero-status {
@@ -529,11 +587,12 @@ def build_executive_dashboard(
     .summary-card {
       border-radius: 14px;
       padding: 12px 13px;
-      background: rgba(8, 18, 35, 0.18);
+      background: linear-gradient(180deg, rgba(8, 18, 35, 0.2) 0%, rgba(8, 18, 35, 0.12) 100%);
       border: 1px solid var(--hero-chip-border);
       display: grid;
       gap: 4px;
       min-width: 0;
+      backdrop-filter: blur(8px);
     }
 
     .summary-label {
@@ -564,19 +623,25 @@ def build_executive_dashboard(
     .theme-toggle,
     .print-btn {
       border: 1px solid var(--hero-chip-border);
-      background: var(--hero-chip-bg);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, var(--hero-chip-bg) 100%);
       color: var(--hero-ink);
       min-height: 36px;
-      padding: 0 14px;
+      padding: 0 15px;
       border-radius: 999px;
-      font-size: 0.8rem;
+      font-size: 0.78rem;
       font-weight: 700;
-      letter-spacing: 0.01em;
+      letter-spacing: 0.035em;
+      text-transform: uppercase;
       cursor: pointer;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      transition: transform 0.18s ease, filter 0.18s ease, background-color 0.18s ease;
     }
 
     .theme-toggle:hover,
-    .print-btn:hover { filter: brightness(1.08); }
+    .print-btn:hover {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+    }
     .theme-toggle:focus-visible,
     .print-btn:focus-visible {
       outline: none;
@@ -605,6 +670,7 @@ def build_executive_dashboard(
       margin: 0;
       font-size: 1.18rem;
       letter-spacing: 0.012em;
+      text-wrap: balance;
     }
 
     .section-head p {
@@ -634,14 +700,19 @@ def build_executive_dashboard(
       height: 36px;
       border-radius: 999px;
       border: 1px solid var(--input-border);
-      background: var(--input-bg);
+      background: linear-gradient(180deg, var(--surface) 0%, var(--surface-soft) 100%);
       color: var(--ink);
       font-size: 0.79rem;
       font-weight: 700;
       padding: 0 13px;
       cursor: pointer;
+      box-shadow: var(--shadow-soft);
+      transition: transform 0.18s ease, filter 0.18s ease;
     }
-    .reset-btn:hover { filter: brightness(0.98); }
+    .reset-btn:hover {
+      filter: brightness(0.98);
+      transform: translateY(-1px);
+    }
     .reset-btn:focus-visible {
       outline: none;
       box-shadow: var(--focus-ring);
@@ -652,11 +723,40 @@ def build_executive_dashboard(
     .kpi,
     .chart-card,
     .table-panel {
-      background: var(--surface);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 92%, var(--surface-soft) 8%) 0%, var(--surface) 100%);
       border: 1px solid var(--border);
       border-radius: var(--radius);
       box-shadow: var(--shadow);
       min-width: 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    @media (hover: hover) {
+      .kpi,
+      .chart-card,
+      .brief-card,
+      .table-stat {
+        transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+      }
+
+      .kpi:hover,
+      .chart-card:hover,
+      .brief-card:hover,
+      .table-stat:hover {
+        transform: translateY(-2px);
+      }
+    }
+
+    .panel::before,
+    .kpi::before,
+    .chart-card::before,
+    .table-panel::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.2) 0%, transparent 18%);
+      pointer-events: none;
     }
 
     .filters-panel {
@@ -675,6 +775,22 @@ def build_executive_dashboard(
     }
 
     .field { min-width: 0; }
+
+    .field {
+      background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 78%, var(--surface-soft) 22%) 0%, var(--surface) 100%);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 10px 11px 11px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+    }
+
+    .field {
+      padding: 11px 12px 12px;
+      border-radius: 14px;
+      border: 1px solid color-mix(in srgb, var(--border) 92%, transparent);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 86%, var(--surface-soft) 14%) 0%, var(--surface) 100%);
+      box-shadow: var(--shadow-soft);
+    }
 
     .field label {
       display: block;
@@ -697,6 +813,11 @@ def build_executive_dashboard(
       font-size: 0.9rem;
       padding: 0 11px;
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
+      appearance: none;
+      background-image: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14' fill='none'%3E%3Cpath d='M3.25 5.25L7 9L10.75 5.25' stroke='%23657b93' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      padding-right: 34px;
     }
     .field select:focus-visible {
       outline: none;
@@ -718,6 +839,19 @@ def build_executive_dashboard(
       border-top: 4px solid var(--border);
       position: relative;
       box-shadow: var(--shadow-soft);
+    }
+
+    .kpi::after {
+      content: '';
+      position: absolute;
+      right: 16px;
+      bottom: 14px;
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      background: radial-gradient(circle, color-mix(in srgb, currentColor 18%, transparent) 0%, transparent 70%);
+      opacity: 0.45;
+      pointer-events: none;
     }
 
     .kpi.kpi-critical { border-top-color: var(--critical); }
@@ -784,6 +918,7 @@ def build_executive_dashboard(
       font-weight: 700;
       overflow-wrap: anywhere;
       line-height: 1.2;
+      font-variant-numeric: tabular-nums;
     }
 
     .kpi-sub {
@@ -884,6 +1019,7 @@ def build_executive_dashboard(
       font-size: clamp(1.02rem, 1.25vw, 1.24rem);
       font-weight: 700;
       line-height: 1.2;
+      font-variant-numeric: tabular-nums;
     }
 
     .brief-value.brief-ok { color: var(--ok); }
@@ -909,11 +1045,22 @@ def build_executive_dashboard(
       gap: 9px;
       min-width: 0;
       box-shadow: var(--shadow-soft);
+      border-top: 3px solid transparent;
     }
 
     .chart-card-wide {
       grid-column: 1 / -1;
     }
+
+    .chart-trend { border-top: 4px solid color-mix(in srgb, var(--chart-trend-line) 86%, transparent); }
+    .chart-segment { border-top: 4px solid color-mix(in srgb, var(--chart-segment) 86%, transparent); }
+    .chart-region { border-top: 4px solid color-mix(in srgb, var(--chart-region) 86%, transparent); }
+    .chart-action { border-top: 4px solid color-mix(in srgb, var(--chart-action) 76%, transparent); }
+
+    .chart-card-trend { border-top-color: var(--chart-trend-line); }
+    .chart-card-segment { border-top-color: var(--chart-segment); }
+    .chart-card-region { border-top-color: var(--chart-region); }
+    .chart-card-action { border-top-color: var(--chart-action); }
 
     .chart-head {
       display: grid;
@@ -923,6 +1070,11 @@ def build_executive_dashboard(
     .chart-kicker {
       color: var(--muted);
     }
+
+    .chart-card-trend .chart-kicker { color: var(--chart-trend-line); }
+    .chart-card-segment .chart-kicker { color: var(--chart-segment); }
+    .chart-card-region .chart-kicker { color: var(--chart-region); }
+    .chart-card-action .chart-kicker { color: var(--chart-action); }
 
     .chart-card h3 {
       margin: 0;
@@ -1013,6 +1165,15 @@ def build_executive_dashboard(
       color: var(--muted);
     }
 
+    #riskTable th:nth-child(5),
+    #riskTable th:nth-child(6),
+    #riskTable th:nth-child(7),
+    #riskTable td:nth-child(5),
+    #riskTable td:nth-child(6),
+    #riskTable td:nth-child(7) {
+      text-align: right;
+    }
+
     .table-wrap {
       overflow: auto;
       max-height: 520px;
@@ -1031,6 +1192,7 @@ def build_executive_dashboard(
       text-align: left;
       vertical-align: top;
       font-size: 0.84rem;
+      font-variant-numeric: tabular-nums;
     }
 
     th {
@@ -1117,13 +1279,14 @@ def build_executive_dashboard(
       display: inline-flex;
       align-items: center;
       border-radius: 999px;
-      padding: 4px 10px;
-      font-size: 0.75rem;
+      padding: 5px 11px;
+      font-size: 0.73rem;
       font-weight: 700;
       line-height: 1.35;
-      background: var(--surface-soft-alt);
-      border: 1px solid var(--border);
+      background: linear-gradient(180deg, var(--surface-soft-alt) 0%, var(--surface-soft) 100%);
+      border: 1px solid color-mix(in srgb, var(--border) 88%, var(--surface) 12%);
       color: var(--ink);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18);
     }
 
     .tier-chip {
@@ -1446,7 +1609,7 @@ def build_executive_dashboard(
     <p>Move from signal to action by checking trend direction, concentration pockets, regional exposure, and the mix of intervention work required.</p>
   </div>
   <section class=\"charts\">
-    <article class=\"chart-card chart-card-wide\">
+    <article class=\"chart-card chart-card-wide chart-card-trend\">
       <div class=\"chart-head\">
         <span class=\"chart-kicker\">Momentum</span>
         <h3>Discount Pressure Trend</h3>
@@ -1455,7 +1618,7 @@ def build_executive_dashboard(
       <div class=\"chart-wrap\"><canvas id=\"trendChart\"></canvas></div>
     </article>
 
-    <article class=\"chart-card\">
+    <article class=\"chart-card chart-card-segment\">
       <div class=\"chart-head\">
         <span class=\"chart-kicker\">Concentration</span>
         <h3>Where Discounting Concentrates</h3>
@@ -1464,7 +1627,7 @@ def build_executive_dashboard(
       <div class=\"chart-wrap\"><canvas id=\"segmentChart\"></canvas></div>
     </article>
 
-    <article class=\"chart-card\">
+    <article class=\"chart-card chart-card-region\">
       <div class=\"chart-head\">
         <span class=\"chart-kicker\">Exposure</span>
         <h3>Margin Exposure by Region</h3>
@@ -1473,7 +1636,7 @@ def build_executive_dashboard(
       <div class=\"chart-wrap\"><canvas id=\"regionRiskChart\"></canvas></div>
     </article>
 
-    <article class=\"chart-card\">
+    <article class=\"chart-card chart-card-action\">
       <div class=\"chart-head\">
         <span class=\"chart-kicker\">Action mix</span>
         <h3>Intervention Portfolio Mix</h3>
@@ -1528,7 +1691,7 @@ const POLICY = DATA.policy || {};
 const KPI_POLICY = POLICY.kpi_card_thresholds || {};
 const POSTURE_POLICY = POLICY.posture_thresholds || {};
 
-Chart.defaults.font.family = 'IBM Plex Sans, Avenir Next, Segoe UI, sans-serif';
+Chart.defaults.font.family = 'Manrope, Avenir Next, Segoe UI, sans-serif';
 Chart.defaults.color = '#475569';
 Chart.defaults.borderColor = '#e2e8f0';
 Chart.defaults.plugins.legend.labels.usePointStyle = true;
