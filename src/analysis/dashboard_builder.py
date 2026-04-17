@@ -486,6 +486,13 @@ def build_executive_dashboard(
       color: var(--hero-muted);
     }
 
+    .insight-label,
+    .chart-kicker,
+    .section-kicker,
+    .table-stat-label {
+      color: var(--muted);
+    }
+
     .hero-status-value {
       font-size: 1.28rem;
       font-weight: 700;
@@ -579,38 +586,48 @@ def build_executive_dashboard(
     .section-head {
       display: flex;
       justify-content: space-between;
-      gap: 14px;
+      gap: 18px;
       align-items: baseline;
       flex-wrap: wrap;
-      padding: 2px 2px 0;
+      padding: 4px 2px 0;
+    }
+
+    .section-head-copy {
+      display: grid;
+      gap: 4px;
+    }
+
+    .section-kicker {
+      color: var(--muted);
     }
 
     .section-head h2 {
       margin: 0;
-      font-size: 1.12rem;
+      font-size: 1.18rem;
       letter-spacing: 0.012em;
     }
 
     .section-head p {
       margin: 0;
       color: var(--muted);
-      font-size: 0.84rem;
-      max-width: 760px;
+      font-size: 0.86rem;
+      max-width: 720px;
+      line-height: 1.5;
     }
 
     .controls-row {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
       gap: 12px;
-      padding: 12px 14px 0;
       flex-wrap: wrap;
     }
 
     .controls-meta {
       margin: 0;
-      font-size: 0.81rem;
+      font-size: 0.82rem;
       color: var(--muted);
+      line-height: 1.5;
     }
 
     .reset-btn {
@@ -644,13 +661,16 @@ def build_executive_dashboard(
 
     .filters-panel {
       overflow: hidden;
+      padding: 16px;
+      display: grid;
+      gap: 14px;
+      background: linear-gradient(180deg, color-mix(in srgb, var(--surface-soft) 74%, var(--surface) 26%) 0%, var(--surface) 100%);
     }
 
     .filters {
-      padding: 14px 14px 16px;
       display: grid;
-      grid-template-columns: repeat(6, minmax(0, 1fr));
-      gap: 11px;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
       align-items: end;
     }
 
@@ -659,23 +679,24 @@ def build_executive_dashboard(
     .field label {
       display: block;
       margin-bottom: 7px;
-      font-size: 0.76rem;
+      font-size: 0.79rem;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.035em;
+      letter-spacing: 0.05em;
       color: var(--muted);
     }
 
     .field select {
       width: 100%;
       min-width: 0;
-      height: 41px;
-      border-radius: var(--radius-sm);
+      height: 42px;
+      border-radius: 10px;
       border: 1px solid var(--input-border);
       background: var(--input-bg);
       color: var(--ink);
       font-size: 0.9rem;
       padding: 0 11px;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
     }
     .field select:focus-visible {
       outline: none;
@@ -692,10 +713,11 @@ def build_executive_dashboard(
     .kpi {
       padding: 16px 16px 15px;
       display: grid;
-      gap: 8px;
-      min-height: 124px;
-      border-top: 3px solid var(--border);
+      gap: 10px;
+      min-height: 140px;
+      border-top: 4px solid var(--border);
       position: relative;
+      box-shadow: var(--shadow-soft);
     }
 
     .kpi.kpi-critical { border-top-color: var(--critical); }
@@ -704,9 +726,9 @@ def build_executive_dashboard(
     .kpi.kpi-neutral { border-top-color: var(--neutral); }
 
     .kpi-title {
-      font-size: 0.75rem;
+      font-size: 0.79rem;
       text-transform: uppercase;
-      letter-spacing: 0.03em;
+      letter-spacing: 0.05em;
       color: var(--muted);
       font-weight: 700;
       margin: 0;
@@ -714,9 +736,10 @@ def build_executive_dashboard(
 
     .kpi-head {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: space-between;
       gap: 10px;
+      flex-wrap: wrap;
     }
 
     .kpi-state {
@@ -724,8 +747,9 @@ def build_executive_dashboard(
       align-items: center;
       border-radius: 999px;
       border: 1px solid transparent;
-      padding: 2px 8px;
-      font-size: 0.69rem;
+      min-height: 24px;
+      padding: 0 9px;
+      font-size: 0.72rem;
       font-weight: 700;
       white-space: nowrap;
     }
@@ -764,26 +788,44 @@ def build_executive_dashboard(
 
     .kpi-sub {
       margin: 0;
-      font-size: 0.77rem;
+      font-size: 0.8rem;
       color: var(--muted);
     }
 
+    .kpi-detail {
+      margin: 0;
+      font-size: 0.82rem;
+      color: var(--ink);
+      line-height: 1.45;
+    }
+
     .insight-strip {
-      padding: 15px 16px;
-      display: grid;
-      gap: 10px;
+      padding: 16px 18px;
       border-left: 4px solid var(--neutral);
-      background: var(--surface-soft);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--surface-soft) 76%, var(--surface) 24%) 0%, var(--surface) 100%);
     }
 
     .insight-strip.insight-critical { border-left-color: var(--critical); }
     .insight-strip.insight-warn { border-left-color: var(--warn); }
     .insight-strip.insight-ok { border-left-color: var(--ok); }
 
+    .insight-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.85fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .insight-summary,
+    .insight-action {
+      display: grid;
+      gap: 10px;
+    }
+
     .insight-main {
       margin: 0;
-      font-size: 0.93rem;
-      line-height: 1.45;
+      font-size: 1rem;
+      line-height: 1.55;
     }
 
     .insight-chips {
@@ -796,34 +838,43 @@ def build_executive_dashboard(
       border: 1px solid var(--chip-border);
       background: var(--chip-bg);
       border-radius: 999px;
-      padding: 4px 11px;
-      font-size: 0.76rem;
+      padding: 5px 11px;
+      font-size: 0.78rem;
       color: var(--ink);
       white-space: nowrap;
     }
 
+    .insight-action-copy {
+      margin: 0;
+      font-size: 0.9rem;
+      line-height: 1.55;
+      color: var(--ink);
+    }
+
     .brief-grid {
-      padding: 12px;
+      padding: 14px;
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 10px;
+      gap: 12px;
+      background: linear-gradient(180deg, color-mix(in srgb, var(--surface-soft) 74%, var(--surface) 26%) 0%, var(--surface) 100%);
     }
 
     .brief-card {
-      background: var(--surface-soft);
+      background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 12px 13px;
+      border-radius: 14px;
+      padding: 13px 14px;
       display: grid;
       gap: 6px;
       min-width: 0;
+      box-shadow: var(--shadow-soft);
     }
 
     .brief-label {
       margin: 0;
       font-size: 0.72rem;
       text-transform: uppercase;
-      letter-spacing: 0.035em;
+      letter-spacing: 0.05em;
       color: var(--muted);
       font-weight: 700;
     }
@@ -841,15 +892,15 @@ def build_executive_dashboard(
 
     .brief-sub {
       margin: 0;
-      font-size: 0.76rem;
+      font-size: 0.79rem;
       color: var(--muted);
-      line-height: 1.35;
+      line-height: 1.45;
     }
 
     .charts {
       display: grid;
       gap: 15px;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
     .chart-card {
@@ -857,25 +908,33 @@ def build_executive_dashboard(
       display: grid;
       gap: 9px;
       min-width: 0;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .chart-card-wide {
+      grid-column: 1 / -1;
     }
 
     .chart-head {
       display: grid;
-      gap: 4px;
+      gap: 6px;
+    }
+
+    .chart-kicker {
+      color: var(--muted);
     }
 
     .chart-card h3 {
       margin: 0;
-      font-size: 1.02rem;
+      font-size: 1.04rem;
       line-height: 1.25;
-      max-width: 92%;
     }
 
     .chart-card p {
       margin: 0;
-      font-size: 0.8rem;
+      font-size: 0.84rem;
       color: var(--muted);
-      max-width: 96%;
+      line-height: 1.5;
     }
 
     .chart-wrap {
@@ -884,24 +943,72 @@ def build_executive_dashboard(
       height: 330px;
       min-height: 300px;
     }
+
+    .chart-card-wide .chart-wrap {
+      height: 350px;
+      min-height: 330px;
+    }
     .chart-wrap canvas {
       width: 100% !important;
       height: 100% !important;
     }
 
     .table-head {
-      padding: 14px 16px 13px;
+      padding: 16px 18px;
       border-bottom: 1px solid var(--border);
-      background: var(--surface-soft);
+      background: linear-gradient(180deg, color-mix(in srgb, var(--surface-soft) 76%, var(--surface) 24%) 0%, var(--surface) 100%);
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: flex-start;
+      flex-wrap: wrap;
     }
 
     .table-head h3 {
       margin: 0;
-      font-size: 1.03rem;
+      font-size: 1.04rem;
     }
 
     .table-head p {
-      margin: 5px 0 0 0;
+      margin: 6px 0 0 0;
+      font-size: 0.84rem;
+      color: var(--muted);
+      line-height: 1.5;
+      max-width: 760px;
+    }
+
+    .table-toolbar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-end;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .table-head-copy {
+      display: grid;
+      gap: 4px;
+    }
+
+    .table-stat {
+      min-width: 122px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      display: grid;
+      gap: 4px;
+      box-shadow: var(--shadow-soft);
+    }
+
+    .table-stat strong {
+      font-size: 1.06rem;
+      line-height: 1.2;
+    }
+
+    .sort-note {
+      margin: 0;
+      padding-top: 8px;
       font-size: 0.8rem;
       color: var(--muted);
     }
@@ -930,12 +1037,25 @@ def build_executive_dashboard(
       position: sticky;
       top: 0;
       z-index: 2;
-      background: var(--surface-soft);
+      background: var(--table-head-bg);
       cursor: pointer;
       user-select: none;
       font-size: 0.75rem;
       text-transform: uppercase;
       letter-spacing: 0.03em;
+      white-space: nowrap;
+      backdrop-filter: blur(8px);
+    }
+
+    th.rank-col {
+      width: 56px;
+      cursor: default;
+    }
+
+    td.rank-cell {
+      font-weight: 700;
+      color: var(--muted);
+      width: 56px;
       white-space: nowrap;
     }
 
@@ -993,6 +1113,19 @@ def build_executive_dashboard(
       line-height: 1.35;
     }
 
+    .action-chip {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 4px 10px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      line-height: 1.35;
+      background: var(--surface-soft-alt);
+      border: 1px solid var(--border);
+      color: var(--ink);
+    }
+
     .tier-chip {
       display: inline-block;
       border-radius: 999px;
@@ -1014,11 +1147,15 @@ def build_executive_dashboard(
     [data-theme="dark"] .tier-low { color: #bbf7d0; background: #173928; border-color: #166534; }
 
     @media (max-width: 1220px) {
-      .filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .hero-grid { grid-template-columns: 1fr; }
+      .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .brief-grid { grid-template-columns: 1fr; }
-      .charts { grid-template-columns: 1fr; }
+      .charts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .chart-card-wide { grid-column: 1 / -1; }
       .chart-wrap { height: 280px; }
+      .chart-card-wide .chart-wrap { height: 320px; min-height: 300px; }
+      .insight-layout { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 720px) {
@@ -1028,7 +1165,9 @@ def build_executive_dashboard(
       }
 
       .filters,
-      .kpis {
+      .kpis,
+      .charts,
+      .hero-summary-grid {
         grid-template-columns: 1fr;
       }
 
@@ -1041,6 +1180,11 @@ def build_executive_dashboard(
         min-height: 240px;
       }
 
+      .chart-card-wide .chart-wrap {
+        height: 270px;
+        min-height: 250px;
+      }
+
       .table-wrap { max-height: 480px; }
 
       th,
@@ -1049,7 +1193,14 @@ def build_executive_dashboard(
         padding: 8px;
       }
 
-      .hero-top { align-items: flex-start; }
+      .hero-top,
+      .table-head {
+        align-items: flex-start;
+      }
+
+      .controls-row {
+        align-items: flex-start;
+      }
     }
 
     @media print {
@@ -1086,10 +1237,6 @@ def build_executive_dashboard(
         display: none !important;
       }
 
-      .controls-row {
-        padding: 0;
-      }
-
       .hero,
       .panel,
       .kpi,
@@ -1116,6 +1263,11 @@ def build_executive_dashboard(
         min-height: 240px;
       }
 
+      .chart-card-wide .chart-wrap {
+        height: 250px;
+        min-height: 250px;
+      }
+
       .table-wrap {
         max-height: none;
         overflow: visible;
@@ -1139,22 +1291,59 @@ def build_executive_dashboard(
 <body>
 <div class=\"page\">
   <section class=\"hero\">
-    <div class=\"hero-top\">
-      <h1>Pricing & Discount Governance Executive Dashboard</h1>
-      <div class=\"hero-actions\">
-        <button id=\"themeToggle\" class=\"theme-toggle\" type=\"button\" aria-label=\"Toggle color mode\">Dark Mode</button>
-        <button id=\"printBtn\" class=\"print-btn\" type=\"button\" aria-label=\"Print dashboard\">Print</button>
+    <div class=\"hero-grid\">
+      <div class=\"hero-copy\">
+        <div class=\"hero-top\">
+          <h1>Pricing & Discount Governance Executive Dashboard</h1>
+          <div class=\"hero-actions\">
+            <button id=\"themeToggle\" class=\"theme-toggle\" type=\"button\" aria-label=\"Toggle color mode\">Dark Mode</button>
+            <button id=\"printBtn\" class=\"print-btn\" type=\"button\" aria-label=\"Print dashboard\">Print</button>
+          </div>
+        </div>
+        <p class=\"hero-subtitle\">Executive view of discount pressure, margin exposure, and intervention priorities across the governed commercial portfolio.</p>
+        <p class=\"hero-callout\" id=\"heroCallout\">Assessing the current pricing posture and preparing the clearest intervention view for the selected scope.</p>
+        <ul class=\"hero-meta\">
+          <li id=\"coverageMeta\"></li>
+        </ul>
       </div>
+      <aside class=\"hero-rail\">
+        <article class=\"hero-status hero-status-ok\" id=\"heroStatusCard\">
+          <span class=\"hero-status-label\">Current posture</span>
+          <strong class=\"hero-status-value\" id=\"heroStatusValue\">Assessing...</strong>
+          <span class=\"hero-status-note\" id=\"heroStatusNote\">Loading governed pricing signals.</span>
+        </article>
+        <div class=\"hero-summary-grid\">
+          <article class=\"summary-card\">
+            <span class=\"summary-label\">Margin exposure</span>
+            <strong class=\"summary-value\" id=\"heroMarginShare\">-</strong>
+            <span class=\"summary-note\">Share of in-scope revenue at risk</span>
+          </article>
+          <article class=\"summary-card\">
+            <span class=\"summary-label\">High-risk accounts</span>
+            <strong class=\"summary-value\" id=\"heroHighRisk\">-</strong>
+            <span class=\"summary-note\">Critical and high tiers in view</span>
+          </article>
+          <article class=\"summary-card\">
+            <span class=\"summary-label\">Primary driver</span>
+            <strong class=\"summary-value\" id=\"heroTopDriver\">-</strong>
+            <span class=\"summary-note\">Largest source of risk concentration</span>
+          </article>
+          <article class=\"summary-card\">
+            <span class=\"summary-label\">Current period</span>
+            <strong class=\"summary-value\" id=\"heroCurrentView\">-</strong>
+            <span class=\"summary-note\">Active time window in scope</span>
+          </article>
+        </div>
+      </aside>
     </div>
-    <p>Executive view of discount intensity, margin exposure, and intervention priorities across commercial segments.</p>
-    <ul class=\"hero-meta\">
-      <li id=\"coverageMeta\"></li>
-    </ul>
   </section>
 
   <div class=\"section-head\">
-    <h2>Scope Controls</h2>
-    <p>Filters update all KPIs, charts, and the action table with consistent governed aggregates.</p>
+    <div class=\"section-head-copy\">
+      <span class=\"section-kicker\">Decision scope</span>
+      <h2>Scope Controls</h2>
+    </div>
+    <p>Apply the same governed filters across KPIs, charts, and the review queue so every view stays analytically aligned.</p>
   </div>
   <section class=\"panel filters-panel\">
     <div class=\"controls-row\">
@@ -1162,18 +1351,21 @@ def build_executive_dashboard(
       <button id=\"resetFiltersBtn\" class=\"reset-btn\" type=\"button\" aria-label=\"Reset filters\">Reset Filters</button>
     </div>
     <div class=\"filters\">
+      <div class=\"field\"><label for=\"periodStartFilter\">Start Month</label><select id=\"periodStartFilter\"></select></div>
+      <div class=\"field\"><label for=\"periodEndFilter\">End Month</label><select id=\"periodEndFilter\"></select></div>
       <div class=\"field\"><label for=\"segmentFilter\">Segment</label><select id=\"segmentFilter\"></select></div>
       <div class=\"field\"><label for=\"regionFilter\">Region</label><select id=\"regionFilter\"></select></div>
       <div class=\"field\"><label for=\"categoryFilter\">Product Category</label><select id=\"categoryFilter\"></select></div>
       <div class=\"field\"><label for=\"channelFilter\">Sales Channel</label><select id=\"channelFilter\"></select></div>
-      <div class=\"field\"><label for=\"periodStartFilter\">Start Month</label><select id=\"periodStartFilter\"></select></div>
-      <div class=\"field\"><label for=\"periodEndFilter\">End Month</label><select id=\"periodEndFilter\"></select></div>
     </div>
   </section>
 
   <div class=\"section-head\">
-    <h2>Portfolio Health</h2>
-    <p>Primary commercial quality indicators for the selected scope.</p>
+    <div class=\"section-head-copy\">
+      <span class=\"section-kicker\">Commercial posture</span>
+      <h2>Portfolio Health</h2>
+    </div>
+    <p>Lead indicators for whether current commercial performance is coming from healthy pricing discipline or fragile discount dependency.</p>
   </div>
   <section class=\"kpis\">
     <article class=\"kpi kpi-neutral\" id=\"kpiRevenueCard\">
@@ -1183,6 +1375,7 @@ def build_executive_dashboard(
       </div>
       <p class=\"kpi-value\" id=\"kpiRevenue\">-</p>
       <p class=\"kpi-sub\">Filtered commercial volume</p>
+      <p class=\"kpi-detail\" id=\"kpiRevenueDetail\">Share of revenue under the current scope.</p>
     </article>
     <article class=\"kpi kpi-warn\" id=\"kpiDiscountCard\">
       <div class=\"kpi-head\">
@@ -1191,6 +1384,7 @@ def build_executive_dashboard(
       </div>
       <p class=\"kpi-value\" id=\"kpiDiscount\">-</p>
       <p class=\"kpi-sub\">Revenue-weighted realized discount</p>
+      <p class=\"kpi-detail\" id=\"kpiDiscountDetail\">Monitor against governance thresholds.</p>
     </article>
     <article class=\"kpi kpi-critical\" id=\"kpiMarginRiskCard\">
       <div class=\"kpi-head\">
@@ -1199,6 +1393,7 @@ def build_executive_dashboard(
       </div>
       <p class=\"kpi-value\" id=\"kpiMarginRisk\">-</p>
       <p class=\"kpi-sub\">High-discount and low-margin proxy overlap</p>
+      <p class=\"kpi-detail\" id=\"kpiMarginRiskDetail\">Exposure share within scoped revenue.</p>
     </article>
     <article class=\"kpi kpi-warn\" id=\"kpiHighRiskCard\">
       <div class=\"kpi-head\">
@@ -1207,12 +1402,22 @@ def build_executive_dashboard(
       </div>
       <p class=\"kpi-value\" id=\"kpiHighRisk\">-</p>
       <p class=\"kpi-sub\">Critical and high tier in current scope</p>
+      <p class=\"kpi-detail\" id=\"kpiHighRiskDetail\">Accounts most likely to need intervention now.</p>
     </article>
   </section>
 
   <section class=\"panel insight-strip\">
-    <p class=\"insight-main\" id=\"insightMain\">Assessing current pricing posture...</p>
-    <div class=\"insight-chips\" id=\"insightChips\"></div>
+    <div class=\"insight-layout\">
+      <div class=\"insight-summary\">
+        <span class=\"insight-label\">Executive readout</span>
+        <p class=\"insight-main\" id=\"insightMain\">Assessing current pricing posture...</p>
+        <div class=\"insight-chips\" id=\"insightChips\"></div>
+      </div>
+      <div class=\"insight-action\">
+        <span class=\"insight-label\">Recommended posture</span>
+        <p class=\"insight-action-copy\" id=\"insightAction\">Preparing the next best action for the current scope.</p>
+      </div>
+    </div>
   </section>
 
   <section class=\"panel brief-grid\">
@@ -1234,20 +1439,25 @@ def build_executive_dashboard(
   </section>
 
   <div class=\"section-head\">
-    <h2>Diagnostics</h2>
-    <p>Trend, concentration, and governance-action views to guide intervention priorities.</p>
+    <div class=\"section-head-copy\">
+      <span class=\"section-kicker\">Risk diagnostics</span>
+      <h2>Diagnostics</h2>
+    </div>
+    <p>Move from signal to action by checking trend direction, concentration pockets, regional exposure, and the mix of intervention work required.</p>
   </div>
   <section class=\"charts\">
-    <article class=\"chart-card\">
+    <article class=\"chart-card chart-card-wide\">
       <div class=\"chart-head\">
+        <span class=\"chart-kicker\">Momentum</span>
         <h3>Discount Pressure Trend</h3>
-        <p>Monthly weighted discount pattern for the selected commercial scope.</p>
+        <p>Monthly weighted discount pattern for the selected commercial scope, sized to show whether governance pressure is easing or building.</p>
       </div>
       <div class=\"chart-wrap\"><canvas id=\"trendChart\"></canvas></div>
     </article>
 
     <article class=\"chart-card\">
       <div class=\"chart-head\">
+        <span class=\"chart-kicker\">Concentration</span>
         <h3>Where Discounting Concentrates</h3>
         <p>Weighted discount comparison by segment after applying current regional, category, channel, and period filters.</p>
       </div>
@@ -1256,6 +1466,7 @@ def build_executive_dashboard(
 
     <article class=\"chart-card\">
       <div class=\"chart-head\">
+        <span class=\"chart-kicker\">Exposure</span>
         <h3>Margin Exposure by Region</h3>
         <p>Absolute margin-at-risk volume by region in the selected scope.</p>
       </div>
@@ -1264,6 +1475,7 @@ def build_executive_dashboard(
 
     <article class=\"chart-card\">
       <div class=\"chart-head\">
+        <span class=\"chart-kicker\">Action mix</span>
         <h3>Intervention Portfolio Mix</h3>
         <p>Revenue concentration by recommended intervention action to support operational sequencing.</p>
       </div>
@@ -1273,13 +1485,24 @@ def build_executive_dashboard(
 
   <section class=\"table-panel\">
     <div class=\"table-head\">
-      <h3>Highest-Priority Customers (Top 120 in Current Scope)</h3>
-      <p>Use this list to focus reviews on the largest commercial and margin exposures first.</p>
+      <div class=\"table-head-copy\">
+        <span class=\"section-kicker\">Priority actions</span>
+        <h3>Customer Review Queue</h3>
+        <p>Use this queue to focus reviews on the largest commercial and margin exposures first, with the strongest governance priorities shown at the top.</p>
+      </div>
+      <div class=\"table-toolbar\">
+        <div class=\"table-stat\">
+          <span class=\"table-stat-label\">Displayed</span>
+          <strong id=\"tableCount\">-</strong>
+        </div>
+        <p class=\"sort-note\" id=\"tableSortMeta\">Sorted by priority score.</p>
+      </div>
     </div>
     <div class=\"table-wrap\">
       <table id=\"riskTable\">
         <thead>
           <tr>
+            <th class=\"rank-col\">#</th>
             <th data-key=\"customer_id\">Customer</th>
             <th data-key=\"segment\">Segment</th>
             <th data-key=\"region\">Region</th>
@@ -1385,7 +1608,7 @@ function tooltipCurrency(context) {
 
 function updateThemeToggleLabel(theme) {
   if (!themeToggleEl) return;
-  themeToggleEl.textContent = theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode';
+  themeToggleEl.textContent = theme === 'dark' ? 'Light Mode' : 'Dark Mode';
 }
 
 function applyTheme(theme, persist = false) {
@@ -1418,6 +1641,20 @@ function compactLabel(label, maxLen = 26) {
   const value = String(label || '');
   if (value.length <= maxLen) return value;
   return `${value.slice(0, maxLen - 3)}...`;
+}
+
+function titleCaseLabel(value) {
+  return String(value || '')
+    .replaceAll('_', ' ')
+    .replace(/\\b\\w/g, (match) => match.toUpperCase());
+}
+
+function thresholdGapLabel(value, warnThreshold) {
+  const diffPts = ((Number(value) || 0) - Number(warnThreshold || 0)) * 100;
+  if (Math.abs(diffPts) < 0.05) return 'At the warning threshold';
+  return diffPts > 0
+    ? `${diffPts.toFixed(1)} pts above warning`
+    : `${Math.abs(diffPts).toFixed(1)} pts below warning`;
 }
 
 function escapeHtml(value) {
@@ -1555,7 +1792,7 @@ function resolvePosture(kpi) {
     return {
       level: 'critical',
       label: 'Intervene now',
-      narrative: 'Current scope shows discount-led concentration and immediate governance intervention should be prioritized.'
+      narrative: 'Current scope shows concentrated discount-led risk and should move into immediate commercial governance action.'
     };
   }
 
@@ -1567,20 +1804,29 @@ function resolvePosture(kpi) {
     return {
       level: 'warn',
       label: 'Tight watch',
-      narrative: 'Current scope is mixed. Targeted intervention is recommended before risk concentration broadens.'
+      narrative: 'Current scope is mixed. Targeted intervention is recommended before margin risk concentration broadens.'
     };
   }
 
   return {
     level: 'ok',
     label: 'Controlled',
-    narrative: 'Current scope remains within monitor range with no immediate broad intervention signal.'
+    narrative: 'Current scope remains within monitor range and does not yet indicate broad intervention pressure.'
   };
 }
 
 function updateKpis(filters, riskRows) {
   const kpi = aggregateScopedPricing(filters);
   const marginRiskShare = (Number(kpi.net_revenue) || 0) > 0 ? (Number(kpi.margin_at_risk) || 0) / Number(kpi.net_revenue) : 0;
+  const totalPeriodKpi = aggregateScopedPricing({
+    ...filters,
+    segment: ALL,
+    region: ALL,
+    category: ALL,
+    sales_channel: ALL
+  });
+  const revenueShare = Number(totalPeriodKpi.net_revenue) > 0 ? Number(kpi.net_revenue || 0) / Number(totalPeriodKpi.net_revenue) : 0;
+
   document.getElementById('kpiRevenue').textContent = fmtCurrency(Number(kpi.net_revenue) || 0);
   document.getElementById('kpiDiscount').textContent = fmtPct(Number(kpi.weighted_discount_pct) || 0);
   document.getElementById('kpiMarginRisk').textContent = fmtCurrency(Number(kpi.margin_at_risk) || 0);
@@ -1611,6 +1857,11 @@ function updateKpis(filters, riskRows) {
   applyStateTag('kpiHighRiskState', riskLevel, riskLevel === 'critical' ? 'Critical' : riskLevel === 'warn' ? 'Watch' : 'Stable');
   applyStateTag('kpiRevenueState', 'neutral', 'Scope');
 
+  document.getElementById('kpiRevenueDetail').textContent = `${fmtPct(revenueShare || 0)} of the selected period revenue is currently in view.`;
+  document.getElementById('kpiDiscountDetail').textContent = `${thresholdGapLabel(kpi.weighted_discount_pct, discountWarn)} against the governance warning threshold.`;
+  document.getElementById('kpiMarginRiskDetail').textContent = `${fmtPct(marginRiskShare || 0)} of scoped revenue is exposed to the margin-at-risk proxy.`;
+  document.getElementById('kpiHighRiskDetail').textContent = `${highRiskCount.toLocaleString('en-US')} accounts currently require high-priority monitoring or action.`;
+
   return { ...kpi, high_risk_count: highRiskCount, margin_risk_share: marginRiskShare };
 }
 
@@ -1621,6 +1872,7 @@ function updateInsight(filters, kpi, riskRows) {
     topDriverMap.set(d, (topDriverMap.get(d) || 0) + (Number(r.filtered_revenue) || 0));
   });
   const topDriver = [...topDriverMap.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || 'mixed';
+  const topDriverLabel = titleCaseLabel(topDriver);
 
   const posture = resolvePosture(kpi);
   document.getElementById('insightMain').textContent = posture.narrative;
@@ -1628,14 +1880,35 @@ function updateInsight(filters, kpi, riskRows) {
   if (insightEl) {
     insightEl.className = `panel insight-strip insight-${posture.level}`;
   }
+
+  let actionText = `Maintain current governance cadence and keep ${topDriverLabel.toLowerCase()} under watch as the main residual source of exposure.`;
+  if (posture.level === 'critical') {
+    actionText = `Prioritize an immediate review of ${topDriverLabel.toLowerCase()} exposures and the highest-revenue accounts in the queue before discount dependency widens further.`;
+  } else if (posture.level === 'warn') {
+    actionText = `Run a targeted governance pass on ${topDriverLabel.toLowerCase()} exposures and watch the trend chart for any near-term acceleration.`;
+  }
+  document.getElementById('insightAction').textContent = actionText;
+
   const chips = [
     `Scope: ${filters.segment === ALL ? 'All segments' : filters.segment}`,
     `Weighted discount: ${fmtPct(kpi.weighted_discount_pct || 0)}`,
     `Margin at risk share: ${fmtPct(kpi.margin_risk_share || 0)}`,
     `High-risk customers: ${(kpi.high_risk_count || 0).toLocaleString('en-US')}`,
-    `Top risk driver: ${String(topDriver).replaceAll('_', ' ')}`
+    `Top risk driver: ${topDriverLabel}`
   ];
   document.getElementById('insightChips').innerHTML = chips.map((c) => `<span class="insight-chip">${c}</span>`).join('');
+
+  const heroStatusCard = document.getElementById('heroStatusCard');
+  if (heroStatusCard) {
+    heroStatusCard.className = `hero-status hero-status-${posture.level}`;
+  }
+  document.getElementById('heroStatusValue').textContent = posture.label;
+  document.getElementById('heroStatusNote').textContent = actionText;
+  document.getElementById('heroCallout').textContent = `${posture.narrative} ${fmtPct(kpi.margin_risk_share || 0)} of in-scope revenue is currently exposed to the margin-at-risk proxy, with ${topDriverLabel.toLowerCase()} as the main driver.`;
+  document.getElementById('heroMarginShare').textContent = fmtPct(kpi.margin_risk_share || 0);
+  document.getElementById('heroHighRisk').textContent = (kpi.high_risk_count || 0).toLocaleString('en-US');
+  document.getElementById('heroTopDriver').textContent = topDriverLabel;
+  document.getElementById('heroCurrentView').textContent = `${fmtMonth(filters.period_start)} - ${fmtMonth(filters.period_end)}`;
 }
 
 function updateExecutiveBrief(kpi, riskRows) {
@@ -1669,7 +1942,7 @@ function updateExecutiveBrief(kpi, riskRows) {
   document.getElementById('briefExposure').textContent = fmtPct(exposureShare || 0);
   document.getElementById('briefExposureSub').textContent = `${fmtCurrency(highRiskRevenue)} is currently concentrated in high and critical risk customers.`;
 
-  document.getElementById('briefPrimaryAction').textContent = compactLabel(topAction, 34);
+  document.getElementById('briefPrimaryAction').textContent = compactLabel(topAction, 38);
   document.getElementById('briefPrimaryActionSub').textContent = `${fmtPct(topActionShare || 0)} of scoped revenue is tied to this action.`;
 }
 
@@ -1970,6 +2243,24 @@ function tierChip(tier) {
   return `<span class=\"${cls}\">${safeTier}</span>`;
 }
 
+function actionChip(action) {
+  return `<span class=\"action-chip\">${escapeHtml(action || 'Unclassified')}</span>`;
+}
+
+function sortLabel(key) {
+  const labels = {
+    customer_id: 'customer',
+    segment: 'segment',
+    region: 'region',
+    filtered_revenue: 'revenue',
+    filtered_avg_discount: 'average discount',
+    governance_priority_score: 'priority score',
+    risk_tier: 'risk tier',
+    recommended_action: 'recommended action'
+  };
+  return labels[key] || key;
+}
+
 function sortRows(rows) {
   const key = tableState.key;
   const dir = tableState.dir === 'asc' ? 1 : -1;
@@ -1996,12 +2287,23 @@ function updateTableSortIndicators() {
 }
 
 function renderTable(riskRows) {
-  const sorted = sortRows(riskRows).slice(0, 120);
+  const sortedRows = sortRows(riskRows);
+  const displayedRows = sortedRows.slice(0, 120);
   const tbody = document.querySelector('#riskTable tbody');
   updateTableSortIndicators();
 
-  tbody.innerHTML = sorted.map((r) => `
+  const tableCountEl = document.getElementById('tableCount');
+  if (tableCountEl) {
+    tableCountEl.textContent = `${displayedRows.length} / ${riskRows.length}`;
+  }
+  const tableSortMetaEl = document.getElementById('tableSortMeta');
+  if (tableSortMetaEl) {
+    tableSortMetaEl.textContent = `Sorted by ${sortLabel(tableState.key)} (${tableState.dir === 'asc' ? 'ascending' : 'descending'}).`;
+  }
+
+  tbody.innerHTML = displayedRows.map((r, index) => `
     <tr>
+      <td class="rank-cell">${index + 1}</td>
       <td>${escapeHtml(r.customer_id)}</td>
       <td>${escapeHtml(r.segment)}</td>
       <td>${escapeHtml(r.region)}</td>
@@ -2009,7 +2311,7 @@ function renderTable(riskRows) {
       <td>${fmtPct(Number(r.filtered_avg_discount) || 0)}</td>
       <td>${(Number(r.governance_priority_score) || 0).toFixed(1)}</td>
       <td>${tierChip(r.risk_tier)}</td>
-      <td class="action-cell">${escapeHtml(r.recommended_action)}</td>
+      <td class="action-cell">${actionChip(r.recommended_action)}</td>
     </tr>
   `).join('');
 }
@@ -2080,7 +2382,7 @@ function init() {
   Object.values(filterEls).forEach((el) => el.addEventListener('change', updateAll));
   if (resetFiltersBtnEl) resetFiltersBtnEl.addEventListener('click', resetFilters);
 
-  document.querySelectorAll('#riskTable thead th').forEach((th) => {
+  document.querySelectorAll('#riskTable thead th[data-key]').forEach((th) => {
     th.addEventListener('click', () => {
       const key = th.getAttribute('data-key');
       if (tableState.key === key) {
