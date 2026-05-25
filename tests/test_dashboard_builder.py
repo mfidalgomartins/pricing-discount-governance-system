@@ -58,10 +58,18 @@ def test_dashboard_builder_outputs_self_contained_html(tmp_path) -> None:
     assert 'id="segmentChartData"' in html
     assert 'id="regionRiskChartData"' in html
     assert 'id="actionChartData"' in html
-    assert "--chart-region-text: #92400e;" in html
+    # Visual system anchors
+    assert "--chart-region-text:" in html
+    assert "--chart-trend-line:" in html
+    assert "--chart-segment:" in html
+    assert "--chart-action:" in html
+    assert "Fraunces" in html  # display serif
+    assert "IBM Plex Sans" in html  # body sans
+    assert "IBM Plex Mono" in html  # tabular monospace
     assert ".hero {" in html
-    assert ".filters-panel {" in html
-    assert "position: sticky;" in html
+    assert ".filters-panel" in html
+    assert "position: sticky;" in html  # table thead is sticky inside its scroll container
+    # No hero/filters-panel should be page-sticky (avoid floating chrome)
     assert ".hero {\n      position: sticky;" not in html
     assert ".filters-panel {\n      position: sticky;" not in html
     assert "Generated " not in html
