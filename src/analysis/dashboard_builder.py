@@ -697,15 +697,16 @@ def build_executive_dashboard(
 
     .kpi-state {
       font-family: var(--font-sans);
-      font-size: 10px;
-      letter-spacing: 0.12em;
+      font-size: 9.5px;
+      letter-spacing: 0.14em;
       text-transform: uppercase;
       font-weight: 500;
-      padding: 2px 8px;
+      padding: 1px 6px;
       border: 1px solid currentColor;
       border-radius: var(--radius-sm);
       color: var(--muted);
       background: transparent;
+      opacity: 0.85;
     }
     .kpi-state-ok       { color: var(--accent-ok); }
     .kpi-state-warn     { color: var(--accent-warn); }
@@ -860,13 +861,14 @@ def build_executive_dashboard(
     }
     .chart-answer {
       font-family: var(--font-sans);
-      font-size: 13px;
-      line-height: 1.55;
-      color: var(--ink-2);
+      font-size: 14px;
+      line-height: 1.5;
+      color: var(--ink);
       margin: 0;
-      padding: 10px 0;
+      padding: 12px 0;
       border-top: 1px solid var(--rule);
       border-bottom: 1px solid var(--rule);
+      font-weight: 500;
     }
 
     .chart-wrap {
@@ -889,11 +891,14 @@ def build_executive_dashboard(
       border-top: 1px solid var(--rule);
     }
     .chart-data summary::after {
-      content: \"view\";
+      content: \"+\";
       float: right;
       color: var(--muted-2);
+      font-family: var(--font-mono);
+      font-weight: 500;
+      transition: transform 0.15s ease;
     }
-    .chart-data[open] summary::after { content: \"hide\"; }
+    .chart-data[open] summary::after { content: \"\\2212\"; }
     .chart-data > div {
       padding-top: 8px;
     }
@@ -1016,8 +1021,9 @@ def build_executive_dashboard(
       color: var(--ink-2);
       vertical-align: top;
     }
-    #riskTable tbody tr:hover { background: var(--row-hover); }
     #riskTable tbody tr:nth-child(2n) { background: var(--row-alt); }
+    #riskTable tbody tr:hover { background: var(--accent-risk-soft); }
+    #riskTable tbody tr:nth-child(2n):hover { background: var(--accent-risk-soft); }
     #riskTable td.rank-col {
       font-family: var(--font-mono);
       font-size: 11.5px;
