@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Dict
 
 import numpy as np
 import pandas as pd
@@ -431,7 +430,7 @@ def _product_level_patterns(pricing: pd.DataFrame) -> pd.DataFrame:
 
 def _validation_checks(
     pricing: pd.DataFrame,
-    processed_tables: Dict[str, pd.DataFrame],
+    processed_tables: dict[str, pd.DataFrame],
     yearly_health: pd.DataFrame,
     segment_dependency: pd.DataFrame,
     overall_health: pd.DataFrame,
@@ -680,10 +679,10 @@ def _render_formal_report(payload: dict) -> str:
 
 
 def run_formal_pricing_analysis(
-    processed_tables: Dict[str, pd.DataFrame],
+    processed_tables: dict[str, pd.DataFrame],
     outputs_dir: Path,
     docs_dir: Path,
-) -> Dict[str, pd.DataFrame]:
+) -> dict[str, pd.DataFrame]:
     outputs_dir.mkdir(parents=True, exist_ok=True)
     docs_dir.mkdir(parents=True, exist_ok=True)
 

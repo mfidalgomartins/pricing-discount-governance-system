@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Dict
 
 import numpy as np
 import pandas as pd
@@ -177,7 +176,7 @@ def build_segment_channel_diagnostics(pricing_metrics: pd.DataFrame) -> pd.DataF
     return diagnostics
 
 
-def build_feature_tables(enriched: pd.DataFrame) -> Dict[str, pd.DataFrame]:
+def build_feature_tables(enriched: pd.DataFrame) -> dict[str, pd.DataFrame]:
     order_item_pricing_metrics = build_order_item_pricing_metrics(enriched)
     customer_pricing_profile = build_customer_pricing_profile(order_item_pricing_metrics)
     segment_pricing_summary = build_segment_pricing_summary(order_item_pricing_metrics)

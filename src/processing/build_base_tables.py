@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Dict
 
 import pandas as pd
 
@@ -32,7 +31,7 @@ def _merge_many_to_one(
     return merged.drop(columns="_merge")
 
 
-def build_order_item_enriched(raw_tables: Dict[str, pd.DataFrame]) -> pd.DataFrame:
+def build_order_item_enriched(raw_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     customers = raw_tables["customers"].copy()
     products = raw_tables["products"].copy()
     orders = raw_tables["orders"].copy()

@@ -4,7 +4,6 @@ import json
 import re
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Dict
 
 import numpy as np
 import pandas as pd
@@ -193,8 +192,8 @@ def _extract_dashboard_payload(dashboard_path: Path) -> dict | None:
 
 
 def run_final_validation_review(
-    raw_tables: Dict[str, pd.DataFrame],
-    processed_tables: Dict[str, pd.DataFrame],
+    raw_tables: dict[str, pd.DataFrame],
+    processed_tables: dict[str, pd.DataFrame],
     outputs_dir: Path,
     docs_dir: Path,
     dashboard_path: Path,

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict
 
 import pandas as pd
 
@@ -26,7 +25,7 @@ def read_csv(path: Path, parse_dates: list[str] | None = None) -> pd.DataFrame:
     return pd.read_csv(path, parse_dates=parse_dates)
 
 
-def write_table_bundle(tables: Dict[str, pd.DataFrame], output_dir: Path) -> None:
+def write_table_bundle(tables: dict[str, pd.DataFrame], output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     for name, table in tables.items():
         write_csv(table, output_dir / f"{name}.csv")

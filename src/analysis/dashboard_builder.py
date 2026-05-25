@@ -4,7 +4,6 @@ import json
 import shutil
 from itertools import combinations
 from pathlib import Path
-from typing import Dict
 
 import numpy as np
 import pandas as pd
@@ -157,7 +156,7 @@ def _build_customer_pricing_rows(pricing: pd.DataFrame, selected_customers: set[
 
 
 def build_executive_dashboard(
-    processed_tables: Dict[str, pd.DataFrame],
+    processed_tables: dict[str, pd.DataFrame],
     dashboard_dir: Path,
 ) -> Path:
     dashboard_dir.mkdir(parents=True, exist_ok=True)

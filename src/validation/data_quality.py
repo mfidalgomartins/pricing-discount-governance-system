@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Dict, Iterable, Tuple
+from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
@@ -36,7 +36,7 @@ def _missing_columns(table: pd.DataFrame, required_columns: Iterable[str]) -> li
     return [col for col in required_columns if col not in table.columns]
 
 
-def validate_raw_tables(raw_tables: Dict[str, pd.DataFrame]) -> Tuple[pd.DataFrame, bool]:
+def validate_raw_tables(raw_tables: dict[str, pd.DataFrame]) -> tuple[pd.DataFrame, bool]:
     checks: list[dict] = []
 
     for table_name, required in RAW_REQUIRED_COLUMNS.items():
@@ -218,7 +218,7 @@ def validate_raw_tables(raw_tables: Dict[str, pd.DataFrame]) -> Tuple[pd.DataFra
     return report, is_valid
 
 
-def validate_processed_tables(processed_tables: Dict[str, pd.DataFrame]) -> Tuple[pd.DataFrame, bool]:
+def validate_processed_tables(processed_tables: dict[str, pd.DataFrame]) -> tuple[pd.DataFrame, bool]:
     checks: list[dict] = []
 
     required_processed = {

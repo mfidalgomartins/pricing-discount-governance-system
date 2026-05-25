@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict
 
 import numpy as np
 import pandas as pd
@@ -357,7 +356,7 @@ def _generate_order_items(
     return order_items
 
 
-def generate_synthetic_business_data(config: SyntheticDataConfig | None = None) -> Dict[str, pd.DataFrame]:
+def generate_synthetic_business_data(config: SyntheticDataConfig | None = None) -> dict[str, pd.DataFrame]:
     config = config or SyntheticDataConfig()
     rng = np.random.default_rng(config.seed)
 
@@ -367,7 +366,7 @@ def generate_synthetic_business_data(config: SyntheticDataConfig | None = None) 
     orders = _generate_orders(config, customers, sales_reps, rng)
     order_items = _generate_order_items(orders, customers, products, sales_reps, rng)
 
-    raw_tables: Dict[str, pd.DataFrame] = {
+    raw_tables: dict[str, pd.DataFrame] = {
         "customers": customers[["customer_id", "signup_date", "segment", "region", "company_size"]],
         "products": products[["product_id", "product_name", "category", "list_price", "unit_cost"]],
         "orders": orders[["order_id", "customer_id", "order_date", "sales_channel", "sales_rep_id"]],

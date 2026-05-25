@@ -1,0 +1,51 @@
+[project]
+name = "pricing-discount-governance-system"
+version = "1.0.0"
+description = "Synthetic pricing governance analytics: discount-leakage, margin-erosion, and commercial-risk pipeline with reproducible DuckDB warehouse and HTML dashboard."
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.12"
+authors = [{ name = "Miguel Fidalgo Martins", email = "mfidalgomartins@gmail.com" }]
+keywords = ["pricing", "governance", "analytics", "duckdb", "synthetic-data"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Topic :: Office/Business :: Financial",
+]
+dependencies = [
+    "pandas==3.0.1",
+    "numpy==2.4.3",
+    "matplotlib==3.10.8",
+    "seaborn==0.13.2",
+    "nbformat==5.10.4",
+    "duckdb==1.5.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==9.0.3",
+    "pytest-cov==6.1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/mfidalgomartins/pricing-discount-governance-system"
+Dashboard = "https://mfidalgomartins.github.io/pricing-discount-governance-system/"
+
+[tool.pytest.ini_options]
+minversion = "8.0"
+addopts = "-q -p no:cacheprovider"
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["src/**/__init__.py"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]

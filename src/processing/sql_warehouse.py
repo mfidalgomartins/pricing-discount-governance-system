@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict
 
 import pandas as pd
 
@@ -218,7 +217,7 @@ def _run_sql_validations(conn: duckdb.DuckDBPyConnection) -> pd.DataFrame:
     return pd.DataFrame(checks)
 
 
-def run_sql_warehouse_models(config: SqlLayerRunConfig) -> Dict[str, pd.DataFrame]:
+def run_sql_warehouse_models(config: SqlLayerRunConfig) -> dict[str, pd.DataFrame]:
     config.marts_output_dir.mkdir(parents=True, exist_ok=True)
     config.outputs_dir.mkdir(parents=True, exist_ok=True)
     config.db_path.parent.mkdir(parents=True, exist_ok=True)

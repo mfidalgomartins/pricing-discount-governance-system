@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict
 
 import matplotlib
 import numpy as np
@@ -31,10 +30,10 @@ def _save(fig: plt.Figure, path: Path) -> None:
 
 
 def create_visualization_pack(
-    processed_tables: Dict[str, pd.DataFrame],
+    processed_tables: dict[str, pd.DataFrame],
     outputs_dir: Path,
     docs_dir: Path,
-) -> Dict[str, pd.DataFrame]:
+) -> dict[str, pd.DataFrame]:
     viz_dir = outputs_dir / "visualizations"
     viz_dir.mkdir(parents=True, exist_ok=True)
     docs_dir.mkdir(parents=True, exist_ok=True)

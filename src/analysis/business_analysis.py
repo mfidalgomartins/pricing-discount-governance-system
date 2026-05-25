@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Dict
 
 import numpy as np
 import pandas as pd
@@ -29,7 +28,7 @@ def _build_monthly_performance(pricing_metrics: pd.DataFrame) -> pd.DataFrame:
     return monthly
 
 
-def _build_descriptive_tables(pricing_metrics: pd.DataFrame, segment_summary: pd.DataFrame) -> Dict[str, pd.DataFrame]:
+def _build_descriptive_tables(pricing_metrics: pd.DataFrame, segment_summary: pd.DataFrame) -> dict[str, pd.DataFrame]:
     channel_summary = (
         pricing_metrics.groupby("sales_channel", as_index=False)
         .agg(
@@ -60,7 +59,7 @@ def _build_descriptive_tables(pricing_metrics: pd.DataFrame, segment_summary: pd
     }
 
 
-def _build_diagnostic_tables(pricing_metrics: pd.DataFrame, customer_risk_scores: pd.DataFrame) -> Dict[str, pd.DataFrame]:
+def _build_diagnostic_tables(pricing_metrics: pd.DataFrame, customer_risk_scores: pd.DataFrame) -> dict[str, pd.DataFrame]:
     rep_diagnostics = (
         pricing_metrics.groupby(["sales_rep_id", "team", "rep_region"], as_index=False)
         .agg(
@@ -196,10 +195,10 @@ def _render_executive_summary(findings_payload: dict) -> str:
 
 
 def generate_analysis_outputs(
-    feature_tables: Dict[str, pd.DataFrame],
-    risk_tables: Dict[str, pd.DataFrame],
+    feature_tables: dict[str, pd.DataFrame],
+    risk_tables: dict[str, pd.DataFrame],
     outputs_dir: Path,
-) -> Dict[str, pd.DataFrame]:
+) -> dict[str, pd.DataFrame]:
     outputs_dir.mkdir(parents=True, exist_ok=True)
 
     pricing_metrics = feature_tables["order_item_pricing_metrics"]

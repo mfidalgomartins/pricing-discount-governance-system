@@ -13,6 +13,7 @@ REQUIRED_PATHS = [
     "README.md",
     "LICENSE",
     "Makefile",
+    "pyproject.toml",
     ".github/workflows/ci.yml",
     ".github/dependabot.yml",
     "requirements.lock",

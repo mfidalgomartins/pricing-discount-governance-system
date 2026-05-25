@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Tuple
+from typing import Any
 
 import pandas as pd
 
@@ -47,7 +47,7 @@ def evaluate_release_gate(
     metric_contract_report_path: Path,
     policy_path: Path,
     outputs_dir: Path,
-) -> Tuple[dict[str, Any], bool]:
+) -> tuple[dict[str, Any], bool]:
     summary = _load_json(summary_path)
     policy = _load_json(policy_path)
 

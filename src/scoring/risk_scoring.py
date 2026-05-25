@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Dict
 
 import numpy as np
 import pandas as pd
@@ -191,7 +190,7 @@ def score_customer_pricing_risk(customer_profile: pd.DataFrame) -> pd.DataFrame:
     return scored[ordered_columns].sort_values("governance_priority_score", ascending=False).reset_index(drop=True)
 
 
-def build_risk_outputs(feature_tables: Dict[str, pd.DataFrame]) -> Dict[str, pd.DataFrame]:
+def build_risk_outputs(feature_tables: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     customer_profile = feature_tables["customer_pricing_profile"]
     customer_risk_scores = score_customer_pricing_risk(customer_profile)
 

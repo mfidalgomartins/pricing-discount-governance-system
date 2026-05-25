@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Dict, Tuple
 
 import pandas as pd
 
@@ -32,7 +31,7 @@ def _load_contracts(config_path: Path) -> dict:
 def _resolve_table(
     table_name: str,
     spec: dict,
-    processed_tables: Dict[str, pd.DataFrame],
+    processed_tables: dict[str, pd.DataFrame],
     outputs_dir: Path,
 ) -> pd.DataFrame | None:
     source = spec.get("source", "processed")
@@ -52,10 +51,10 @@ def _resolve_table(
 
 
 def validate_metric_contracts(
-    processed_tables: Dict[str, pd.DataFrame],
+    processed_tables: dict[str, pd.DataFrame],
     outputs_dir: Path,
     config_path: Path,
-) -> Tuple[pd.DataFrame, bool]:
+) -> tuple[pd.DataFrame, bool]:
     contracts = _load_contracts(config_path)
     table_specs = contracts.get("tables", {})
 

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Dict, Iterable
+from collections.abc import Iterable
 
 import numpy as np
 import pandas as pd
@@ -411,7 +411,7 @@ def _profile_single_table(table_name: str, frame: pd.DataFrame) -> dict[str, pd.
     }
 
 
-def _cross_table_join_checks(tables: Dict[str, pd.DataFrame]) -> pd.DataFrame:
+def _cross_table_join_checks(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     issues: list[dict] = []
 
     def _record_issue(
@@ -524,7 +524,7 @@ def _build_analytical_focus(column_profile: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(focus_records).sort_values("table_name")
 
 
-def _build_population_coverage(tables: Dict[str, pd.DataFrame]) -> pd.DataFrame:
+def _build_population_coverage(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     total_customers = int(tables.get("customers", pd.DataFrame()).get("customer_id", pd.Series(dtype=str)).nunique())
     transacting_customers = int(
         tables.get("orders", pd.DataFrame()).get("customer_id", pd.Series(dtype=str)).nunique()
@@ -643,11 +643,11 @@ def _render_markdown(
 
 
 def run_data_profiling(
-    raw_tables: Dict[str, pd.DataFrame],
-    processed_tables: Dict[str, pd.DataFrame],
+    raw_tables: dict[str, pd.DataFrame],
+    processed_tables: dict[str, pd.DataFrame],
     outputs_dir: Path,
     docs_dir: Path,
-) -> Dict[str, pd.DataFrame]:
+) -> dict[str, pd.DataFrame]:
     outputs_dir.mkdir(parents=True, exist_ok=True)
     docs_dir.mkdir(parents=True, exist_ok=True)
 
