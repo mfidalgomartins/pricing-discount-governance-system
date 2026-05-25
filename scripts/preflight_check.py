@@ -12,6 +12,7 @@ MAX_TRACKED_FILE_BYTES = MAX_TRACKED_FILE_MB * 1024 * 1024
 REQUIRED_PATHS = [
     "README.md",
     "LICENSE",
+    "Makefile",
     ".github/workflows/ci.yml",
     ".github/dependabot.yml",
     "requirements.lock",

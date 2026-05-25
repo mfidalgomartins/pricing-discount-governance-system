@@ -16,7 +16,7 @@ https://mfidalgomartins.github.io/pricing-discount-governance-system/
 ## Notes
 - Data is embedded in the HTML payload at build time.
 - KPI values use governed pre-aggregated metric rows.
-- Chart interactivity uses local asset `docs/vendor/chart.umd.min.js` with CDN fallback.
+- Chart interactivity uses the local asset `docs/vendor/chart.umd.min.js` (no external CDN dependency).
 - The dashboard is maintained in a single canonical location under `docs/`.
 
 ## Limits

@@ -65,28 +65,32 @@ The pipeline validates raw data before building SQL marts, validates pandas join
 ## Run Locally
 
 ```bash
-python3 -m venv .venv
-. .venv/bin/activate
+make install   # create .venv and install pinned dependencies
+make run       # full pipeline — 1200 customers, 18 000 orders
+make test      # pytest with coverage
+make preflight # repository health check
+```
+
+Or without `make`:
+
+```bash
+python3 -m venv .venv && . .venv/bin/activate
 pip install -r requirements.lock
 python scripts/run_pipeline.py
-python scripts/preflight_check.py
 pytest -q -p no:cacheprovider
+python scripts/preflight_check.py
 ```
 
 For a faster smoke run:
 
 ```bash
-python scripts/run_pipeline.py \
-  --seed 11 \
-  --customers 220 \
-  --products 28 \
-  --sales-reps 14 \
-  --orders 2400 \
-  --start-date 2024-01-01 \
-  --end-date 2024-12-31
+make run-smoke
+# equivalent to:
+# python scripts/run_pipeline.py --seed 11 --customers 220 --products 28 \
+#   --sales-reps 14 --orders 2400 --start-date 2024-01-01 --end-date 2024-12-31
 ```
 
-`--products` must be ≥ 5 (one per category). All thresholds are read from `config/policy_thresholds.json` and stay consistent with the sensitivity analysis.
+All thresholds — including `high_discount_flag` — are read from `config/policy_thresholds.json` and stay consistent with the sensitivity analysis.
 
 ## Outputs
 
@@ -102,12 +106,12 @@ Runtime outputs and processed marts are intentionally ignored because they are r
 ## Tests & Quality Gates
 
 ```bash
-python -m compileall -q src scripts tests
-pytest -q -p no:cacheprovider
-python scripts/preflight_check.py
+make lint      # compile-check all Python modules
+make test      # pytest with coverage (49 tests)
+make preflight # required-file and artifact checks
 ```
 
-Coverage focuses on raw validation order, pandas merge integrity, SQL warehouse reconciliation, deterministic as-of date, CLI validation, metric contracts, release gates, visualization outputs, and dashboard HTML/a11y contracts.
+Coverage focuses on raw validation order, pandas merge integrity, SQL warehouse reconciliation, deterministic as-of date, CLI guards, metric contracts, release gates, visualization outputs, and dashboard HTML/a11y contracts.
 
 ## Repository Map
 

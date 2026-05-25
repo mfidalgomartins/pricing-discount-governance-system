@@ -32,7 +32,7 @@ This project uses 100% synthetic commercial data. No real customer, product, sal
 | `weighted_realized_discount` | percentage | Portfolio discount weighted by list revenue. |
 | `price_realization` | percentage | Realized revenue divided by list revenue. |
 | `margin_proxy_pct` | percentage | Modeled gross margin proxy using synthetic unit cost. |
-| `high_discount_flag` | binary | `1` when discount is at or above 20%. |
+| `high_discount_flag` | binary | `1` when discount is at or above the configured threshold (default 20%, set in `config/policy_thresholds.json` under `high_discount_thresholds[1]`). |
 | `revenue_high_discount_share` | percentage | Share of customer revenue coming from high-discount lines. |
 | `realized_price_residual_pct` | percentage | Realized price deviation from the product/channel average, used to reduce product/channel mix bias. |
 | `governance_priority_score` | 0-100 | Weighted operational risk score for prioritizing customer review. |
