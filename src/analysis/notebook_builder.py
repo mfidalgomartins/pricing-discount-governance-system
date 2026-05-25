@@ -16,6 +16,23 @@ def build_project_notebook(project_root: Path) -> Path:
             """
 # Pricing Discipline & Margin Protection Analytics System
 
+This notebook is a reproducible analytical companion to the project pipeline. The dataset is 100% synthetic and is intended for portfolio, methodology, and decision-support demonstration only.
+
+Run the pipeline from the repository root before executing the notebook:
+
+```bash
+python scripts/run_pipeline.py
+```
+
+Expected core outputs:
+
+- `data/processed/order_item_pricing_metrics.csv`
+- `data/processed/customer_pricing_profile.csv`
+- `data/processed/customer_risk_scores.csv`
+- `data/processed/sql_marts/*.csv`
+- `outputs/*` analytical reports generated locally
+- `docs/pricing-discipline-command-center.html` dashboard for GitHub Pages
+
 ## Main Business Question
 Is the company growing with healthy pricing discipline, or relying on discounting patterns that erode margin and weaken commercial behavior?
 
@@ -44,6 +61,16 @@ raw_dir = project_root / "data" / "raw"
 processed_dir = project_root / "data" / "processed"
 outputs_dir = project_root / "outputs"
 
+def read_output_csv(file_name, subdir=None, **kwargs):
+    candidates = []
+    if subdir:
+        candidates.append(outputs_dir / subdir / file_name)
+    candidates.append(outputs_dir / file_name)
+    for path in candidates:
+        if path.exists():
+            return pd.read_csv(path, **kwargs)
+    raise FileNotFoundError(f"Could not find {file_name} in expected output paths: {candidates}")
+
 customers = pd.read_csv(raw_dir / "customers.csv", parse_dates=["signup_date"])
 products = pd.read_csv(raw_dir / "products.csv")
 orders = pd.read_csv(raw_dir / "orders.csv", parse_dates=["order_date"])
@@ -55,19 +82,19 @@ customer_profile = pd.read_csv(processed_dir / "customer_pricing_profile.csv")
 customer_risk = pd.read_csv(processed_dir / "customer_risk_scores.csv")
 sql_customer_profile = pd.read_csv(processed_dir / "sql_marts" / "mart_customer_pricing_profile.csv")
 sql_segment_summary = pd.read_csv(processed_dir / "sql_marts" / "mart_segment_pricing_summary.csv")
-sql_validation = pd.read_csv(outputs_dir / "warehouse" / "sql_validation_report.csv")
+sql_validation = read_output_csv("sql_validation_report.csv", subdir="warehouse")
 
-profile_summary = pd.read_csv(outputs_dir / "profiling" / "table_profile_summary.csv")
-quality_issues = pd.read_csv(outputs_dir / "profiling" / "data_quality_issues.csv")
-overall_health = pd.read_csv(outputs_dir / "overall_pricing_health.csv")
-yearly_health = pd.read_csv(outputs_dir / "yearly_pricing_health.csv")
-segment_dependency = pd.read_csv(outputs_dir / "segment_discount_dependency.csv")
-margin_risk = pd.read_csv(outputs_dir / "margin_erosion_risk.csv")
-rep_inconsistency = pd.read_csv(outputs_dir / "rep_pricing_inconsistency.csv")
-product_patterns = pd.read_csv(outputs_dir / "product_governance_patterns.csv")
-validation_checks = pd.read_csv(outputs_dir / "formal_analysis_validation_checks.csv")
-threshold_sensitivity = pd.read_csv(outputs_dir / "threshold_sensitivity_analysis.csv")
-governance_action_queue = pd.read_csv(outputs_dir / "governance_action_queue.csv")
+profile_summary = read_output_csv("table_profile_summary.csv", subdir="profiling")
+quality_issues = read_output_csv("data_quality_issues.csv", subdir="profiling")
+overall_health = read_output_csv("overall_pricing_health.csv", subdir="analysis")
+yearly_health = read_output_csv("yearly_pricing_health.csv", subdir="analysis")
+segment_dependency = read_output_csv("segment_discount_dependency.csv", subdir="analysis")
+margin_risk = read_output_csv("margin_erosion_risk.csv", subdir="analysis")
+rep_inconsistency = read_output_csv("rep_pricing_inconsistency.csv", subdir="analysis")
+product_patterns = read_output_csv("product_governance_patterns.csv", subdir="analysis")
+validation_checks = read_output_csv("formal_analysis_validation_checks.csv")
+threshold_sensitivity = read_output_csv("threshold_sensitivity_analysis.csv", subdir="analysis")
+governance_action_queue = read_output_csv("governance_action_queue.csv", subdir="analysis")
 
 print("Loaded tables successfully")
 print("Raw rows:", {"customers": len(customers), "orders": len(orders), "order_items": len(order_items), "products": len(products), "sales_reps": len(sales_reps)})
@@ -314,11 +341,13 @@ Main finding: growth appears **discount-led rather than pricing-discipline-led**
 3. Continue rep-level monitoring and escalate only if peer outlier signals become persistent.
 4. Prioritize intervention on discount-reliant products with weak margin proxy outcomes.
 
-Executive HTML dashboard: `../outputs/dashboard/pricing-discipline-command-center.html`
+Executive HTML dashboard: `../docs/pricing-discipline-command-center.html`
 
 ## Caveats
 - Synthetic dataset with realistic behavior design.
 - Margin remains a proxy, not full financial gross margin.
+- Governance scores are operational heuristics for prioritization, not causal or predictive models.
+- Realized price variance can reflect product/channel mix; residual dispersion should be preferred when interpreting inconsistency.
 """.strip()
         )
     )

@@ -54,7 +54,13 @@ def validate_raw_tables(raw_tables: Dict[str, pd.DataFrame]) -> Tuple[pd.DataFra
             )
         )
 
-    if not {"customers", "products", "orders", "order_items", "sales_reps"}.issubset(raw_tables.keys()):
+    required_tables = {"customers", "products", "orders", "order_items", "sales_reps"}
+    any_missing_columns = any(
+        bool(_missing_columns(raw_tables[t], RAW_REQUIRED_COLUMNS[t]))
+        for t in required_tables
+        if t in raw_tables
+    )
+    if not required_tables.issubset(raw_tables.keys()) or any_missing_columns:
         report = pd.DataFrame(checks)
         return report, bool((report["status"] == "PASS").all())
 
@@ -63,6 +69,24 @@ def validate_raw_tables(raw_tables: Dict[str, pd.DataFrame]) -> Tuple[pd.DataFra
     orders = raw_tables["orders"]
     order_items = raw_tables["order_items"]
     sales_reps = raw_tables["sales_reps"]
+
+    minimum_rows = {
+        "customers": 1,
+        "products": 1,
+        "orders": 1,
+        "order_items": 1,
+        "sales_reps": 1,
+    }
+    for table_name, minimum in minimum_rows.items():
+        row_count = int(len(raw_tables[table_name]))
+        checks.append(
+            _result_row(
+                f"{table_name}_row_count_gate",
+                "PASS" if row_count >= minimum else "FAIL",
+                0 if row_count >= minimum else minimum - row_count,
+                f"row_count={row_count}, minimum={minimum}",
+            )
+        )
 
     unique_checks = [
         ("customers_unique_customer_id", customers["customer_id"].duplicated().sum()),
@@ -131,8 +155,15 @@ def validate_raw_tables(raw_tables: Dict[str, pd.DataFrame]) -> Tuple[pd.DataFra
     discount_out_of_bounds = int(((order_items["discount_pct"] < 0) | (order_items["discount_pct"] > 0.7)).sum())
     realized_gt_list = int((order_items["realized_unit_price"] > order_items["list_price_at_sale"]).sum())
     non_positive_qty = int((order_items["quantity"] <= 0).sum())
+    non_positive_list_price = int((order_items["list_price_at_sale"] <= 0).sum())
+    non_positive_product_price = int((products["list_price"] <= 0).sum())
+    negative_unit_cost = int((products["unit_cost"] < 0).sum())
 
-    recomputed_discount = 1 - (order_items["realized_unit_price"] / order_items["list_price_at_sale"])
+    recomputed_discount = np.where(
+        order_items["list_price_at_sale"] > 0,
+        1 - (order_items["realized_unit_price"] / order_items["list_price_at_sale"]),
+        np.nan,
+    )
     discount_mismatch = int((np.abs(recomputed_discount - order_items["discount_pct"]) > 0.02).sum())
 
     checks.extend(
@@ -154,6 +185,24 @@ def validate_raw_tables(raw_tables: Dict[str, pd.DataFrame]) -> Tuple[pd.DataFra
                 "PASS" if non_positive_qty == 0 else "FAIL",
                 non_positive_qty,
                 "all quantities are positive",
+            ),
+            _result_row(
+                "order_items_positive_list_price",
+                "PASS" if non_positive_list_price == 0 else "FAIL",
+                non_positive_list_price,
+                "list price at sale is positive",
+            ),
+            _result_row(
+                "products_positive_list_price",
+                "PASS" if non_positive_product_price == 0 else "FAIL",
+                non_positive_product_price,
+                "product list prices are positive",
+            ),
+            _result_row(
+                "products_non_negative_unit_cost",
+                "PASS" if negative_unit_cost == 0 else "FAIL",
+                negative_unit_cost,
+                "product unit costs are non-negative",
             ),
             _result_row(
                 "order_items_discount_formula_consistency",

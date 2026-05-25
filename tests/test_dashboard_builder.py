@@ -37,7 +37,10 @@ def test_dashboard_builder_outputs_self_contained_html(tmp_path) -> None:
     html = dashboard_path.read_text(encoding="utf-8")
 
     assert "vendor/chart.umd.min.js" in html
-    assert "cdn.jsdelivr.net/npm/chart.js" in html
+    assert "cdn.jsdelivr.net/npm/chart.js" not in html
+    assert 'meta name="description"' in html
+    assert 'rel="canonical"' in html
+    assert 'property="og:title"' in html
     assert "kpiRows" in html
     assert "pricingAggRows" in html
     assert "customerPricingRows" in html
@@ -48,6 +51,19 @@ def test_dashboard_builder_outputs_self_contained_html(tmp_path) -> None:
     assert 'id="categoryFilter"' in html
     assert 'id="channelFilter"' in html
     assert 'id="themeToggle"' in html
+    assert 'class="sort-button" data-key="governance_priority_score"' in html
+    assert 'aria-sort="descending"' in html
+    assert 'id="tableSortMeta" aria-live="polite"' in html
+    assert 'id="trendChartData"' in html
+    assert 'id="segmentChartData"' in html
+    assert 'id="regionRiskChartData"' in html
+    assert 'id="actionChartData"' in html
+    assert "--chart-region-text: #92400e;" in html
+    assert ".hero {" in html
+    assert ".filters-panel {" in html
+    assert "position: sticky;" in html
+    assert ".hero {\n      position: sticky;" not in html
+    assert ".filters-panel {\n      position: sticky;" not in html
     assert "Generated " not in html
     assert "Version:" not in html
     assert "Dashboard v" not in html

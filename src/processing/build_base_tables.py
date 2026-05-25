@@ -5,6 +5,33 @@ from typing import Dict
 import pandas as pd
 
 
+def _merge_many_to_one(
+    left: pd.DataFrame,
+    right: pd.DataFrame,
+    *,
+    on: str,
+    dimension_name: str,
+    how: str = "left",
+    suffixes: tuple[str, str] = ("", "_dim"),
+) -> pd.DataFrame:
+    merged = left.merge(
+        right,
+        on=on,
+        how=how,
+        validate="many_to_one",
+        indicator=True,
+        suffixes=suffixes,
+    )
+    missing = merged["_merge"].ne("both")
+    if missing.any():
+        examples = merged.loc[missing, on].dropna().astype(str).drop_duplicates().head(5).tolist()
+        raise ValueError(
+            f"Merge integrity failed for {dimension_name}: {int(missing.sum())} rows have no matching {on}. "
+            f"Examples: {examples}"
+        )
+    return merged.drop(columns="_merge")
+
+
 def build_order_item_enriched(raw_tables: Dict[str, pd.DataFrame]) -> pd.DataFrame:
     customers = raw_tables["customers"].copy()
     products = raw_tables["products"].copy()
@@ -15,11 +42,30 @@ def build_order_item_enriched(raw_tables: Dict[str, pd.DataFrame]) -> pd.DataFra
     customers["signup_date"] = pd.to_datetime(customers["signup_date"])
     orders["order_date"] = pd.to_datetime(orders["order_date"])
 
-    enriched = (
-        order_items.merge(orders, on="order_id", how="left")
-        .merge(customers, on="customer_id", how="left")
-        .merge(products, on="product_id", how="left", suffixes=("", "_product"))
-        .merge(sales_reps.rename(columns={"region": "rep_region"}), on="sales_rep_id", how="left")
+    enriched = _merge_many_to_one(
+        order_items,
+        orders,
+        on="order_id",
+        dimension_name="orders",
+    )
+    enriched = _merge_many_to_one(
+        enriched,
+        customers,
+        on="customer_id",
+        dimension_name="customers",
+    )
+    enriched = _merge_many_to_one(
+        enriched,
+        products,
+        on="product_id",
+        dimension_name="products",
+        suffixes=("", "_product"),
+    )
+    enriched = _merge_many_to_one(
+        enriched,
+        sales_reps.rename(columns={"region": "rep_region"}),
+        on="sales_rep_id",
+        dimension_name="sales_reps",
     )
 
     enriched["order_month"] = enriched["order_date"].dt.to_period("M").astype(str)

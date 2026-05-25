@@ -5,6 +5,11 @@ from typing import Dict
 import numpy as np
 import pandas as pd
 
+from src.utils.policy import load_policy_thresholds
+
+# The base high-discount threshold is the middle value of the sensitivity list (default 0.20).
+# Changing high_discount_thresholds[1] in policy_thresholds.json shifts the flag consistently.
+_HIGH_DISCOUNT_THRESHOLD: float = float(load_policy_thresholds().get("high_discount_thresholds", [0.15, 0.20, 0.25])[1])
 
 DISCOUNT_BUCKETS = [-0.001, 0.05, 0.10, 0.20, 0.30, 1.0]
 DISCOUNT_LABELS = ["0-5%", "5-10%", "10-20%", "20-30%", "30%+"]
@@ -31,7 +36,14 @@ def build_order_item_pricing_metrics(enriched: pd.DataFrame) -> pd.DataFrame:
         metrics["gross_margin_value"] / metrics["line_revenue"],
         np.nan,
     )
-    metrics["high_discount_flag"] = (metrics["discount_depth"] >= 0.20).astype(int)
+    baseline_price = metrics.groupby(["product_id", "sales_channel"])["realized_price"].transform("mean")
+    metrics["realized_price_residual_pct"] = np.where(
+        baseline_price > 0,
+        (metrics["realized_price"] - baseline_price) / baseline_price,
+        0.0,
+    )
+    metrics["abs_realized_price_residual_pct"] = metrics["realized_price_residual_pct"].abs()
+    metrics["high_discount_flag"] = (metrics["discount_depth"] >= _HIGH_DISCOUNT_THRESHOLD).astype(int)
     metrics["discounted_flag"] = (metrics["discount_depth"] >= 0.05).astype(int)
 
     return metrics
@@ -131,6 +143,8 @@ def build_segment_pricing_summary(pricing_metrics: pd.DataFrame) -> pd.DataFrame
             avg_margin_proxy_pct=("margin_proxy_pct", "mean"),
             realized_price_variance=("realized_price", "var"),
             realized_price_std=("realized_price", "std"),
+            realized_price_residual_std=("realized_price_residual_pct", "std"),
+            realized_price_residual_abs_mean=("abs_realized_price_residual_pct", "mean"),
         )
     )
 
@@ -141,6 +155,8 @@ def build_segment_pricing_summary(pricing_metrics: pd.DataFrame) -> pd.DataFrame
     )
     segment_summary["realized_price_variance"] = segment_summary["realized_price_variance"].fillna(0)
     segment_summary["realized_price_std"] = segment_summary["realized_price_std"].fillna(0)
+    segment_summary["realized_price_residual_std"] = segment_summary["realized_price_residual_std"].fillna(0)
+    segment_summary["realized_price_residual_abs_mean"] = segment_summary["realized_price_residual_abs_mean"].fillna(0)
 
     return segment_summary.sort_values("margin_erosion_proxy", ascending=False)
 

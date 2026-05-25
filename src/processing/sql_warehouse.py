@@ -65,6 +65,8 @@ MART_PRIMARY_KEYS = {
 def _load_raw_tables(conn: duckdb.DuckDBPyConnection, raw_dir: Path) -> None:
     for table_name, file_name in RAW_TABLE_SOURCES.items():
         source_path = raw_dir / file_name
+        if not source_path.exists():
+            raise FileNotFoundError(f"Missing raw source for SQL warehouse: {source_path}")
         conn.execute(
             f"""
             create or replace table {table_name} as
@@ -95,6 +97,44 @@ def _run_sql_validations(conn: duckdb.DuckDBPyConnection) -> pd.DataFrame:
     for mart_name in MART_PRIMARY_KEYS:
         row_count = int(conn.execute(f"select count(*) from {mart_name}").fetchone()[0])
         add_check(f"{mart_name}_row_count_positive", row_count > 0, f"row_count={row_count}")
+
+    raw_order_items = int(conn.execute("select count(*) from stg_order_items").fetchone()[0])
+    enriched_order_items = int(conn.execute("select count(*) from int_order_item_enriched").fetchone()[0])
+    add_check(
+        "int_order_item_enriched_no_silent_drops",
+        raw_order_items == enriched_order_items,
+        f"raw_order_items={raw_order_items}, enriched_order_items={enriched_order_items}",
+    )
+
+    anti_join_checks = {
+        "anti_join_order_items_missing_orders": """
+            select count(*)
+            from stg_order_items oi
+            left join stg_orders o on oi.order_id = o.order_id
+            where o.order_id is null
+        """,
+        "anti_join_orders_missing_customers": """
+            select count(*)
+            from stg_orders o
+            left join stg_customers c on o.customer_id = c.customer_id
+            where c.customer_id is null
+        """,
+        "anti_join_order_items_missing_products": """
+            select count(*)
+            from stg_order_items oi
+            left join stg_products p on oi.product_id = p.product_id
+            where p.product_id is null
+        """,
+        "anti_join_orders_missing_sales_reps": """
+            select count(*)
+            from stg_orders o
+            left join stg_sales_reps sr on o.sales_rep_id = sr.sales_rep_id
+            where sr.sales_rep_id is null
+        """,
+    }
+    for check_name, sql in anti_join_checks.items():
+        missing_count = int(conn.execute(sql).fetchone()[0])
+        add_check(check_name, missing_count == 0, f"missing_rows={missing_count}")
 
     for mart_name, key_cols in MART_PRIMARY_KEYS.items():
         key_expr = ", ".join(key_cols)
@@ -157,6 +197,22 @@ def _run_sql_validations(conn: duckdb.DuckDBPyConnection) -> pd.DataFrame:
         "int_pricing_consistency",
         discount_violations == 0,
         f"violations={discount_violations}",
+    )
+
+    as_of_matches_data = bool(
+        conn.execute(
+            """
+            select
+                max(m.as_of_date) = max(p.order_date)::date as as_of_matches_data
+            from mart_overall_pricing_health m
+            cross join int_order_item_pricing_metrics p
+            """
+        ).fetchone()[0]
+    )
+    add_check(
+        "mart_overall_as_of_date_deterministic",
+        as_of_matches_data,
+        "as_of_date equals max(order_date) from data",
     )
 
     return pd.DataFrame(checks)

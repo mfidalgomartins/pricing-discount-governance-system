@@ -98,7 +98,32 @@ def validate_metric_contracts(
         if missing_columns:
             continue
 
-        null_rate_cols = [col for col in required_columns if col.endswith("_id") or col in {"order_date", "order_month"}]
+        primary_key = spec.get("primary_key", [])
+        if isinstance(primary_key, str):
+            primary_key = [primary_key]
+        if primary_key:
+            missing_pk_cols = [col for col in primary_key if col not in table.columns]
+            if missing_pk_cols:
+                checks.append(_result_row(table_name, "primary_key_columns_present", False, f"missing={missing_pk_cols}"))
+            else:
+                duplicate_keys = int(table.duplicated(subset=primary_key).sum())
+                checks.append(
+                    _result_row(
+                        table_name,
+                        "primary_key_uniqueness",
+                        duplicate_keys == 0,
+                        f"primary_key={primary_key}, duplicate_rows={duplicate_keys}",
+                    )
+                )
+
+        not_null_keys = spec.get("not_null_keys")
+        if not_null_keys is None:
+            not_null_keys = [col for col in required_columns if col.endswith("_id") or col in {"order_date", "order_month"}]
+        missing_not_null_cols = [col for col in not_null_keys if col not in table.columns]
+        if missing_not_null_cols:
+            checks.append(_result_row(table_name, "not_null_key_columns_present", False, f"missing={missing_not_null_cols}"))
+
+        null_rate_cols = [col for col in not_null_keys if col in table.columns]
         if null_rate_cols:
             null_rate_series = table[null_rate_cols].isna().mean().sort_values(ascending=False)
             max_null_rate = float(null_rate_series.iloc[0]) if not null_rate_series.empty else 0.0

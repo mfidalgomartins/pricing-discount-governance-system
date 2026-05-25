@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 import sys
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", datefmt="%Y-%m-%dT%H:%M:%S")
+logger = logging.getLogger(__name__)
 
 from src.ingestion.load_raw import save_raw_tables
 from src.ingestion.synthetic_data import SyntheticDataConfig, generate_synthetic_business_data
@@ -27,7 +31,7 @@ def main() -> None:
     if not is_valid:
         raise RuntimeError(f"Raw data validation failed: {report_path}")
 
-    print("Synthetic raw data generated and validated.")
+    logger.info("Synthetic raw data generated and validated.")
 
 
 if __name__ == "__main__":

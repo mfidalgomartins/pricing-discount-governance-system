@@ -5,16 +5,24 @@ from typing import Dict
 import numpy as np
 import pandas as pd
 
+from src.utils.policy import load_policy_thresholds
 
-AVG_DISCOUNT_POLICY_THRESHOLD = 0.18
-HIGH_DISCOUNT_ORDER_SHARE_THRESHOLD = 0.35
-HIGH_DISCOUNT_REVENUE_SHARE_THRESHOLD = 0.40
-REPEAT_DISCOUNT_BEHAVIOR_THRESHOLD = 0.20
-MARGIN_PROXY_FLOOR_THRESHOLD = 0.38
-REALIZED_PRICE_CV_THRESHOLD = 0.45
+_POLICY = load_policy_thresholds()["customer_risk_scoring"]
 
-MIN_RELIABLE_ORDER_COUNT = 6
-NEUTRAL_SCORE = 50.0
+AVG_DISCOUNT_POLICY_THRESHOLD = float(_POLICY["avg_discount_policy_threshold"])
+HIGH_DISCOUNT_ORDER_SHARE_THRESHOLD = float(_POLICY["high_discount_order_share_threshold"])
+HIGH_DISCOUNT_REVENUE_SHARE_THRESHOLD = float(_POLICY["high_discount_revenue_share_threshold"])
+REPEAT_DISCOUNT_BEHAVIOR_THRESHOLD = float(_POLICY["repeat_discount_behavior_threshold"])
+MARGIN_PROXY_FLOOR_THRESHOLD = float(_POLICY["margin_proxy_floor_threshold"])
+REALIZED_PRICE_CV_THRESHOLD = float(_POLICY["realized_price_cv_threshold"])
+
+MIN_RELIABLE_ORDER_COUNT = int(_POLICY["min_reliable_order_count"])
+NEUTRAL_SCORE = float(_POLICY["neutral_score"])
+RISK_TIER_THRESHOLDS = _POLICY["risk_tiers"]
+PRIORITY_WEIGHTS = _POLICY["weights"]["governance_priority"]
+_W_PRICING = _POLICY["weights"]["pricing_risk"]
+_W_DEPENDENCY = _POLICY["weights"]["discount_dependency"]
+_W_MARGIN = _POLICY["weights"]["margin_erosion"]
 
 
 def _percentile_score(series: pd.Series, higher_is_risk: bool = True) -> pd.Series:
@@ -42,11 +50,11 @@ def _stabilize_with_reliability(raw_score: pd.Series, reliability_weight: pd.Ser
 
 
 def _risk_tier_from_score(score: float) -> str:
-    if score >= 80:
+    if score >= RISK_TIER_THRESHOLDS["critical_min"]:
         return "Critical"
-    if score >= 65:
+    if score >= RISK_TIER_THRESHOLDS["high_min"]:
         return "High"
-    if score >= 45:
+    if score >= RISK_TIER_THRESHOLDS["medium_min"]:
         return "Medium"
     return "Low"
 
@@ -93,21 +101,39 @@ def score_customer_pricing_risk(customer_profile: pd.DataFrame) -> pd.DataFrame:
     abs_margin_shortfall = _scale_shortfall(scored["avg_margin_proxy_pct"], MARGIN_PROXY_FLOOR_THRESHOLD, 0.38)
 
     raw_pricing_risk = (
-        0.60 * (0.50 * rel_discount_depth + 0.30 * rel_variability + 0.20 * rel_discount_share)
-        + 0.40 * (0.45 * abs_discount_depth + 0.30 * abs_variability + 0.25 * abs_high_discount_order_share)
+        _W_PRICING["rel_blend"] * (
+            _W_PRICING["rel_discount_depth"] * rel_discount_depth
+            + _W_PRICING["rel_variability"] * rel_variability
+            + _W_PRICING["rel_discount_share"] * rel_discount_share
+        )
+        + _W_PRICING["abs_blend"] * (
+            _W_PRICING["abs_discount_depth"] * abs_discount_depth
+            + _W_PRICING["abs_variability"] * abs_variability
+            + _W_PRICING["abs_high_discount_order_share"] * abs_high_discount_order_share
+        )
     )
     raw_discount_dependency = (
-        0.55 * (0.45 * rel_high_discount_revenue + 0.35 * rel_repeat_behavior + 0.20 * rel_discount_share)
-        + 0.45 * (
-            0.45 * abs_high_discount_revenue_share
-            + 0.30 * abs_repeat_behavior
-            + 0.25 * abs_high_discount_order_share
+        _W_DEPENDENCY["rel_blend"] * (
+            _W_DEPENDENCY["rel_high_discount_revenue"] * rel_high_discount_revenue
+            + _W_DEPENDENCY["rel_repeat_behavior"] * rel_repeat_behavior
+            + _W_DEPENDENCY["rel_discount_share"] * rel_discount_share
+        )
+        + _W_DEPENDENCY["abs_blend"] * (
+            _W_DEPENDENCY["abs_high_discount_revenue_share"] * abs_high_discount_revenue_share
+            + _W_DEPENDENCY["abs_repeat_behavior"] * abs_repeat_behavior
+            + _W_DEPENDENCY["abs_high_discount_order_share"] * abs_high_discount_order_share
         )
     )
     raw_margin_erosion = (
-        0.50 * (0.55 * rel_margin_erosion + 0.30 * rel_discount_depth + 0.15 * rel_high_discount_revenue)
-        + 0.50 * (
-            0.55 * abs_margin_shortfall + 0.25 * abs_discount_depth + 0.20 * abs_high_discount_revenue_share
+        _W_MARGIN["rel_blend"] * (
+            _W_MARGIN["rel_margin_erosion"] * rel_margin_erosion
+            + _W_MARGIN["rel_discount_depth"] * rel_discount_depth
+            + _W_MARGIN["rel_high_discount_revenue"] * rel_high_discount_revenue
+        )
+        + _W_MARGIN["abs_blend"] * (
+            _W_MARGIN["abs_margin_shortfall"] * abs_margin_shortfall
+            + _W_MARGIN["abs_discount_depth"] * abs_discount_depth
+            + _W_MARGIN["abs_high_discount_revenue_share"] * abs_high_discount_revenue_share
         )
     )
 
@@ -119,9 +145,9 @@ def score_customer_pricing_risk(customer_profile: pd.DataFrame) -> pd.DataFrame:
         raw_margin_erosion, scored["score_reliability_weight"]
     )
     scored["governance_priority_score"] = (
-        0.40 * scored["pricing_risk_score"]
-        + 0.35 * scored["discount_dependency_score"]
-        + 0.25 * scored["margin_erosion_score"]
+        PRIORITY_WEIGHTS["pricing_risk_score"] * scored["pricing_risk_score"]
+        + PRIORITY_WEIGHTS["discount_dependency_score"] * scored["discount_dependency_score"]
+        + PRIORITY_WEIGHTS["margin_erosion_score"] * scored["margin_erosion_score"]
     )
 
     score_columns = [

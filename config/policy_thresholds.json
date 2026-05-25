@@ -1,0 +1,64 @@
+{
+  "pricing_health": {
+    "healthy_weighted_discount_max": 0.12,
+    "healthy_high_discount_revenue_share_max": 0.2,
+    "healthy_margin_proxy_min": 0.45,
+    "mixed_weighted_discount_max": 0.18,
+    "mixed_high_discount_revenue_share_max": 0.3,
+    "mixed_margin_proxy_min": 0.4
+  },
+  "customer_risk_scoring": {
+    "avg_discount_policy_threshold": 0.18,
+    "high_discount_order_share_threshold": 0.35,
+    "high_discount_revenue_share_threshold": 0.4,
+    "repeat_discount_behavior_threshold": 0.2,
+    "margin_proxy_floor_threshold": 0.38,
+    "realized_price_cv_threshold": 0.45,
+    "min_reliable_order_count": 6,
+    "neutral_score": 50.0,
+    "weights": {
+      "governance_priority": {
+        "pricing_risk_score": 0.4,
+        "discount_dependency_score": 0.35,
+        "margin_erosion_score": 0.25
+      },
+      "pricing_risk": {
+        "rel_blend": 0.60,
+        "rel_discount_depth": 0.50,
+        "rel_variability": 0.30,
+        "rel_discount_share": 0.20,
+        "abs_blend": 0.40,
+        "abs_discount_depth": 0.45,
+        "abs_variability": 0.30,
+        "abs_high_discount_order_share": 0.25
+      },
+      "discount_dependency": {
+        "rel_blend": 0.55,
+        "rel_high_discount_revenue": 0.45,
+        "rel_repeat_behavior": 0.35,
+        "rel_discount_share": 0.20,
+        "abs_blend": 0.45,
+        "abs_high_discount_revenue_share": 0.45,
+        "abs_repeat_behavior": 0.30,
+        "abs_high_discount_order_share": 0.25
+      },
+      "margin_erosion": {
+        "rel_blend": 0.50,
+        "rel_margin_erosion": 0.55,
+        "rel_discount_depth": 0.30,
+        "rel_high_discount_revenue": 0.15,
+        "abs_blend": 0.50,
+        "abs_margin_shortfall": 0.55,
+        "abs_discount_depth": 0.25,
+        "abs_high_discount_revenue_share": 0.20
+      }
+    },
+    "risk_tiers": {
+      "critical_min": 80,
+      "high_min": 65,
+      "medium_min": 45
+    }
+  },
+  "high_discount_thresholds": [0.15, 0.2, 0.25],
+  "methodology_note": "Operational governance thresholds for synthetic portfolio analytics. Scores are descriptive decision-support heuristics, not causal or predictive models."
+}

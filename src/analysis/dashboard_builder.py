@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from itertools import combinations
 from pathlib import Path
 from typing import Dict
@@ -183,6 +184,14 @@ def build_executive_dashboard(
             "customer_id",
             "segment",
             "region",
+            "total_orders",
+            "avg_discount_pct",
+            "share_orders_high_discount",
+            "revenue_high_discount_share",
+            "avg_margin_proxy_pct",
+            "pricing_risk_score",
+            "discount_dependency_score",
+            "margin_erosion_score",
             "governance_priority_score",
             "risk_tier",
             "main_risk_driver",
@@ -235,6 +244,9 @@ def build_executive_dashboard(
     meta = {
         "coverage_start": pricing["order_date"].min().strftime("%Y-%m-%d"),
         "coverage_end": pricing["order_date"].max().strftime("%Y-%m-%d"),
+        "pricing_rows": int(len(pricing)),
+        "customers": int(pricing["customer_id"].nunique()),
+        "risk_customers_exported": int(len(risk_export)),
     }
 
     payload = {
@@ -253,35 +265,35 @@ def build_executive_dashboard(
 <head>
   <meta charset=\"utf-8\" />
   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
-  <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">
-  <link rel=\"preconnect\" href=\"https://fonts.gstatic.com\" crossorigin>
-  <link href=\"https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Manrope:wght@500;600;700;800&display=swap\" rel=\"stylesheet\">
-  <title>Pricing & Discount Governance Dashboard</title>
+  <title>Pricing &amp; Discount Governance Dashboard</title>
+  <meta name=\"description\" content=\"Synthetic pricing governance analytics dashboard for detecting discount leakage, margin exposure, and commercial risk.\" />
+  <meta name=\"theme-color\" content=\"#102033\" />
+  <link rel=\"canonical\" href=\"https://mfidalgomartins.github.io/pricing-discount-governance-system/pricing-discipline-command-center.html\" />
+  <meta property=\"og:title\" content=\"Pricing &amp; Discount Governance Dashboard\" />
+  <meta property=\"og:description\" content=\"Synthetic pricing governance analytics dashboard for discount leakage, margin exposure, and customer-level intervention planning.\" />
+  <meta property=\"og:type\" content=\"website\" />
+  <meta property=\"og:url\" content=\"https://mfidalgomartins.github.io/pricing-discount-governance-system/pricing-discipline-command-center.html\" />
+  <meta name=\"twitter:card\" content=\"summary_large_image\" />
   <script src=\"vendor/chart.umd.min.js\"></script>
-  <script>
-    if (typeof Chart === \"undefined\") {
-      document.write('<script src=\"https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js\"><\\/script>');
-    }
-  </script>
   <style>
     :root {
       color-scheme: light;
-      --font-sans: \"Manrope\", \"Avenir Next\", \"Segoe UI\", sans-serif;
-      --font-display: \"Fraunces\", Georgia, serif;
-      --bg: #eff4fb;
-      --bg-radial: #d6e3f6;
+      --font-sans: \"Inter\", \"Avenir Next\", \"Segoe UI\", Arial, sans-serif;
+      --font-display: \"Avenir Next\", \"Segoe UI\", Arial, sans-serif;
+      --bg: #f5f7fb;
+      --bg-radial: #f5f7fb;
       --surface: #ffffff;
-      --surface-soft: #f4f8fd;
-      --surface-soft-alt: #eaf2fb;
+      --surface-soft: #f8fafc;
+      --surface-soft-alt: #eef2f7;
       --ink: #0f172a;
-      --muted: #51647c;
-      --border: #d7e1ef;
-      --hero-start: #0e1d34;
-      --hero-end: #1d436c;
-      --hero-ink: #eef4ff;
-      --hero-muted: #c6d7ee;
-      --hero-chip-bg: rgba(7, 16, 31, 0.26);
-      --hero-chip-border: rgba(208, 224, 248, 0.16);
+      --muted: #475569;
+      --border: #d9e1ec;
+      --hero-start: #102033;
+      --hero-end: #173650;
+      --hero-ink: #f8fbff;
+      --hero-muted: #cddbeb;
+      --hero-chip-bg: rgba(255, 255, 255, 0.08);
+      --hero-chip-border: rgba(226, 236, 249, 0.18);
       --input-bg: #ffffff;
       --input-border: #c6d2e3;
       --grid: #d8e3f2;
@@ -290,12 +302,13 @@ def build_executive_dashboard(
       --chart-trend-line: #0f766e;
       --chart-trend-fill: rgba(15, 118, 110, 0.12);
       --chart-segment: #0f7bb7;
-      --chart-region: #d97706;
+      --chart-region: #b45309;
+      --chart-region-text: #92400e;
       --chart-action: #334155;
-      --shadow: 0 20px 52px rgba(15, 23, 42, 0.08);
-      --shadow-soft: 0 10px 26px rgba(15, 23, 42, 0.055);
-      --radius: 20px;
-      --radius-sm: 12px;
+      --shadow: 0 14px 36px rgba(15, 23, 42, 0.08);
+      --shadow-soft: 0 6px 18px rgba(15, 23, 42, 0.06);
+      --radius: 8px;
+      --radius-sm: 6px;
       --focus-ring: 0 0 0 3px rgba(14, 165, 233, 0.28);
       --ok: #0f766e;
       --warn: #a16207;
@@ -316,8 +329,8 @@ def build_executive_dashboard(
 
     [data-theme="dark"] {
       color-scheme: dark;
-      --bg: #08111d;
-      --bg-radial: #132740;
+      --bg: #09111d;
+      --bg-radial: #09111d;
       --surface: #0f1a2c;
       --surface-soft: #132137;
       --surface-soft-alt: #18273f;
@@ -339,9 +352,10 @@ def build_executive_dashboard(
       --chart-trend-fill: rgba(52, 211, 153, 0.14);
       --chart-segment: #38bdf8;
       --chart-region: #fb923c;
+      --chart-region-text: #fed7aa;
       --chart-action: #cbd5e1;
-      --shadow: 0 18px 48px rgba(0, 0, 0, 0.34);
-      --shadow-soft: 0 10px 24px rgba(0, 0, 0, 0.24);
+      --shadow: 0 16px 36px rgba(0, 0, 0, 0.32);
+      --shadow-soft: 0 8px 20px rgba(0, 0, 0, 0.24);
       --focus-ring: 0 0 0 3px rgba(56, 189, 248, 0.24);
       --ok: #34d399;
       --warn: #fbbf24;
@@ -362,12 +376,14 @@ def build_executive_dashboard(
 
     * { box-sizing: border-box; }
 
+    html,
+    body {
+      max-width: 100%;
+    }
+
     body {
       margin: 0;
-      background:
-        radial-gradient(circle at 16% -6%, var(--bg-radial) 0, transparent 40%),
-        radial-gradient(circle at 88% -10%, var(--bg-radial) 0, transparent 32%),
-        var(--bg);
+      background: var(--bg);
       color: var(--ink);
       font-family: var(--font-sans);
       line-height: 1.5;
@@ -376,43 +392,37 @@ def build_executive_dashboard(
       transition: background-color 0.2s ease, color 0.2s ease;
       min-height: 100vh;
       position: relative;
-      overflow-x: hidden;
-    }
-
-    body::before,
-    body::after {
-      content: '';
-      position: fixed;
-      inset: auto;
-      width: 34rem;
-      height: 34rem;
-      border-radius: 999px;
-      pointer-events: none;
-      z-index: 0;
-      opacity: 0.5;
-      filter: blur(72px);
-    }
-
-    body::before {
-      top: -10rem;
-      right: -12rem;
-      background: color-mix(in srgb, var(--bg-radial) 80%, transparent);
-    }
-
-    body::after {
-      bottom: -14rem;
-      left: -10rem;
-      background: color-mix(in srgb, var(--surface-soft-alt) 76%, transparent);
+      overflow-x: clip;
     }
 
     .page {
-      max-width: 1520px;
+      max-width: 1480px;
       margin: 0 auto;
-      padding: 26px clamp(14px, 2.6vw, 36px) 40px;
+      padding: 18px clamp(12px, 2.4vw, 30px) 34px;
       display: grid;
-      gap: 18px;
+      gap: 14px;
       position: relative;
       z-index: 1;
+      width: min(1480px, 100%);
+    }
+
+    .skip-link {
+      position: absolute;
+      left: 16px;
+      top: 10px;
+      transform: translateY(-140%);
+      z-index: 20;
+      background: var(--ink);
+      color: var(--surface);
+      padding: 8px 12px;
+      border-radius: var(--radius-sm);
+      font-weight: 700;
+    }
+
+    .skip-link:focus {
+      transform: translateY(0);
+      outline: 3px solid var(--neutral);
+      outline-offset: 2px;
     }
 
     .hero {
@@ -420,7 +430,7 @@ def build_executive_dashboard(
       border-radius: var(--radius);
       color: var(--hero-ink);
       box-shadow: var(--shadow);
-      padding: 24px clamp(18px, 2.5vw, 34px);
+      padding: 18px clamp(16px, 2.2vw, 28px);
       position: relative;
       overflow: hidden;
       border: 1px solid rgba(226, 237, 255, 0.08);
@@ -438,14 +448,14 @@ def build_executive_dashboard(
 
     .hero-grid {
       display: grid;
-      grid-template-columns: minmax(0, 1.4fr) minmax(300px, 0.92fr);
-      gap: 18px;
+      grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.9fr);
+      gap: 14px;
       align-items: stretch;
     }
 
     .hero-copy {
       display: grid;
-      gap: 14px;
+      gap: 10px;
       min-width: 0;
       position: relative;
       z-index: 1;
@@ -461,10 +471,10 @@ def build_executive_dashboard(
 
     .hero h1 {
       margin: 0;
-      font-size: clamp(1.82rem, 2.55vw, 2.48rem);
-      line-height: 1.14;
-      letter-spacing: 0.012em;
-      max-width: 920px;
+      font-size: clamp(1.58rem, 2.05vw, 2.06rem);
+      line-height: 1.08;
+      letter-spacing: 0;
+      max-width: 840px;
       font-family: var(--font-display);
       font-weight: 650;
       text-wrap: balance;
@@ -473,8 +483,9 @@ def build_executive_dashboard(
     .hero-subtitle {
       margin: 0;
       color: var(--hero-muted);
-      max-width: 900px;
-      font-size: clamp(1rem, 1.18vw, 1.08rem);
+      max-width: 760px;
+      font-size: clamp(0.95rem, 1.04vw, 1rem);
+      line-height: 1.45;
       text-wrap: pretty;
     }
 
@@ -498,19 +509,56 @@ def build_executive_dashboard(
 
     .hero-callout {
       margin: 0;
-      max-width: 900px;
-      font-size: 0.95rem;
-      line-height: 1.55;
+      max-width: 760px;
+      font-size: 0.92rem;
+      line-height: 1.48;
       color: var(--hero-ink);
+    }
+
+    .decision-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 2px;
+    }
+
+    .decision-card {
+      display: grid;
+      gap: 4px;
+      padding: 10px 11px;
+      border: 1px solid var(--hero-chip-border);
+      border-radius: var(--radius);
+      background: rgba(8, 18, 35, 0.18);
+    }
+
+    .decision-label {
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--hero-muted);
+    }
+
+    .decision-value {
+      font-size: 0.96rem;
+      font-weight: 800;
+      line-height: 1.25;
+      color: var(--hero-ink);
+    }
+
+    .decision-note {
+      font-size: 0.76rem;
+      color: var(--hero-muted);
+      line-height: 1.35;
     }
 
     .hero-rail {
       background: linear-gradient(180deg, rgba(7, 16, 31, 0.24) 0%, rgba(7, 16, 31, 0.14) 100%);
       border: 1px solid var(--hero-chip-border);
       border-radius: calc(var(--radius) - 2px);
-      padding: 15px;
+      padding: 13px;
       display: grid;
-      gap: 13px;
+      gap: 10px;
       min-width: 0;
       align-content: start;
       backdrop-filter: blur(10px);
@@ -520,9 +568,9 @@ def build_executive_dashboard(
 
     .hero-status {
       display: grid;
-      gap: 6px;
-      padding: 12px 14px;
-      border-radius: 14px;
+      gap: 5px;
+      padding: 11px 12px;
+      border-radius: var(--radius);
       border: 1px solid transparent;
       background: rgba(8, 18, 35, 0.28);
     }
@@ -581,12 +629,12 @@ def build_executive_dashboard(
     .hero-summary-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
+      gap: 8px;
     }
 
     .summary-card {
-      border-radius: 14px;
-      padding: 12px 13px;
+      border-radius: var(--radius);
+      padding: 10px 11px;
       background: linear-gradient(180deg, rgba(8, 18, 35, 0.2) 0%, rgba(8, 18, 35, 0.12) 100%);
       border: 1px solid var(--hero-chip-border);
       display: grid;
@@ -600,7 +648,7 @@ def build_executive_dashboard(
     }
 
     .summary-value {
-      font-size: 1.15rem;
+      font-size: 1.04rem;
       font-weight: 700;
       line-height: 1.2;
       color: var(--hero-ink);
@@ -608,7 +656,7 @@ def build_executive_dashboard(
     }
 
     .summary-note {
-      font-size: 0.8rem;
+      font-size: 0.76rem;
       color: var(--hero-muted);
       line-height: 1.4;
     }
@@ -625,10 +673,10 @@ def build_executive_dashboard(
       border: 1px solid var(--hero-chip-border);
       background: linear-gradient(180deg, rgba(255, 255, 255, 0.08) 0%, var(--hero-chip-bg) 100%);
       color: var(--hero-ink);
-      min-height: 36px;
-      padding: 0 15px;
-      border-radius: 999px;
-      font-size: 0.78rem;
+      min-height: 34px;
+      padding: 0 13px;
+      border-radius: var(--radius-sm);
+      font-size: 0.74rem;
       font-weight: 700;
       letter-spacing: 0.035em;
       text-transform: uppercase;
@@ -651,10 +699,10 @@ def build_executive_dashboard(
     .section-head {
       display: flex;
       justify-content: space-between;
-      gap: 18px;
+      gap: 14px;
       align-items: baseline;
       flex-wrap: wrap;
-      padding: 4px 2px 0;
+      padding: 2px 2px 0;
     }
 
     .section-head-copy {
@@ -668,7 +716,7 @@ def build_executive_dashboard(
 
     .section-head h2 {
       margin: 0;
-      font-size: 1.18rem;
+      font-size: 1.08rem;
       letter-spacing: 0.012em;
       text-wrap: balance;
     }
@@ -676,29 +724,66 @@ def build_executive_dashboard(
     .section-head p {
       margin: 0;
       color: var(--muted);
-      font-size: 0.86rem;
+      font-size: 0.82rem;
+      max-width: 640px;
+      line-height: 1.45;
+    }
+
+    .filters-panel {
+      overflow: hidden;
+      padding: 14px;
+      display: grid;
+      gap: 12px;
+      background: linear-gradient(180deg, color-mix(in srgb, var(--surface-soft) 74%, var(--surface) 26%) 0%, var(--surface) 100%);
+    }
+
+    .filters-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .filters-head-copy {
+      display: grid;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .filters-head h2 {
+      margin: 0;
+      font-size: 1rem;
+      line-height: 1.2;
+      letter-spacing: 0.01em;
+    }
+
+    .filters-head p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.82rem;
+      line-height: 1.45;
       max-width: 720px;
-      line-height: 1.5;
     }
 
     .controls-row {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
-      gap: 12px;
+      align-items: center;
+      gap: 10px;
       flex-wrap: wrap;
     }
 
     .controls-meta {
       margin: 0;
-      font-size: 0.82rem;
+      font-size: 0.79rem;
       color: var(--muted);
       line-height: 1.5;
     }
 
     .reset-btn {
       height: 36px;
-      border-radius: 999px;
+      border-radius: var(--radius-sm);
       border: 1px solid var(--input-border);
       background: linear-gradient(180deg, var(--surface) 0%, var(--surface-soft) 100%);
       color: var(--ink);
@@ -735,14 +820,12 @@ def build_executive_dashboard(
     @media (hover: hover) {
       .kpi,
       .chart-card,
-      .brief-card,
       .table-stat {
         transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
       }
 
       .kpi:hover,
       .chart-card:hover,
-      .brief-card:hover,
       .table-stat:hover {
         transform: translateY(-2px);
       }
@@ -759,43 +842,27 @@ def build_executive_dashboard(
       pointer-events: none;
     }
 
-    .filters-panel {
-      overflow: hidden;
-      padding: 16px;
-      display: grid;
-      gap: 14px;
-      background: linear-gradient(180deg, color-mix(in srgb, var(--surface-soft) 74%, var(--surface) 26%) 0%, var(--surface) 100%);
-    }
-
     .filters {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      gap: 10px;
       align-items: end;
     }
 
     .field { min-width: 0; }
 
     .field {
-      background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 78%, var(--surface-soft) 22%) 0%, var(--surface) 100%);
-      border: 1px solid var(--border);
-      border-radius: 14px;
       padding: 10px 11px 11px;
-      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
-    }
-
-    .field {
-      padding: 11px 12px 12px;
-      border-radius: 14px;
+      border-radius: var(--radius);
       border: 1px solid color-mix(in srgb, var(--border) 92%, transparent);
       background: linear-gradient(180deg, color-mix(in srgb, var(--surface) 86%, var(--surface-soft) 14%) 0%, var(--surface) 100%);
-      box-shadow: var(--shadow-soft);
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
     }
 
     .field label {
       display: block;
-      margin-bottom: 7px;
-      font-size: 0.79rem;
+      margin-bottom: 6px;
+      font-size: 0.74rem;
       font-weight: 700;
       text-transform: uppercase;
       letter-spacing: 0.05em;
@@ -805,13 +872,13 @@ def build_executive_dashboard(
     .field select {
       width: 100%;
       min-width: 0;
-      height: 42px;
-      border-radius: 10px;
+      height: 40px;
+      border-radius: var(--radius-sm);
       border: 1px solid var(--input-border);
       background: var(--input-bg);
       color: var(--ink);
-      font-size: 0.9rem;
-      padding: 0 11px;
+      font-size: 0.86rem;
+      padding: 0 10px;
       box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16);
       appearance: none;
       background-image: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14' fill='none'%3E%3Cpath d='M3.25 5.25L7 9L10.75 5.25' stroke='%23657b93' stroke-width='1.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\");
@@ -827,31 +894,22 @@ def build_executive_dashboard(
 
     .kpis {
       display: grid;
-      gap: 15px;
+      gap: 12px;
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 
     .kpi {
-      padding: 16px 16px 15px;
+      padding: 14px 15px 14px;
       display: grid;
-      gap: 10px;
-      min-height: 140px;
+      gap: 8px;
+      min-height: 128px;
       border-top: 4px solid var(--border);
       position: relative;
       box-shadow: var(--shadow-soft);
     }
 
     .kpi::after {
-      content: '';
-      position: absolute;
-      right: 16px;
-      bottom: 14px;
-      width: 42px;
-      height: 42px;
-      border-radius: 999px;
-      background: radial-gradient(circle, color-mix(in srgb, currentColor 18%, transparent) 0%, transparent 70%);
-      opacity: 0.45;
-      pointer-events: none;
+      content: none;
     }
 
     .kpi.kpi-critical { border-top-color: var(--critical); }
@@ -872,7 +930,7 @@ def build_executive_dashboard(
       display: flex;
       align-items: flex-start;
       justify-content: space-between;
-      gap: 10px;
+      gap: 8px;
       flex-wrap: wrap;
     }
 
@@ -935,7 +993,7 @@ def build_executive_dashboard(
     }
 
     .insight-strip {
-      padding: 16px 18px;
+      padding: 14px 16px;
       border-left: 4px solid var(--neutral);
       background: linear-gradient(180deg, color-mix(in srgb, var(--surface-soft) 76%, var(--surface) 24%) 0%, var(--surface) 100%);
     }
@@ -947,7 +1005,7 @@ def build_executive_dashboard(
     .insight-layout {
       display: grid;
       grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.85fr);
-      gap: 18px;
+      gap: 14px;
       align-items: start;
     }
 
@@ -959,8 +1017,8 @@ def build_executive_dashboard(
 
     .insight-main {
       margin: 0;
-      font-size: 1rem;
-      line-height: 1.55;
+      font-size: 0.96rem;
+      line-height: 1.5;
     }
 
     .insight-chips {
@@ -973,82 +1031,66 @@ def build_executive_dashboard(
       border: 1px solid var(--chip-border);
       background: var(--chip-bg);
       border-radius: 999px;
-      padding: 5px 11px;
-      font-size: 0.78rem;
+      padding: 4px 10px;
+      font-size: 0.76rem;
       color: var(--ink);
       white-space: nowrap;
     }
 
-    .insight-action-copy {
+    .priority-list {
       margin: 0;
-      font-size: 0.9rem;
-      line-height: 1.55;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 7px;
+    }
+
+    .priority-list li {
+      padding-left: 14px;
+      position: relative;
+      font-size: 0.84rem;
+      line-height: 1.42;
       color: var(--ink);
     }
 
-    .brief-grid {
-      padding: 14px;
-      display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 12px;
-      background: linear-gradient(180deg, color-mix(in srgb, var(--surface-soft) 74%, var(--surface) 26%) 0%, var(--surface) 100%);
+    .priority-list li::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0.63em;
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: var(--critical);
     }
 
-    .brief-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 13px 14px;
-      display: grid;
-      gap: 6px;
-      min-width: 0;
-      box-shadow: var(--shadow-soft);
-    }
-
-    .brief-label {
+    .insight-action-copy {
       margin: 0;
-      font-size: 0.72rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--muted);
-      font-weight: 700;
-    }
-
-    .brief-value {
-      margin: 0;
-      font-size: clamp(1.02rem, 1.25vw, 1.24rem);
-      font-weight: 700;
-      line-height: 1.2;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .brief-value.brief-ok { color: var(--ok); }
-    .brief-value.brief-warn { color: var(--warn); }
-    .brief-value.brief-critical { color: var(--critical); }
-
-    .brief-sub {
-      margin: 0;
-      font-size: 0.79rem;
-      color: var(--muted);
-      line-height: 1.45;
+      font-size: 0.88rem;
+      line-height: 1.5;
+      color: var(--ink);
     }
 
     .charts {
       display: grid;
-      gap: 15px;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .chart-card {
-      padding: 15px 15px 13px;
+      padding: 14px 14px 12px;
       display: grid;
-      gap: 9px;
+      gap: 8px;
       min-width: 0;
       box-shadow: var(--shadow-soft);
       border-top: 3px solid transparent;
     }
 
     .chart-card-wide {
+      grid-column: 1 / -1;
+    }
+
+    .chart-card-secondary-wide {
       grid-column: 1 / -1;
     }
 
@@ -1073,7 +1115,7 @@ def build_executive_dashboard(
 
     .chart-card-trend .chart-kicker { color: var(--chart-trend-line); }
     .chart-card-segment .chart-kicker { color: var(--chart-segment); }
-    .chart-card-region .chart-kicker { color: var(--chart-region); }
+    .chart-card-region .chart-kicker { color: var(--chart-region-text); }
     .chart-card-action .chart-kicker { color: var(--chart-action); }
 
     .chart-card h3 {
@@ -1084,29 +1126,80 @@ def build_executive_dashboard(
 
     .chart-card p {
       margin: 0;
-      font-size: 0.84rem;
+      font-size: 0.8rem;
       color: var(--muted);
-      line-height: 1.5;
+      line-height: 1.42;
+    }
+
+    .chart-answer {
+      margin: 0;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--surface-soft);
+      color: var(--ink);
+      font-size: 0.8rem;
+      line-height: 1.4;
     }
 
     .chart-wrap {
       position: relative;
       width: 100%;
-      height: 330px;
-      min-height: 300px;
+      height: 300px;
+      min-height: 280px;
     }
 
     .chart-card-wide .chart-wrap {
-      height: 350px;
-      min-height: 330px;
+      height: 330px;
+      min-height: 310px;
+    }
+
+    .chart-card-secondary-wide .chart-wrap {
+      height: 280px;
+      min-height: 260px;
     }
     .chart-wrap canvas {
       width: 100% !important;
       height: 100% !important;
     }
 
+    .chart-data {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface-soft);
+      overflow: hidden;
+    }
+
+    .chart-data summary {
+      cursor: pointer;
+      padding: 8px 10px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .chart-data summary:focus-visible {
+      outline: none;
+      box-shadow: var(--focus-ring);
+    }
+
+    .chart-data table {
+      min-width: 0;
+      font-size: 0.78rem;
+    }
+
+    .chart-data th,
+    .chart-data td {
+      position: static;
+      padding: 7px 10px;
+      font-size: 0.78rem;
+      text-transform: none;
+      letter-spacing: 0;
+      cursor: default;
+    }
+
     .table-head {
-      padding: 16px 18px;
+      padding: 14px 16px;
       border-bottom: 1px solid var(--border);
       background: linear-gradient(180deg, color-mix(in srgb, var(--surface-soft) 76%, var(--surface) 24%) 0%, var(--surface) 100%);
       display: flex;
@@ -1123,10 +1216,10 @@ def build_executive_dashboard(
 
     .table-head p {
       margin: 6px 0 0 0;
-      font-size: 0.84rem;
+      font-size: 0.81rem;
       color: var(--muted);
       line-height: 1.5;
-      max-width: 760px;
+      max-width: 680px;
     }
 
     .table-toolbar {
@@ -1145,7 +1238,7 @@ def build_executive_dashboard(
     .table-stat {
       min-width: 122px;
       padding: 10px 12px;
-      border-radius: 12px;
+      border-radius: var(--radius);
       border: 1px solid var(--border);
       background: var(--surface);
       display: grid;
@@ -1176,12 +1269,14 @@ def build_executive_dashboard(
 
     .table-wrap {
       overflow: auto;
-      max-height: 520px;
+      max-height: 500px;
+      scrollbar-gutter: stable;
+      max-width: 100%;
     }
 
     table {
       width: 100%;
-      min-width: 940px;
+      min-width: 1060px;
       border-collapse: collapse;
     }
 
@@ -1200,7 +1295,6 @@ def build_executive_dashboard(
       top: 0;
       z-index: 2;
       background: var(--table-head-bg);
-      cursor: pointer;
       user-select: none;
       font-size: 0.75rem;
       text-transform: uppercase;
@@ -1221,37 +1315,47 @@ def build_executive_dashboard(
       white-space: nowrap;
     }
 
-    th::after {
-      content: '↕';
-      margin-left: 6px;
+    .sort-button {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      font: inherit;
+      text-transform: inherit;
+      letter-spacing: inherit;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
+
+    .sort-button::after {
+      content: 'sort';
       color: var(--muted);
-      font-size: 0.68rem;
-      opacity: 0.5;
+      font-size: 0.66rem;
+      opacity: 0.72;
+      text-transform: none;
+      letter-spacing: 0;
     }
 
-    th.sort-asc::after {
-      content: '↑';
+    th.sort-asc .sort-button::after {
+      content: 'asc';
       opacity: 1;
     }
 
-    th.sort-desc::after {
-      content: '↓';
+    th.sort-desc .sort-button::after {
+      content: 'desc';
       opacity: 1;
     }
 
-    #riskTable th:first-child,
-    #riskTable td:first-child {
-      position: sticky;
-      left: 0;
-    }
-
-    #riskTable th:first-child {
-      z-index: 3;
-      background: var(--surface-soft);
+    .sort-button:focus-visible {
+      outline: none;
+      box-shadow: var(--focus-ring);
+      border-radius: 4px;
     }
 
     #riskTable td:first-child {
-      background: var(--surface);
       font-weight: 700;
       min-width: 128px;
     }
@@ -1261,10 +1365,6 @@ def build_executive_dashboard(
     }
 
     tbody tr:hover td {
-      background: var(--row-hover);
-    }
-
-    tbody tr:hover td:first-child {
       background: var(--row-hover);
     }
 
@@ -1278,7 +1378,7 @@ def build_executive_dashboard(
     .action-chip {
       display: inline-flex;
       align-items: center;
-      border-radius: 999px;
+      border-radius: var(--radius-sm);
       padding: 5px 11px;
       font-size: 0.73rem;
       font-weight: 700;
@@ -1311,30 +1411,34 @@ def build_executive_dashboard(
 
     @media (max-width: 1220px) {
       .hero-grid { grid-template-columns: 1fr; }
-      .filters { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .filters { grid-template-columns: repeat(3, minmax(0, 1fr)); }
       .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .brief-grid { grid-template-columns: 1fr; }
       .charts { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .chart-card-wide { grid-column: 1 / -1; }
+      .chart-card-secondary-wide { grid-column: 1 / -1; }
       .chart-wrap { height: 280px; }
       .chart-card-wide .chart-wrap { height: 320px; min-height: 300px; }
+      .chart-card-secondary-wide .chart-wrap { height: 270px; min-height: 250px; }
       .insight-layout { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 980px) {
+      table {
+        min-width: 980px;
+      }
     }
 
     @media (max-width: 720px) {
       .page {
-        padding: 14px 10px 20px;
+        padding: 12px 10px 18px;
         gap: 12px;
       }
 
       .filters,
       .kpis,
       .charts,
-      .hero-summary-grid {
-        grid-template-columns: 1fr;
-      }
-
-      .brief-grid {
+      .hero-summary-grid,
+      .decision-grid {
         grid-template-columns: 1fr;
       }
 
@@ -1346,6 +1450,11 @@ def build_executive_dashboard(
       .chart-card-wide .chart-wrap {
         height: 270px;
         min-height: 250px;
+      }
+
+      .chart-card-secondary-wide .chart-wrap {
+        height: 250px;
+        min-height: 230px;
       }
 
       .table-wrap { max-height: 480px; }
@@ -1403,7 +1512,6 @@ def build_executive_dashboard(
       .hero,
       .panel,
       .kpi,
-      .brief-card,
       .chart-card,
       .table-panel {
         box-shadow: none !important;
@@ -1436,11 +1544,6 @@ def build_executive_dashboard(
         overflow: visible;
       }
 
-      #riskTable th:first-child,
-      #riskTable td:first-child {
-        position: static;
-      }
-
       table {
         min-width: 100%;
       }
@@ -1452,26 +1555,46 @@ def build_executive_dashboard(
   </style>
 </head>
 <body>
-<div class=\"page\">
+<a class=\"skip-link\" href=\"#mainContent\">Skip to dashboard content</a>
+<main class=\"page\" id=\"mainContent\">
   <section class=\"hero\">
     <div class=\"hero-grid\">
       <div class=\"hero-copy\">
         <div class=\"hero-top\">
-          <h1>Pricing & Discount Governance Executive Dashboard</h1>
+          <h1>Pricing Discipline Command Center</h1>
           <div class=\"hero-actions\">
             <button id=\"themeToggle\" class=\"theme-toggle\" type=\"button\" aria-label=\"Toggle color mode\">Dark Mode</button>
             <button id=\"printBtn\" class=\"print-btn\" type=\"button\" aria-label=\"Print dashboard\">Print</button>
           </div>
         </div>
-        <p class=\"hero-subtitle\">Executive view of discount pressure, margin exposure, and intervention priorities across the governed commercial portfolio.</p>
+        <p class=\"hero-subtitle\">Decision-first view of discount leakage, margin exposure, accountable drivers, and customer-level interventions.</p>
         <p class=\"hero-callout\" id=\"heroCallout\">Assessing the current pricing posture and preparing the clearest intervention view for the selected scope.</p>
+        <div class=\"decision-grid\" aria-label=\"Immediate decision summary\">
+          <article class=\"decision-card\">
+            <span class=\"decision-label\">What matters</span>
+            <strong class=\"decision-value\" id=\"decisionMatter\">-</strong>
+            <span class=\"decision-note\" id=\"decisionMatterNote\">Largest exposed value in scope</span>
+          </article>
+          <article class=\"decision-card\">
+            <span class=\"decision-label\">What is critical</span>
+            <strong class=\"decision-value\" id=\"decisionCritical\">-</strong>
+            <span class=\"decision-note\" id=\"decisionCriticalNote\">Primary governance breach</span>
+          </article>
+          <article class=\"decision-card\">
+            <span class=\"decision-label\">Action required</span>
+            <strong class=\"decision-value\" id=\"decisionAction\">-</strong>
+            <span class=\"decision-note\" id=\"decisionActionNote\">Next commercial operating move</span>
+          </article>
+        </div>
         <ul class=\"hero-meta\">
           <li id=\"coverageMeta\"></li>
+          <li>Synthetic data only</li>
+          <li>Decision-support heuristic, not causal attribution</li>
         </ul>
       </div>
       <aside class=\"hero-rail\">
         <article class=\"hero-status hero-status-ok\" id=\"heroStatusCard\">
-          <span class=\"hero-status-label\">Current posture</span>
+          <span class=\"hero-status-label\">Decision posture</span>
           <strong class=\"hero-status-value\" id=\"heroStatusValue\">Assessing...</strong>
           <span class=\"hero-status-note\" id=\"heroStatusNote\">Loading governed pricing signals.</span>
         </article>
@@ -1487,7 +1610,7 @@ def build_executive_dashboard(
             <span class=\"summary-note\">Critical and high tiers in view</span>
           </article>
           <article class=\"summary-card\">
-            <span class=\"summary-label\">Primary driver</span>
+            <span class=\"summary-label\">Primary bottleneck</span>
             <strong class=\"summary-value\" id=\"heroTopDriver\">-</strong>
             <span class=\"summary-note\">Largest source of risk concentration</span>
           </article>
@@ -1500,18 +1623,17 @@ def build_executive_dashboard(
       </aside>
     </div>
   </section>
-
-  <div class=\"section-head\">
-    <div class=\"section-head-copy\">
-      <span class=\"section-kicker\">Decision scope</span>
-      <h2>Scope Controls</h2>
+  <section class=\"panel filters-panel\" aria-labelledby=\"scopeControlsTitle\">
+    <div class=\"filters-head\">
+      <div class=\"filters-head-copy\">
+        <span class=\"section-kicker\">Decision scope</span>
+        <h2 id=\"scopeControlsTitle\">Scope Controls</h2>
+        <p>Every metric, chart, and queue below uses the same period and commercial slice.</p>
+      </div>
+      <button id=\"resetFiltersBtn\" class=\"reset-btn\" type=\"button\" aria-label=\"Reset filters\">Reset Filters</button>
     </div>
-    <p>Apply the same governed filters across KPIs, charts, and the review queue so every view stays analytically aligned.</p>
-  </div>
-  <section class=\"panel filters-panel\">
     <div class=\"controls-row\">
       <p class=\"controls-meta\" id=\"controlsMeta\">Scope: all segments, regions, categories, and channels.</p>
-      <button id=\"resetFiltersBtn\" class=\"reset-btn\" type=\"button\" aria-label=\"Reset filters\">Reset Filters</button>
     </div>
     <div class=\"filters\">
       <div class=\"field\"><label for=\"periodStartFilter\">Start Month</label><select id=\"periodStartFilter\"></select></div>
@@ -1526,18 +1648,18 @@ def build_executive_dashboard(
   <div class=\"section-head\">
     <div class=\"section-head-copy\">
       <span class=\"section-kicker\">Commercial posture</span>
-      <h2>Portfolio Health</h2>
+      <h2>Decision KPIs</h2>
     </div>
-    <p>Lead indicators for whether current commercial performance is coming from healthy pricing discipline or fragile discount dependency.</p>
+    <p>Each KPI states the interpretation and the operating threshold it is judged against.</p>
   </div>
   <section class=\"kpis\">
     <article class=\"kpi kpi-neutral\" id=\"kpiRevenueCard\">
       <div class=\"kpi-head\">
-        <p class=\"kpi-title\">Net Revenue In Scope</p>
+        <p class=\"kpi-title\">Revenue Governed</p>
         <span class=\"kpi-state kpi-state-neutral\" id=\"kpiRevenueState\">Scope</span>
       </div>
       <p class=\"kpi-value\" id=\"kpiRevenue\">-</p>
-      <p class=\"kpi-sub\">Filtered commercial volume</p>
+      <p class=\"kpi-sub\">Commercial value governed by current filters</p>
       <p class=\"kpi-detail\" id=\"kpiRevenueDetail\">Share of revenue under the current scope.</p>
     </article>
     <article class=\"kpi kpi-warn\" id=\"kpiDiscountCard\">
@@ -1546,7 +1668,7 @@ def build_executive_dashboard(
         <span class=\"kpi-state kpi-state-warn\" id=\"kpiDiscountState\">Watch</span>
       </div>
       <p class=\"kpi-value\" id=\"kpiDiscount\">-</p>
-      <p class=\"kpi-sub\">Revenue-weighted realized discount</p>
+      <p class=\"kpi-sub\">List-price leakage weighted by revenue</p>
       <p class=\"kpi-detail\" id=\"kpiDiscountDetail\">Monitor against governance thresholds.</p>
     </article>
     <article class=\"kpi kpi-critical\" id=\"kpiMarginRiskCard\">
@@ -1555,7 +1677,7 @@ def build_executive_dashboard(
         <span class=\"kpi-state kpi-state-critical\" id=\"kpiMarginRiskState\">Risk</span>
       </div>
       <p class=\"kpi-value\" id=\"kpiMarginRisk\">-</p>
-      <p class=\"kpi-sub\">High-discount and low-margin proxy overlap</p>
+      <p class=\"kpi-sub\">High-discount and weak-margin overlap</p>
       <p class=\"kpi-detail\" id=\"kpiMarginRiskDetail\">Exposure share within scoped revenue.</p>
     </article>
     <article class=\"kpi kpi-warn\" id=\"kpiHighRiskCard\">
@@ -1564,7 +1686,7 @@ def build_executive_dashboard(
         <span class=\"kpi-state kpi-state-warn\" id=\"kpiHighRiskState\">Watch</span>
       </div>
       <p class=\"kpi-value\" id=\"kpiHighRisk\">-</p>
-      <p class=\"kpi-sub\">Critical and high tier in current scope</p>
+      <p class=\"kpi-sub\">Accounts needing priority governance</p>
       <p class=\"kpi-detail\" id=\"kpiHighRiskDetail\">Accounts most likely to need intervention now.</p>
     </article>
   </section>
@@ -1577,103 +1699,96 @@ def build_executive_dashboard(
         <div class=\"insight-chips\" id=\"insightChips\"></div>
       </div>
       <div class=\"insight-action\">
-        <span class=\"insight-label\">Recommended posture</span>
-        <p class=\"insight-action-copy\" id=\"insightAction\">Preparing the next best action for the current scope.</p>
+        <span class=\"insight-label\">Operating priorities</span>
+        <ul class=\"priority-list\" id=\"priorityList\">
+          <li>Preparing priority sequence for the current scope.</li>
+        </ul>
       </div>
     </div>
-  </section>
-
-  <section class=\"panel brief-grid\">
-    <article class=\"brief-card\">
-      <p class=\"brief-label\">Operating posture</p>
-      <p class=\"brief-value\" id=\"briefPosture\">-</p>
-      <p class=\"brief-sub\" id=\"briefPostureSub\">-</p>
-    </article>
-    <article class=\"brief-card\">
-      <p class=\"brief-label\">Revenue under high-risk accounts</p>
-      <p class=\"brief-value\" id=\"briefExposure\">-</p>
-      <p class=\"brief-sub\" id=\"briefExposureSub\">-</p>
-    </article>
-    <article class=\"brief-card\">
-      <p class=\"brief-label\">Primary intervention</p>
-      <p class=\"brief-value\" id=\"briefPrimaryAction\">-</p>
-      <p class=\"brief-sub\" id=\"briefPrimaryActionSub\">-</p>
-    </article>
   </section>
 
   <div class=\"section-head\">
     <div class=\"section-head-copy\">
       <span class=\"section-kicker\">Risk diagnostics</span>
-      <h2>Diagnostics</h2>
+      <h2>Explanation</h2>
     </div>
-    <p>Move from signal to action by checking trend direction, concentration pockets, regional exposure, and the mix of intervention work required.</p>
+    <p>Charts answer the operating questions behind the decision, from momentum to owner workload.</p>
   </div>
   <section class=\"charts\">
-    <article class=\"chart-card chart-card-wide chart-card-trend\">
+    <article class=\"chart-card chart-card-wide chart-card-trend\" aria-labelledby=\"trendChartTitle\">
       <div class=\"chart-head\">
-        <span class=\"chart-kicker\">Momentum</span>
-        <h3>Discount Pressure Trend</h3>
-        <p>Monthly weighted discount pattern for the selected commercial scope, sized to show whether governance pressure is easing or building.</p>
+        <span class=\"chart-kicker\">Business question: is discount pressure accelerating?</span>
+        <h3 id=\"trendChartTitle\">Weighted Discount Trend</h3>
+        <p>Monthly list-price leakage after scope filters.</p>
       </div>
-      <div class=\"chart-wrap\"><canvas id=\"trendChart\"></canvas></div>
+      <p class=\"chart-answer\" id=\"trendChartAnswer\">Loading trend interpretation.</p>
+      <div class=\"chart-wrap\"><canvas id=\"trendChart\" aria-label=\"Monthly weighted discount trend\" aria-describedby=\"trendChartAnswer trendChartData\"></canvas></div>
+      <details class=\"chart-data\"><summary>View chart data</summary><div id=\"trendChartData\"></div></details>
     </article>
 
-    <article class=\"chart-card chart-card-segment\">
+    <article class=\"chart-card chart-card-segment\" aria-labelledby=\"segmentChartTitle\">
       <div class=\"chart-head\">
-        <span class=\"chart-kicker\">Concentration</span>
-        <h3>Where Discounting Concentrates</h3>
-        <p>Weighted discount comparison by segment after applying current regional, category, channel, and period filters.</p>
+        <span class=\"chart-kicker\">Business question: which segment breaks policy first?</span>
+        <h3 id=\"segmentChartTitle\">Discount Concentration by Segment</h3>
+        <p>Segments ranked by revenue-weighted discount.</p>
       </div>
-      <div class=\"chart-wrap\"><canvas id=\"segmentChart\"></canvas></div>
+      <p class=\"chart-answer\" id=\"segmentChartAnswer\">Loading segment interpretation.</p>
+      <div class=\"chart-wrap\"><canvas id=\"segmentChart\" aria-label=\"Weighted discount by segment\" aria-describedby=\"segmentChartAnswer segmentChartData\"></canvas></div>
+      <details class=\"chart-data\"><summary>View chart data</summary><div id=\"segmentChartData\"></div></details>
     </article>
 
-    <article class=\"chart-card chart-card-region\">
+    <article class=\"chart-card chart-card-region\" aria-labelledby=\"regionRiskChartTitle\">
       <div class=\"chart-head\">
-        <span class=\"chart-kicker\">Exposure</span>
-        <h3>Margin Exposure by Region</h3>
-        <p>Absolute margin-at-risk volume by region in the selected scope.</p>
+        <span class=\"chart-kicker\">Business question: where is the operational exposure?</span>
+        <h3 id=\"regionRiskChartTitle\">Margin Exposure by Region</h3>
+        <p>Revenue value caught in high-discount and weak-margin overlap.</p>
       </div>
-      <div class=\"chart-wrap\"><canvas id=\"regionRiskChart\"></canvas></div>
+      <p class=\"chart-answer\" id=\"regionRiskChartAnswer\">Loading regional exposure interpretation.</p>
+      <div class=\"chart-wrap\"><canvas id=\"regionRiskChart\" aria-label=\"Margin exposure by region\" aria-describedby=\"regionRiskChartAnswer regionRiskChartData\"></canvas></div>
+      <details class=\"chart-data\"><summary>View chart data</summary><div id=\"regionRiskChartData\"></div></details>
     </article>
 
-    <article class=\"chart-card chart-card-action\">
+    <article class=\"chart-card chart-card-secondary-wide chart-card-action\" aria-labelledby=\"actionChartTitle\">
       <div class=\"chart-head\">
-        <span class=\"chart-kicker\">Action mix</span>
-        <h3>Intervention Portfolio Mix</h3>
-        <p>Revenue concentration by recommended intervention action to support operational sequencing.</p>
+        <span class=\"chart-kicker\">Business question: what work should governance do first?</span>
+        <h3 id=\"actionChartTitle\">Intervention Workload by Revenue</h3>
+        <p>Customer revenue grouped by recommended commercial action.</p>
       </div>
-      <div class=\"chart-wrap\"><canvas id=\"actionChart\"></canvas></div>
+      <p class=\"chart-answer\" id=\"actionChartAnswer\">Loading action mix interpretation.</p>
+      <div class=\"chart-wrap\"><canvas id=\"actionChart\" aria-label=\"Revenue by recommended intervention action\" aria-describedby=\"actionChartAnswer actionChartData\"></canvas></div>
+      <details class=\"chart-data\"><summary>View chart data</summary><div id=\"actionChartData\"></div></details>
     </article>
   </section>
 
   <section class=\"table-panel\">
     <div class=\"table-head\">
       <div class=\"table-head-copy\">
-        <span class=\"section-kicker\">Priority actions</span>
+        <span class=\"section-kicker\">Operational detail</span>
         <h3>Customer Review Queue</h3>
-        <p>Use this queue to focus reviews on the largest commercial and margin exposures first, with the strongest governance priorities shown at the top.</p>
+        <p>Sequenced accounts with revenue, discount evidence, risk driver, and the recommended operating action.</p>
       </div>
       <div class=\"table-toolbar\">
         <div class=\"table-stat\">
           <span class=\"table-stat-label\">Displayed</span>
           <strong id=\"tableCount\">-</strong>
         </div>
-        <p class=\"sort-note\" id=\"tableSortMeta\">Sorted by priority score.</p>
+        <p class=\"sort-note\" id=\"tableSortMeta\" aria-live=\"polite\">Sorted by priority score.</p>
       </div>
     </div>
     <div class=\"table-wrap\">
       <table id=\"riskTable\">
         <thead>
           <tr>
-            <th class=\"rank-col\">#</th>
-            <th data-key=\"customer_id\">Customer</th>
-            <th data-key=\"segment\">Segment</th>
-            <th data-key=\"region\">Region</th>
-            <th data-key=\"filtered_revenue\">Revenue</th>
-            <th data-key=\"filtered_avg_discount\">Avg Discount</th>
-            <th data-key=\"governance_priority_score\">Score</th>
-            <th data-key=\"risk_tier\">Risk Tier</th>
-            <th data-key=\"recommended_action\">Recommended Action</th>
+            <th class=\"rank-col\" scope=\"col\">#</th>
+            <th scope=\"col\" aria-sort=\"none\"><button type=\"button\" class=\"sort-button\" data-key=\"customer_id\">Customer</button></th>
+            <th scope=\"col\" aria-sort=\"none\"><button type=\"button\" class=\"sort-button\" data-key=\"segment\">Segment</button></th>
+            <th scope=\"col\" aria-sort=\"none\"><button type=\"button\" class=\"sort-button\" data-key=\"region\">Region</button></th>
+            <th scope=\"col\" aria-sort=\"none\"><button type=\"button\" class=\"sort-button\" data-key=\"filtered_revenue\">Revenue</button></th>
+            <th scope=\"col\" aria-sort=\"none\"><button type=\"button\" class=\"sort-button\" data-key=\"filtered_avg_discount\">Avg Discount</button></th>
+            <th scope=\"col\" aria-sort=\"descending\"><button type=\"button\" class=\"sort-button\" data-key=\"governance_priority_score\">Score</button></th>
+            <th scope=\"col\" aria-sort=\"none\"><button type=\"button\" class=\"sort-button\" data-key=\"risk_tier\">Risk Tier</button></th>
+            <th scope=\"col\" aria-sort=\"none\"><button type=\"button\" class=\"sort-button\" data-key=\"main_risk_driver\">Risk Driver</button></th>
+            <th scope=\"col\" aria-sort=\"none\"><button type=\"button\" class=\"sort-button\" data-key=\"recommended_action\">Recommended Action</button></th>
           </tr>
         </thead>
         <tbody></tbody>
@@ -1681,7 +1796,7 @@ def build_executive_dashboard(
     </div>
   </section>
 
-</div>
+</main>
 
 <script>
 const DATA = __DATA_JSON__;
@@ -1691,7 +1806,7 @@ const POLICY = DATA.policy || {};
 const KPI_POLICY = POLICY.kpi_card_thresholds || {};
 const POSTURE_POLICY = POLICY.posture_thresholds || {};
 
-Chart.defaults.font.family = 'Manrope, Avenir Next, Segoe UI, sans-serif';
+Chart.defaults.font.family = 'Inter, Avenir Next, Segoe UI, Arial, sans-serif';
 Chart.defaults.color = '#475569';
 Chart.defaults.borderColor = '#e2e8f0';
 Chart.defaults.plugins.legend.labels.usePointStyle = true;
@@ -1812,12 +1927,30 @@ function titleCaseLabel(value) {
     .replace(/\\b\\w/g, (match) => match.toUpperCase());
 }
 
+function scoreComponentLabel(value) {
+  const labels = {
+    pricing_risk_score: 'Price Variance',
+    discount_dependency_score: 'Discount Dependency',
+    margin_erosion_score: 'Margin Erosion'
+  };
+  return labels[value] || titleCaseLabel(value);
+}
+
 function thresholdGapLabel(value, warnThreshold) {
   const diffPts = ((Number(value) || 0) - Number(warnThreshold || 0)) * 100;
   if (Math.abs(diffPts) < 0.05) return 'At the warning threshold';
   return diffPts > 0
     ? `${diffPts.toFixed(1)} pts above warning`
     : `${Math.abs(diffPts).toFixed(1)} pts below warning`;
+}
+
+function topEntry(map) {
+  return [...map.entries()].sort((a, b) => Number(b[1]) - Number(a[1]))[0] || [null, 0];
+}
+
+function setText(id, value) {
+  const el = document.getElementById(id);
+  if (el) el.textContent = value;
 }
 
 function escapeHtml(value) {
@@ -1868,6 +2001,24 @@ function makeOrUpdateChart(id, config) {
     return;
   }
   charts[id] = new Chart(document.getElementById(id), config);
+}
+
+function renderChartDataTable(containerId, rows, columns) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  if (!rows.length) {
+    container.innerHTML = '<p class="chart-answer">No data available for the current scope.</p>';
+    return;
+  }
+  const header = columns.map((col) => `<th scope="col">${escapeHtml(col.label)}</th>`).join('');
+  const body = rows.slice(0, 12).map((row) => {
+    const cells = columns.map((col) => {
+      const value = col.format ? col.format(row[col.key]) : row[col.key];
+      return `<td>${escapeHtml(value)}</td>`;
+    }).join('');
+    return `<tr>${cells}</tr>`;
+  }).join('');
+  container.innerHTML = `<table><thead><tr>${header}</tr></thead><tbody>${body}</tbody></table>`;
 }
 
 function aggregateScopedPricing(filters) {
@@ -2030,12 +2181,17 @@ function updateKpis(filters, riskRows) {
 
 function updateInsight(filters, kpi, riskRows) {
   const topDriverMap = new Map();
+  const topActionMap = new Map();
   riskRows.forEach((r) => {
     const d = r.main_risk_driver || 'unknown';
     topDriverMap.set(d, (topDriverMap.get(d) || 0) + (Number(r.filtered_revenue) || 0));
+    const action = r.recommended_action || 'unclassified';
+    topActionMap.set(action, (topActionMap.get(action) || 0) + (Number(r.filtered_revenue) || 0));
   });
-  const topDriver = [...topDriverMap.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] || 'mixed';
-  const topDriverLabel = titleCaseLabel(topDriver);
+  const [topDriver, topDriverRevenue] = topEntry(topDriverMap);
+  const [topAction, topActionRevenue] = topEntry(topActionMap);
+  const topDriverLabel = scoreComponentLabel(topDriver || 'mixed');
+  const topActionLabel = topAction ? titleCaseLabel(topAction) : 'Monitor Only';
 
   const posture = resolvePosture(kpi);
   document.getElementById('insightMain').textContent = posture.narrative;
@@ -2044,13 +2200,19 @@ function updateInsight(filters, kpi, riskRows) {
     insightEl.className = `panel insight-strip insight-${posture.level}`;
   }
 
-  let actionText = `Maintain current governance cadence and keep ${topDriverLabel.toLowerCase()} under watch as the main residual source of exposure.`;
+  let actionText = `Maintain current cadence and keep ${topDriverLabel.toLowerCase()} under watch as the main residual source of exposure.`;
   if (posture.level === 'critical') {
-    actionText = `Prioritize an immediate review of ${topDriverLabel.toLowerCase()} exposures and the highest-revenue accounts in the queue before discount dependency widens further.`;
+    actionText = `Prioritize immediate review of ${topDriverLabel.toLowerCase()} exposures and the highest-revenue accounts in the queue.`;
   } else if (posture.level === 'warn') {
-    actionText = `Run a targeted governance pass on ${topDriverLabel.toLowerCase()} exposures and watch the trend chart for any near-term acceleration.`;
+    actionText = `Run a targeted governance pass on ${topDriverLabel.toLowerCase()} exposures and watch for near-term acceleration.`;
   }
-  document.getElementById('insightAction').textContent = actionText;
+
+  const priorityItems = [
+    `${topActionLabel} first: ${fmtCurrency(Number(topActionRevenue) || 0)} of reviewed revenue sits behind this action.`,
+    `Start with the top customer queue; it is already sorted by governance score and filtered revenue.`,
+    `Use ${topDriverLabel.toLowerCase()} as the operating owner for root-cause review.`
+  ];
+  document.getElementById('priorityList').innerHTML = priorityItems.map((item) => `<li>${escapeHtml(item)}</li>`).join('');
 
   const chips = [
     `Scope: ${filters.segment === ALL ? 'All segments' : filters.segment}`,
@@ -2068,45 +2230,16 @@ function updateInsight(filters, kpi, riskRows) {
   document.getElementById('heroStatusValue').textContent = posture.label;
   document.getElementById('heroStatusNote').textContent = actionText;
   document.getElementById('heroCallout').textContent = `${posture.narrative} ${fmtPct(kpi.margin_risk_share || 0)} of in-scope revenue is currently exposed to the margin-at-risk proxy, with ${topDriverLabel.toLowerCase()} as the main driver.`;
-  document.getElementById('heroMarginShare').textContent = fmtPct(kpi.margin_risk_share || 0);
-  document.getElementById('heroHighRisk').textContent = (kpi.high_risk_count || 0).toLocaleString('en-US');
-  document.getElementById('heroTopDriver').textContent = topDriverLabel;
-  document.getElementById('heroCurrentView').textContent = `${fmtMonth(filters.period_start)} - ${fmtMonth(filters.period_end)}`;
-}
-
-function updateExecutiveBrief(kpi, riskRows) {
-  const posture = resolvePosture(kpi);
-
-  const highRiskRevenue = riskRows.reduce((acc, row) => {
-    if (row.risk_tier === 'High' || row.risk_tier === 'Critical') {
-      return acc + (Number(row.filtered_revenue) || 0);
-    }
-    return acc;
-  }, 0);
-  const exposureShare = Number(kpi.net_revenue) > 0 ? highRiskRevenue / Number(kpi.net_revenue) : 0;
-
-  const actionMap = new Map();
-  riskRows.forEach((row) => {
-    const key = row.recommended_action || 'Unclassified';
-    actionMap.set(key, (actionMap.get(key) || 0) + (Number(row.filtered_revenue) || 0));
-  });
-  const topActionRow = [...actionMap.entries()].sort((a, b) => b[1] - a[1])[0];
-  const topAction = topActionRow ? topActionRow[0] : 'No intervention needed';
-  const topActionValue = topActionRow ? Number(topActionRow[1]) : 0;
-  const topActionShare = Number(kpi.net_revenue) > 0 ? topActionValue / Number(kpi.net_revenue) : 0;
-
-  const postureValueEl = document.getElementById('briefPosture');
-  if (postureValueEl) {
-    postureValueEl.textContent = posture.label;
-    postureValueEl.className = `brief-value brief-${posture.level}`;
-  }
-  document.getElementById('briefPostureSub').textContent = `Weighted discount ${fmtPct(Number(kpi.weighted_discount_pct) || 0)} · Margin risk share ${fmtPct(Number(kpi.margin_risk_share) || 0)}.`;
-
-  document.getElementById('briefExposure').textContent = fmtPct(exposureShare || 0);
-  document.getElementById('briefExposureSub').textContent = `${fmtCurrency(highRiskRevenue)} is currently concentrated in high and critical risk customers.`;
-
-  document.getElementById('briefPrimaryAction').textContent = compactLabel(topAction, 38);
-  document.getElementById('briefPrimaryActionSub').textContent = `${fmtPct(topActionShare || 0)} of scoped revenue is tied to this action.`;
+  setText('heroMarginShare', fmtPct(kpi.margin_risk_share || 0));
+  setText('heroHighRisk', (kpi.high_risk_count || 0).toLocaleString('en-US'));
+  setText('heroTopDriver', topDriverLabel);
+  setText('heroCurrentView', `${fmtMonth(filters.period_start)} - ${fmtMonth(filters.period_end)}`);
+  setText('decisionMatter', fmtCurrency(Number(kpi.margin_at_risk) || 0));
+  setText('decisionMatterNote', `${fmtPct(kpi.margin_risk_share || 0)} of scoped revenue is exposed`);
+  setText('decisionCritical', topDriverLabel);
+  setText('decisionCriticalNote', `${fmtCurrency(Number(topDriverRevenue) || 0)} concentrated in this driver`);
+  setText('decisionAction', topActionLabel);
+  setText('decisionActionNote', `${fmtCurrency(Number(topActionRevenue) || 0)} affected revenue`);
 }
 
 function updateTrendChart(filters) {
@@ -2135,6 +2268,22 @@ function updateTrendChart(filters) {
       month,
       weighted_discount_pct: val.list_revenue > 0 ? val.discount_weighted_num / val.list_revenue : 0
     }));
+
+  if (monthly.length === 0) {
+    setText('trendChartAnswer', 'No priced revenue is available for the selected scope.');
+  } else if (monthly.length === 1) {
+    setText('trendChartAnswer', `Current month weighted discount is ${fmtPct(monthly[0].weighted_discount_pct)}.`);
+  } else {
+    const latest = monthly[monthly.length - 1];
+    const prior = monthly[monthly.length - 2];
+    const deltaPts = (latest.weighted_discount_pct - prior.weighted_discount_pct) * 100;
+    const direction = deltaPts >= 0 ? 'up' : 'down';
+    setText('trendChartAnswer', `${fmtMonth(latest.month)} is ${fmtPct(latest.weighted_discount_pct)} (${direction} ${Math.abs(deltaPts).toFixed(1)} pts vs prior month).`);
+  }
+  renderChartDataTable('trendChartData', monthly, [
+    { key: 'month', label: 'Month', format: fmtMonth },
+    { key: 'weighted_discount_pct', label: 'Weighted discount', format: (v) => fmtPct(Number(v) || 0) }
+  ]);
 
   makeOrUpdateChart('trendChart', {
     type: 'line',
@@ -2213,6 +2362,18 @@ function updateSegmentChart(filters) {
     }))
     .sort((a, b) => Number(b.weighted_discount_pct) - Number(a.weighted_discount_pct));
 
+  const top = rows[0];
+  setText(
+    'segmentChartAnswer',
+    top
+      ? `${top.segment} has the highest weighted discount at ${fmtPct(top.weighted_discount_pct)}.`
+      : 'No segment has priced revenue in the selected scope.'
+  );
+  renderChartDataTable('segmentChartData', rows, [
+    { key: 'segment', label: 'Segment' },
+    { key: 'weighted_discount_pct', label: 'Weighted discount', format: (v) => fmtPct(Number(v) || 0) }
+  ]);
+
   makeOrUpdateChart('segmentChart', {
     type: 'bar',
     data: {
@@ -2279,6 +2440,18 @@ function updateRegionRiskChart(filters) {
   const rows = [...grouped.entries()]
     .map(([region, margin_at_risk]) => ({ region, margin_at_risk }))
     .sort((a, b) => Number(b.margin_at_risk) - Number(a.margin_at_risk));
+
+  const top = rows[0];
+  setText(
+    'regionRiskChartAnswer',
+    top
+      ? `${top.region} carries the largest exposure at ${fmtCurrency(Number(top.margin_at_risk) || 0)}.`
+      : 'No regional margin exposure is available for the selected scope.'
+  );
+  renderChartDataTable('regionRiskChartData', rows, [
+    { key: 'region', label: 'Region' },
+    { key: 'margin_at_risk', label: 'Margin at risk', format: (v) => fmtCurrency(Number(v) || 0) }
+  ]);
 
   makeOrUpdateChart('regionRiskChart', {
     type: 'bar',
@@ -2349,6 +2522,18 @@ function updateActionChart(riskRows) {
     .map(([label, value]) => ({ label, value }))
     .sort((a, b) => b.value - a.value);
   const displayRows = collapseTail(rows, 6);
+  const top = rows[0];
+
+  setText(
+    'actionChartAnswer',
+    top
+      ? `${titleCaseLabel(top.label)} is the largest workload bucket at ${fmtCurrency(Number(top.value) || 0)}.`
+      : 'No intervention workload is available for the selected scope.'
+  );
+  renderChartDataTable('actionChartData', displayRows, [
+    { key: 'label', label: 'Recommended action', format: titleCaseLabel },
+    { key: 'value', label: 'Revenue in scope', format: (v) => fmtCurrency(Number(v) || 0) }
+  ]);
 
   makeOrUpdateChart('actionChart', {
     type: 'bar',
@@ -2419,6 +2604,7 @@ function sortLabel(key) {
     filtered_avg_discount: 'average discount',
     governance_priority_score: 'priority score',
     risk_tier: 'risk tier',
+    main_risk_driver: 'risk driver',
     recommended_action: 'recommended action'
   };
   return labels[key] || key;
@@ -2440,11 +2626,15 @@ function sortRows(rows) {
 }
 
 function updateTableSortIndicators() {
-  document.querySelectorAll('#riskTable thead th[data-key]').forEach((th) => {
-    const key = th.getAttribute('data-key');
+  document.querySelectorAll('#riskTable thead th[aria-sort]').forEach((th) => {
+    const button = th.querySelector('.sort-button');
+    const key = button ? button.getAttribute('data-key') : null;
     th.classList.remove('sort-asc', 'sort-desc');
     if (key === tableState.key) {
       th.classList.add(tableState.dir === 'asc' ? 'sort-asc' : 'sort-desc');
+      th.setAttribute('aria-sort', tableState.dir === 'asc' ? 'ascending' : 'descending');
+    } else {
+      th.setAttribute('aria-sort', 'none');
     }
   });
 }
@@ -2474,6 +2664,7 @@ function renderTable(riskRows) {
       <td>${fmtPct(Number(r.filtered_avg_discount) || 0)}</td>
       <td>${(Number(r.governance_priority_score) || 0).toFixed(1)}</td>
       <td>${tierChip(r.risk_tier)}</td>
+      <td>${escapeHtml(scoreComponentLabel(r.main_risk_driver))}</td>
       <td class="action-cell">${actionChip(r.recommended_action)}</td>
     </tr>
   `).join('');
@@ -2527,7 +2718,6 @@ function updateAll() {
   updateControlsMeta(filters);
   const kpi = updateKpis(filters, riskRows);
   updateInsight(filters, kpi, riskRows);
-  updateExecutiveBrief(kpi, riskRows);
   updateTrendChart(filters);
   updateSegmentChart(filters);
   updateRegionRiskChart(filters);
@@ -2545,9 +2735,9 @@ function init() {
   Object.values(filterEls).forEach((el) => el.addEventListener('change', updateAll));
   if (resetFiltersBtnEl) resetFiltersBtnEl.addEventListener('click', resetFilters);
 
-  document.querySelectorAll('#riskTable thead th[data-key]').forEach((th) => {
-    th.addEventListener('click', () => {
-      const key = th.getAttribute('data-key');
+  document.querySelectorAll('#riskTable .sort-button[data-key]').forEach((button) => {
+    button.addEventListener('click', () => {
+      const key = button.getAttribute('data-key');
       if (tableState.key === key) {
         tableState.dir = tableState.dir === 'asc' ? 'desc' : 'asc';
       } else {
@@ -2594,5 +2784,11 @@ init();
     dashboard_filename = "pricing-discipline-command-center.html"
     dashboard_path = dashboard_dir / dashboard_filename
     dashboard_path.write_text(html, encoding="utf-8")
+
+    vendor_source = Path(__file__).resolve().parents[2] / "docs" / "vendor" / "chart.umd.min.js"
+    if vendor_source.exists():
+        vendor_target = dashboard_dir / "vendor" / "chart.umd.min.js"
+        vendor_target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(vendor_source, vendor_target)
 
     return dashboard_path

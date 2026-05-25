@@ -5,9 +5,8 @@ DATA_RAW_DIR = PROJECT_ROOT / "data" / "raw"
 DATA_PROCESSED_DIR = PROJECT_ROOT / "data" / "processed"
 OUTPUTS_DIR = PROJECT_ROOT / "outputs"
 RELEASE_OUTPUTS_DIR = OUTPUTS_DIR / "release"
-DASHBOARD_DIR = OUTPUTS_DIR / "dashboard"
 DOCS_DIR = PROJECT_ROOT / "docs"
-DOCS_REPORTS_DIR = DOCS_DIR / "reports"
+DASHBOARD_DIR = OUTPUTS_DIR / "dashboard"
 CONFIGS_DIR = PROJECT_ROOT / "config"
 SQL_DIR = PROJECT_ROOT / "sql"
 SQL_STAGING_DIR = SQL_DIR / "staging"
@@ -25,7 +24,6 @@ def ensure_project_directories() -> None:
         RELEASE_OUTPUTS_DIR,
         DASHBOARD_DIR,
         DOCS_DIR,
-        DOCS_REPORTS_DIR,
         CONFIGS_DIR,
         SQL_DIR,
         SQL_STAGING_DIR,

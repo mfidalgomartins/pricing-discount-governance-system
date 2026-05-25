@@ -24,6 +24,29 @@ venv/
 /data/processed/*.csv
 /data/processed/*.parquet
 /data/processed/*.duckdb
+/data/processed/sql_marts/*.csv
+
+# Reproducible runtime outputs
+/outputs/*.csv
+/outputs/*.json
+/outputs/*.md
+!/outputs/README.md
+/outputs/analysis/
+/outputs/profiling/
+/outputs/visualizations/
+/outputs/warehouse/
+/outputs/release/*.json
+/outputs/release/*.md
+/outputs/*validation*
+/outputs/*report.md
+/outputs/executive_summary.md
+/outputs/run_manifest.json
+/outputs/visualization_pack.md
 
 # Jupyter
 .ipynb_checkpoints/
+
+# Session and audit artifacts (never commit AI session outputs)
+.self-eval-scores.jsonl
+PROJECT_AUDIT*.md
+PROJECT_UPGRADE*.md

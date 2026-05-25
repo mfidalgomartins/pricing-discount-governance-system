@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import logging
 import shutil
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", datefmt="%Y-%m-%dT%H:%M:%S")
+logger = logging.getLogger(__name__)
 
 
 def _safe_unlink(path: Path) -> None:
@@ -26,11 +30,11 @@ def _move_if_exists(src: Path, dst: Path) -> None:
 def _move_many(output_dir: Path, subdir: str, file_names: list[str]) -> int:
     moved = 0
     target_dir = output_dir / subdir
-    target_dir.mkdir(parents=True, exist_ok=True)
     for name in file_names:
         src = output_dir / name
         dst = target_dir / name
         if src.exists() and src.is_file():
+            target_dir.mkdir(parents=True, exist_ok=True)
             _move_if_exists(src, dst)
             moved += 1
     return moved
@@ -51,7 +55,7 @@ def main() -> int:
             _safe_rmtree(p)
             removed_dirs += 1
 
-    # Dashboard legacy CSV exports are no longer used.
+    # Dashboard runtime CSV exports are no longer part of the project surface.
     dashboard_dir = PROJECT_ROOT / "outputs" / "dashboard"
     for csv_name in [
         "monthly_pricing_performance.csv",
@@ -64,9 +68,7 @@ def main() -> int:
             _safe_unlink(path)
             removed_files += 1
 
-    # Keep report files inside outputs as the canonical generated evidence surface.
-
-    # Organize non-critical runtime output artifacts under domain folders.
+    # Organize runtime output artifacts under domain folders when they are generated.
     outputs_dir = PROJECT_ROOT / "outputs"
     moved_files += _move_many(
         outputs_dir,
@@ -76,6 +78,7 @@ def main() -> int:
             "yearly_pricing_health.csv",
             "formal_analysis_summary.json",
             "key_findings.json",
+            "business_executive_summary.md",
             "risk_by_segment.csv",
             "segment_discount_dependency.csv",
             "customer_discount_dependency.csv",
@@ -125,7 +128,7 @@ def main() -> int:
         _safe_unlink(p)
         removed_files += 1
 
-    print(f"Cleanup done. removed_files={removed_files}, removed_dirs={removed_dirs}, moved_files={moved_files}")
+    logger.info("Cleanup done. removed_files=%d, removed_dirs=%d, moved_files=%d", removed_files, removed_dirs, moved_files)
     return 0
 
 

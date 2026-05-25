@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 import sys
 
@@ -8,6 +9,9 @@ import pandas as pd
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", datefmt="%Y-%m-%dT%H:%M:%S")
+logger = logging.getLogger(__name__)
 
 from src.analysis.visualization_pack import create_visualization_pack
 from src.utils.paths import DATA_PROCESSED_DIR, DOCS_DIR, OUTPUTS_DIR
@@ -27,7 +31,7 @@ def main() -> None:
         outputs_dir=OUTPUTS_DIR,
         docs_dir=DOCS_DIR,
     )
-    print(f"Visualization pack created at: {OUTPUTS_DIR / 'visualizations'}")
+    logger.info("Visualization pack created at: %s", OUTPUTS_DIR / "visualizations")
 
 
 if __name__ == "__main__":

@@ -8,7 +8,18 @@ import pandas as pd
 
 def write_csv(df: pd.DataFrame, path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    df.to_csv(path, index=False)
+    try:
+        df.to_csv(path, index=False)
+    except OSError as exc:
+        raise OSError(f"Failed to write CSV to {path}: {exc}") from exc
+
+
+def write_text(path: Path, content: str, encoding: str = "utf-8") -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        path.write_text(content, encoding=encoding)
+    except OSError as exc:
+        raise OSError(f"Failed to write file {path}: {exc}") from exc
 
 
 def read_csv(path: Path, parse_dates: list[str] | None = None) -> pd.DataFrame:
@@ -18,4 +29,4 @@ def read_csv(path: Path, parse_dates: list[str] | None = None) -> pd.DataFrame:
 def write_table_bundle(tables: Dict[str, pd.DataFrame], output_dir: Path) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     for name, table in tables.items():
-        table.to_csv(output_dir / f"{name}.csv", index=False)
+        write_csv(table, output_dir / f"{name}.csv")

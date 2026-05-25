@@ -1,6 +1,6 @@
 create or replace table mart_overall_pricing_health as
 select
-    current_date as as_of_date,
+    max(order_date)::date as as_of_date,
     sum(line_revenue) as total_revenue,
     sum(line_list_revenue) as total_list_revenue,
     sum(gross_margin_value) as total_margin_proxy_value,

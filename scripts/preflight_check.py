@@ -11,17 +11,24 @@ MAX_TRACKED_FILE_BYTES = MAX_TRACKED_FILE_MB * 1024 * 1024
 
 REQUIRED_PATHS = [
     "README.md",
+    "LICENSE",
     ".github/workflows/ci.yml",
+    ".github/dependabot.yml",
+    "requirements.lock",
     "scripts/run_pipeline.py",
     "scripts/cleanup_repository.py",
+    "outputs/dashboard/README.md",
+    "outputs/dashboard/pricing-discipline-command-center.html",
+    "outputs/dashboard/vendor/chart.umd.min.js",
     "docs/index.html",
     "docs/pricing-discipline-command-center.html",
-    "outputs/dashboard/pricing-discipline-command-center.html",
     "docs/project_context_and_metrics.md",
     "docs/validation_framework.md",
+    "docs/data_dictionary.md",
     "docs/release_and_reproducibility.md",
     "config/metric_contracts.json",
     "config/dashboard_policy.json",
+    "config/policy_thresholds.json",
 ]
 
 FORBIDDEN_TRACKED_PATTERNS = [

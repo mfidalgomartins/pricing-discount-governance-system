@@ -218,7 +218,7 @@ def generate_analysis_outputs(
     )
 
     executive_summary_md = _render_executive_summary(findings_payload)
-    (outputs_dir / "executive_summary.md").write_text(executive_summary_md)
+    (outputs_dir / "business_executive_summary.md").write_text(executive_summary_md)
     (outputs_dir / "key_findings.json").write_text(json.dumps(findings_payload, indent=2))
 
     monthly.to_csv(outputs_dir / "monthly_pricing_performance.csv", index=False)

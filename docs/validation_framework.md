@@ -38,7 +38,8 @@
 - Population consistency:
   - customer profile row count equals customer risk row count
 
-## Audit Artifacts
+## Runtime Artifacts
+These files are generated under `outputs/` when the pipeline runs:
 - `outputs/raw_validation_report.csv`
 - `outputs/processed_validation_report.csv`
 - `outputs/metric_contract_validation.csv`

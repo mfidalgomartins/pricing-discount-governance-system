@@ -1,11 +1,15 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 import sys
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", datefmt="%Y-%m-%dT%H:%M:%S")
+logger = logging.getLogger(__name__)
 
 from src.utils.paths import CONFIGS_DIR, OUTPUTS_DIR
 from src.validation.release_gate import evaluate_release_gate
@@ -23,9 +27,9 @@ def main() -> int:
         outputs_dir=OUTPUTS_DIR,
     )
 
-    print(f"Release gate passed: {passed}")
-    print(f"Release readiness state: {report['release_readiness_state']}")
-    print("Report written to outputs/release/release_gate_report.json")
+    logger.info("Release gate passed: %s", passed)
+    logger.info("Release readiness state: %s", report["release_readiness_state"])
+    logger.info("Report written to outputs/release/release_gate_report.json")
 
     return 0 if passed else 1
 

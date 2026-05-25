@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import argparse
 import json
-from datetime import datetime, timezone
+import logging
+from datetime import datetime
 from pathlib import Path
 import sys
 
@@ -28,7 +29,6 @@ from src.utils.paths import (
     DASHBOARD_DIR,
     DATA_PROCESSED_DIR,
     DATA_RAW_DIR,
-    DOCS_REPORTS_DIR,
     OUTPUTS_DIR,
     PROJECT_ROOT,
     SQL_DIR,
@@ -36,24 +36,53 @@ from src.utils.paths import (
     WAREHOUSE_DB_PATH,
     ensure_project_directories,
 )
+from src.utils.io import write_text
 from src.validation.final_review import run_final_validation_review
 from src.validation.metric_contracts import validate_metric_contracts
 from src.validation.data_quality import validate_processed_tables, validate_raw_tables
 from src.validation.release_gate import evaluate_release_gate
-from scripts.cleanup_repository import main as cleanup_repository_main
 from scripts.publish_pages_dashboard import publish as publish_pages_dashboard
 
 
-def parse_args() -> argparse.Namespace:
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+    datefmt="%Y-%m-%dT%H:%M:%S",
+)
+logger = logging.getLogger(__name__)
+
+
+def _positive_int(value: str) -> int:
+    parsed = int(value)
+    if parsed <= 0:
+        raise argparse.ArgumentTypeError("must be greater than 0")
+    return parsed
+
+
+def _valid_date(value: str) -> str:
+    try:
+        datetime.strptime(value, "%Y-%m-%d")
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("must use YYYY-MM-DD format") from exc
+    return value
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Run Pricing & Discount Governance pipeline end-to-end.")
     parser.add_argument("--seed", type=int, default=42, help="Random seed for synthetic data generation")
-    parser.add_argument("--customers", type=int, default=1200)
-    parser.add_argument("--products", type=int, default=28)
-    parser.add_argument("--sales-reps", type=int, default=45)
-    parser.add_argument("--orders", type=int, default=18000)
-    parser.add_argument("--start-date", type=str, default="2023-01-01")
-    parser.add_argument("--end-date", type=str, default="2025-12-31")
-    return parser.parse_args()
+    parser.add_argument("--customers", type=_positive_int, default=1200)
+    parser.add_argument("--products", type=_positive_int, default=28,
+                        help="Number of products (min 5, one per product category)")
+    parser.add_argument("--sales-reps", type=_positive_int, default=45)
+    parser.add_argument("--orders", type=_positive_int, default=18000)
+    parser.add_argument("--start-date", type=_valid_date, default="2023-01-01")
+    parser.add_argument("--end-date", type=_valid_date, default="2025-12-31")
+    args = parser.parse_args(argv)
+    if args.start_date > args.end_date:
+        parser.error("--start-date must be earlier than or equal to --end-date")
+    if args.products < 5:
+        parser.error("--products must be at least 5 (one per product category)")
+    return args
 
 
 def save_processed_tables(processed_tables: dict[str, pd.DataFrame]) -> None:
@@ -78,6 +107,12 @@ def main() -> None:
 
     raw_tables = generate_synthetic_business_data(config)
     save_raw_tables(raw_tables, DATA_RAW_DIR)
+
+    raw_validation_report, raw_valid = validate_raw_tables(raw_tables)
+    raw_validation_report.to_csv(OUTPUTS_DIR / "raw_validation_report.csv", index=False)
+    if not raw_valid:
+        raise RuntimeError("Raw validation failed. SQL warehouse was not built. Check outputs/raw_validation_report.csv")
+
     sql_tables = run_sql_warehouse_models(
         SqlLayerRunConfig(
             raw_dir=DATA_RAW_DIR,
@@ -91,11 +126,6 @@ def main() -> None:
     sql_validation_passed = bool((sql_validation_report["status"] == "PASS").all())
     if not sql_validation_passed:
         raise RuntimeError("SQL warehouse validation failed. Check outputs/warehouse/sql_validation_report.csv")
-
-    raw_validation_report, raw_valid = validate_raw_tables(raw_tables)
-    raw_validation_report.to_csv(OUTPUTS_DIR / "raw_validation_report.csv", index=False)
-    if not raw_valid:
-        raise RuntimeError("Raw validation failed. Check outputs/raw_validation_report.csv")
 
     order_item_enriched = build_order_item_enriched(raw_tables)
     feature_tables = build_feature_tables(order_item_enriched)
@@ -123,13 +153,13 @@ def main() -> None:
         raw_tables=raw_tables,
         processed_tables=processed_tables,
         outputs_dir=OUTPUTS_DIR,
-        docs_dir=DOCS_REPORTS_DIR,
+        docs_dir=OUTPUTS_DIR,
     )
 
     formal_analysis_tables = run_formal_pricing_analysis(
         processed_tables=processed_tables,
         outputs_dir=OUTPUTS_DIR,
-        docs_dir=DOCS_REPORTS_DIR,
+        docs_dir=OUTPUTS_DIR,
     )
 
     metric_contract_report, metric_contract_valid = validate_metric_contracts(
@@ -144,7 +174,7 @@ def main() -> None:
     visualization_tables = create_visualization_pack(
         processed_tables=processed_tables,
         outputs_dir=OUTPUTS_DIR,
-        docs_dir=DOCS_REPORTS_DIR,
+        docs_dir=OUTPUTS_DIR,
     )
 
     dashboard_path = build_executive_dashboard(
@@ -186,13 +216,13 @@ def main() -> None:
         "dashboard": str(dashboard_path),
     }
 
-    (OUTPUTS_DIR / "run_manifest.json").write_text(json.dumps(run_manifest, indent=2))
+    write_text(OUTPUTS_DIR / "run_manifest.json", json.dumps(run_manifest, indent=2))
 
     final_validation_tables = run_final_validation_review(
         raw_tables=raw_tables,
         processed_tables=processed_tables,
         outputs_dir=OUTPUTS_DIR,
-        docs_dir=DOCS_REPORTS_DIR,
+        docs_dir=OUTPUTS_DIR,
         dashboard_path=dashboard_path,
     )
     run_manifest["row_counts"]["final_validation"] = {k: int(len(v)) for k, v in final_validation_tables.items()}
@@ -206,14 +236,13 @@ def main() -> None:
     run_manifest["validation"]["release_gate_passed"] = bool(release_gate_passed)
     run_manifest["validation"]["release_readiness_state"] = release_report.get("release_readiness_state")
 
-    (OUTPUTS_DIR / "run_manifest.json").write_text(json.dumps(run_manifest, indent=2))
-    cleanup_repository_main()
+    write_text(OUTPUTS_DIR / "run_manifest.json", json.dumps(run_manifest, indent=2))
 
-    print("Pipeline completed successfully.")
-    print(f"Raw tables: {', '.join(raw_tables.keys())}")
-    print(f"Processed tables: {', '.join(processed_tables.keys())}")
-    print(f"Metric contracts passed: {metric_contract_valid}")
-    print(f"Release gate passed: {release_gate_passed}")
+    logger.info("Pipeline completed successfully.")
+    logger.info("Raw tables: %s", ", ".join(raw_tables.keys()))
+    logger.info("Processed tables: %s", ", ".join(processed_tables.keys()))
+    logger.info("Metric contracts passed: %s", metric_contract_valid)
+    logger.info("Release gate passed: %s", release_gate_passed)
     if not release_gate_passed:
         raise RuntimeError("Release gate failed. Check outputs/release/release_gate_report.json")
 

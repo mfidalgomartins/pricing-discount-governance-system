@@ -22,7 +22,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements.lock
+          pip check
 
       - name: Compile Check
         run: python -m compileall -q src scripts tests
@@ -31,7 +32,7 @@ jobs:
         run: python scripts/preflight_check.py
 
       - name: Run Unit Tests
-        run: pytest -q
+        run: pytest -q --cov=src --cov-fail-under=40
 
       - name: Pipeline Smoke Run
         env:
@@ -48,3 +49,12 @@ jobs:
 
       - name: Release Gate
         run: python scripts/release_gate.py
+
+      - name: Upload Release Reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-reports
+          path: |
+            outputs/release/
+            outputs/final_validation_*.*

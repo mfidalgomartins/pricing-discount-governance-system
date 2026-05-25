@@ -7,14 +7,21 @@ from typing import Dict
 import numpy as np
 import pandas as pd
 
+from src.utils.policy import load_policy_thresholds
 
-HEALTHY_WEIGHTED_DISCOUNT_MAX = 0.12
-HEALTHY_HIGH_DISCOUNT_REVENUE_SHARE_MAX = 0.20
-HEALTHY_MARGIN_PROXY_MIN = 0.45
+_POLICY = load_policy_thresholds()
+_HEALTH_POLICY = _POLICY["pricing_health"]
 
-MIXED_WEIGHTED_DISCOUNT_MAX = 0.18
-MIXED_HIGH_DISCOUNT_REVENUE_SHARE_MAX = 0.30
-MIXED_MARGIN_PROXY_MIN = 0.40
+HEALTHY_WEIGHTED_DISCOUNT_MAX = float(_HEALTH_POLICY["healthy_weighted_discount_max"])
+HEALTHY_HIGH_DISCOUNT_REVENUE_SHARE_MAX = float(_HEALTH_POLICY["healthy_high_discount_revenue_share_max"])
+HEALTHY_MARGIN_PROXY_MIN = float(_HEALTH_POLICY["healthy_margin_proxy_min"])
+
+MIXED_WEIGHTED_DISCOUNT_MAX = float(_HEALTH_POLICY["mixed_weighted_discount_max"])
+MIXED_HIGH_DISCOUNT_REVENUE_SHARE_MAX = float(_HEALTH_POLICY["mixed_high_discount_revenue_share_max"])
+MIXED_MARGIN_PROXY_MIN = float(_HEALTH_POLICY["mixed_margin_proxy_min"])
+
+# Base high-discount threshold used for revenue/margin aggregations — aligned with pricing_features.
+_HIGH_DISCOUNT_THRESHOLD: float = float(_POLICY.get("high_discount_thresholds", [0.15, 0.20, 0.25])[1])
 
 
 def _pct_rank(series: pd.Series, reverse: bool = False) -> pd.Series:
@@ -62,7 +69,7 @@ def _pricing_health_verdict(overall: pd.Series) -> tuple[str, str]:
 
 
 def _build_threshold_sensitivity(pricing: pd.DataFrame) -> pd.DataFrame:
-    thresholds = [0.15, 0.20, 0.25]
+    thresholds = [float(v) for v in _POLICY.get("high_discount_thresholds", [0.15, 0.20, 0.25])]
     rows: list[dict] = []
 
     customer_revenue = pricing.groupby("customer_id", as_index=False).agg(total_revenue=("line_revenue", "sum"))
@@ -122,11 +129,11 @@ def _build_governance_action_queue(
         .agg(
             revenue_in_scope=("line_revenue", "sum"),
             total_list_revenue=("line_list_revenue", "sum"),
-            high_discount_revenue=("line_revenue", lambda s: s[pricing.loc[s.index, "discount_depth"] >= 0.20].sum()),
+            high_discount_revenue=("line_revenue", lambda s: s[pricing.loc[s.index, "discount_depth"] >= _HIGH_DISCOUNT_THRESHOLD].sum()),
             margin_at_risk_revenue=(
                 "line_revenue",
                 lambda s: s[
-                    (pricing.loc[s.index, "discount_depth"] >= 0.20)
+                    (pricing.loc[s.index, "discount_depth"] >= _HIGH_DISCOUNT_THRESHOLD)
                     & (pricing.loc[s.index, "margin_proxy_pct"] < 0.35)
                 ].sum(),
             ),
@@ -169,7 +176,7 @@ def _overall_pricing_health(pricing: pd.DataFrame) -> tuple[pd.DataFrame, pd.Dat
     total_list_revenue = float(pricing["line_list_revenue"].sum())
     total_margin = float(pricing["gross_margin_value"].sum())
 
-    high_discount_revenue = float(pricing.loc[pricing["discount_depth"] >= 0.20, "line_revenue"].sum())
+    high_discount_revenue = float(pricing.loc[pricing["discount_depth"] >= _HIGH_DISCOUNT_THRESHOLD, "line_revenue"].sum())
     avg_realized_discount = float(pricing["discount_depth"].mean())
     weighted_discount = 1 - (total_revenue / total_list_revenue) if total_list_revenue else np.nan
     price_realization = total_revenue / total_list_revenue if total_list_revenue else np.nan
@@ -196,7 +203,7 @@ def _overall_pricing_health(pricing: pd.DataFrame) -> tuple[pd.DataFrame, pd.Dat
             list_revenue=("line_list_revenue", "sum"),
             margin_proxy_value=("gross_margin_value", "sum"),
             avg_realized_discount=("discount_depth", "mean"),
-            high_discount_revenue=("line_revenue", lambda s: s[pricing.loc[s.index, "discount_depth"] >= 0.20].sum()),
+            high_discount_revenue=("line_revenue", lambda s: s[pricing.loc[s.index, "discount_depth"] >= _HIGH_DISCOUNT_THRESHOLD].sum()),
         )
         .sort_values("year")
     )
@@ -227,7 +234,7 @@ def _discount_dependency(pricing: pd.DataFrame, customer_profile: pd.DataFrame) 
             revenue=("line_revenue", "sum"),
             avg_discount_pct=("discount_depth", "mean"),
             avg_margin_proxy_pct=("margin_proxy_pct", "mean"),
-            high_discount_revenue=("line_revenue", lambda s: s[pricing.loc[s.index, "discount_depth"] >= 0.20].sum()),
+            high_discount_revenue=("line_revenue", lambda s: s[pricing.loc[s.index, "discount_depth"] >= _HIGH_DISCOUNT_THRESHOLD].sum()),
         )
         .sort_values("high_discount_revenue", ascending=False)
     )
@@ -248,7 +255,7 @@ def _discount_dependency(pricing: pd.DataFrame, customer_profile: pd.DataFrame) 
         .agg(
             revenue=("line_revenue", "sum"),
             avg_discount_pct=("discount_depth", "mean"),
-            high_discount_revenue=("line_revenue", lambda s: s[pricing.loc[s.index, "discount_depth"] >= 0.20].sum()),
+            high_discount_revenue=("line_revenue", lambda s: s[pricing.loc[s.index, "discount_depth"] >= _HIGH_DISCOUNT_THRESHOLD].sum()),
             order_lines=("order_item_id", "count"),
         )
         .sort_values("revenue", ascending=False)
@@ -357,6 +364,8 @@ def _pricing_inconsistency(pricing: pd.DataFrame) -> dict[str, pd.DataFrame]:
             avg_discount_pct=("discount_depth", "mean"),
             realized_price_mean=("realized_price", "mean"),
             realized_price_std=("realized_price", "std"),
+            realized_price_residual_abs_mean=("abs_realized_price_residual_pct", "mean"),
+            realized_price_residual_std=("realized_price_residual_pct", "std"),
         )
         .query("order_lines >= 25")
     )
@@ -366,6 +375,10 @@ def _pricing_inconsistency(pricing: pd.DataFrame) -> dict[str, pd.DataFrame]:
         np.nan,
     )
     product_variance = product_variance.sort_values("realized_price_cv", ascending=False)
+    product_variance["realized_price_residual_abs_mean"] = product_variance[
+        "realized_price_residual_abs_mean"
+    ].fillna(0.0)
+    product_variance["realized_price_residual_std"] = product_variance["realized_price_residual_std"].fillna(0.0)
 
     return {
         "rep_pricing_inconsistency": rep_behavior.sort_values("discount_zscore_vs_peers", ascending=False),
@@ -594,6 +607,7 @@ def _render_formal_report(payload: dict) -> str:
         f"- Time period: full available coverage ({analysis_window['coverage_start']} to {analysis_window['coverage_end']}).",
         "- Metric logic: realized discount, price realization, high-discount revenue share, margin proxy, repeat discount behavior, variance diagnostics.",
         "- Scoring interpretation: customer risk scoring blends peer-relative ranks with absolute policy-threshold breaches.",
+        "- Pricing inconsistency interpretation: residual price dispersion is normalized by product and sales channel where available; raw realized-price variance is kept only as a supporting signal because it can reflect mix.",
         "",
         "## Detailed Findings",
         "### A. Overall Pricing Health",
@@ -652,6 +666,7 @@ def _render_formal_report(payload: dict) -> str:
             "- Data is synthetic and behaviorally simulated; it supports method validation, not real-world attribution.",
             "- High-discount thresholds are policy assumptions and should be calibrated to commercial context.",
             "- Margin is a proxy using modeled unit cost, not full financial statement gross margin.",
+            "- Realized-price variance can reflect product/channel mix; use residual dispersion for pricing inconsistency interpretation.",
             "- Outlier detection highlights governance signals, not proof of misconduct or causal drivers.",
             "",
             "## Recommendations and Next Steps",

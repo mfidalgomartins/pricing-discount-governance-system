@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 import sys
 
@@ -8,6 +9,9 @@ import pandas as pd
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", datefmt="%Y-%m-%dT%H:%M:%S")
+logger = logging.getLogger(__name__)
 
 from src.analysis.dashboard_builder import build_executive_dashboard
 from src.utils.paths import DASHBOARD_DIR, DATA_PROCESSED_DIR
@@ -26,7 +30,7 @@ def main() -> None:
         processed_tables=tables,
         dashboard_dir=DASHBOARD_DIR,
     )
-    print(f"Dashboard created: {dashboard_path}")
+    logger.info("Dashboard created: %s", dashboard_path)
 
 
 if __name__ == "__main__":

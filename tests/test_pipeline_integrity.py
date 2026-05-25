@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import numpy as np
+import pandas as pd
+import pytest
 
 from src.features.pricing_features import build_feature_tables
 from src.ingestion.load_raw import save_raw_tables
@@ -44,6 +46,25 @@ def test_processed_tables_validation_passes() -> None:
 
     assert is_valid, f"Processed validation failed:\n{report[report['status'] == 'FAIL']}"
     assert processed_tables["customer_pricing_profile"]["customer_id"].is_unique
+
+
+def test_order_item_enrichment_rejects_duplicate_dimension_key() -> None:
+    raw_tables = generate_synthetic_business_data(_small_config())
+    raw_tables["customers"] = pd.concat(
+        [raw_tables["customers"], raw_tables["customers"].head(1)],
+        ignore_index=True,
+    )
+
+    with pytest.raises(Exception, match="many-to-one|not unique"):
+        build_order_item_enriched(raw_tables)
+
+
+def test_order_item_enrichment_rejects_missing_fk() -> None:
+    raw_tables = generate_synthetic_business_data(_small_config())
+    raw_tables["order_items"].loc[0, "order_id"] = "missing-order"
+
+    with pytest.raises(ValueError, match="Merge integrity failed for orders"):
+        build_order_item_enriched(raw_tables)
 
 
 def test_risk_scores_bounds_and_actions() -> None:
@@ -118,3 +139,17 @@ def test_sql_warehouse_layer_execution(tmp_path) -> None:
     assert not sql_validation.empty
     assert bool((sql_validation["status"] == "PASS").all())
     assert (tmp_path / "sql_marts" / "mart_customer_pricing_profile.csv").exists()
+
+    enriched = build_order_item_enriched(raw_tables)
+    pricing = build_feature_tables(enriched)["order_item_pricing_metrics"]
+    sql_customer = sql_outputs["mart_customer_pricing_profile"]
+    sql_overall = sql_outputs["mart_overall_pricing_health"].iloc[0]
+
+    assert int(sql_validation.loc[sql_validation["check_name"] == "int_order_item_enriched_no_silent_drops", "status"].eq("PASS").iloc[0])
+    assert len(sql_customer) == pricing["customer_id"].nunique()
+    assert float(sql_overall["total_revenue"]) == pytest.approx(float(pricing["line_revenue"].sum()), rel=1e-9)
+    assert float(sql_overall["weighted_realized_discount"]) == pytest.approx(
+        float(np.average(pricing["discount_depth"], weights=pricing["line_list_revenue"])),
+        rel=1e-4,
+    )
+    assert str(sql_overall["as_of_date"])[:10] == pricing["order_date"].max().strftime("%Y-%m-%d")

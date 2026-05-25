@@ -9,6 +9,12 @@ from typing import Dict
 import numpy as np
 import pandas as pd
 
+from src.utils.policy import load_policy_thresholds
+
+_HIGH_DISCOUNT_THRESHOLD: float = float(
+    load_policy_thresholds().get("high_discount_thresholds", [0.15, 0.20, 0.25])[1]
+)
+
 
 def _check_row(
     name: str,
@@ -530,7 +536,7 @@ def run_final_validation_review(
             output_high_discount_share = float(overall_health.iloc[0]["high_discount_revenue_share"])
             output_total_revenue = float(overall_health.iloc[0]["total_revenue"])
             computed_high_discount_share = (
-                float(pricing.loc[pricing["discount_depth"] >= 0.20, "line_revenue"].sum() / pricing_revenue)
+                float(pricing.loc[pricing["discount_depth"] >= _HIGH_DISCOUNT_THRESHOLD, "line_revenue"].sum() / pricing_revenue)
                 if pricing_revenue > 0
                 else 0.0
             )
@@ -761,7 +767,7 @@ def run_final_validation_review(
         "excluded_customers": excluded_customers,
         "excluded_customer_pct": float(excluded_share) if not np.isnan(excluded_share) else None,
         "high_discount_revenue_share": float(
-            pricing.loc[pricing["discount_depth"] >= 0.20, "line_revenue"].sum() / pricing["line_revenue"].sum()
+            pricing.loc[pricing["discount_depth"] >= _HIGH_DISCOUNT_THRESHOLD, "line_revenue"].sum() / pricing["line_revenue"].sum()
         )
         if float(pricing["line_revenue"].sum()) > 0
         else None,

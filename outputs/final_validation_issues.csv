@@ -1,2 +1,0 @@
-severity,message
-Low,Customer population exclusion at analysis layer: 27 customers (2.25%) have no orders and are excluded from customer-level scoring.

@@ -234,6 +234,8 @@ def _select_product_for_segment(
 
     selected_category = rng.choice(categories, p=probs)
     subset = products[products["category"] == selected_category]
+    if subset.empty:
+        subset = products
     return subset.sample(n=1, random_state=int(rng.integers(0, 10_000_000))).iloc[0]
 
 

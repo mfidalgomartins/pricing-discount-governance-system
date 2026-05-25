@@ -127,27 +127,27 @@ def create_visualization_pack(
         else "Segment Margin Erosion Exposure and High-Risk Concentration"
     )
 
-    fig, ax = plt.subplots(figsize=(11, 6.5))
-    ax.bar(seg["segment"], seg["margin_erosion_proxy"], color="#364fc7", alpha=0.85, label="Margin erosion proxy")
-    ax.plot(
-        seg["segment"],
-        seg["high_risk_customer_share"] * 100,
-        marker="o",
-        linewidth=2.5,
-        color="#e03131",
-        label="High-risk customer share",
-    )
-    ax.set_ylabel("Percent / index")
-    ax.set_xlabel("Segment")
-    ax.set_title(segment_title)
-    ax.yaxis.set_major_formatter(FuncFormatter(_percent_axis))
-    ax.legend(frameon=False, loc="upper right")
+    fig, axes = plt.subplots(1, 2, figsize=(13, 6.5), sharex=False)
+    axes[0].bar(seg["segment"], seg["margin_erosion_proxy"], color="#364fc7", alpha=0.88)
+    axes[0].set_title("Margin erosion proxy")
+    axes[0].set_ylabel("Risk index")
+    axes[0].set_xlabel("Segment")
+    axes[0].tick_params(axis="x", rotation=20)
+
+    axes[1].bar(seg["segment"], seg["high_risk_customer_share"] * 100, color="#e03131", alpha=0.88)
+    axes[1].set_title("High-risk customer share")
+    axes[1].set_ylabel("Customer share (%)")
+    axes[1].set_xlabel("Segment")
+    axes[1].yaxis.set_major_formatter(FuncFormatter(_percent_axis))
+    axes[1].tick_params(axis="x", rotation=20)
+    fig.suptitle(segment_title, y=1.02)
+    fig.tight_layout()
     _save(fig, viz_dir / "high_risk_segments_comparison.png")
     chart_manifest.append(
         {
             "chart_file": "high_risk_segments_comparison.png",
-            "chart_type": "dual-axis category comparison",
-            "why_appropriate": "Compares segment-level erosion intensity and risk concentration in one view.",
+            "chart_type": "small-multiple category comparison",
+            "why_appropriate": "Separates margin erosion index and customer share into aligned charts to avoid mixed-scale distortion.",
             "insight_focus": "High-risk segments comparison",
         }
     )
