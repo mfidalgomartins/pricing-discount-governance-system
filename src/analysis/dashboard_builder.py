@@ -1,3 +1,21 @@
+"""Self-contained executive dashboard builder.
+
+The module is intentionally large because the dashboard is a single
+versioned artifact (~3.5 MB self-contained HTML with embedded JSON
+payload, CSS, and Chart.js bindings). Splitting the template across
+files would multiply the contracts that have to stay in lockstep with
+the pre-aggregated `kpi_cube` / `monthly_agg` / `risk_export` payloads
+without reducing the actual surface area you need to read together.
+
+The structure is:
+- Helpers (rows ~30-150): data shaping, KPI cube, monthly agg, customer slice
+- `build_executive_dashboard` (rows ~158-end): payload assembly +
+  HTML/CSS/JS template that renders the dashboard for GitHub Pages.
+
+Output: writes the dashboard HTML and copies the local Chart.js vendor
+asset under `dashboard_dir/`. Returns the path to the HTML file.
+"""
+
 from __future__ import annotations
 
 import json
