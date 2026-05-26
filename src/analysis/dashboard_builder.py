@@ -1439,13 +1439,27 @@ function getThemePalette() {
   };
 }
 
+function _valueFromContext(context) {
+  // context.raw is the original data value regardless of chart orientation,
+  // so it works for both vertical (parsed.y is value) and horizontal
+  // (parsed.x is value) bar charts. Falls back to the parsed coordinate
+  // on the linear scale if raw isn't a plain number.
+  if (typeof context.raw === 'number') return context.raw;
+  if (context.raw && typeof context.raw === 'object') {
+    if (typeof context.raw.y === 'number') return context.raw.y;
+    if (typeof context.raw.x === 'number') return context.raw.x;
+  }
+  const indexAxis = context.chart && context.chart.options && context.chart.options.indexAxis;
+  if (indexAxis === 'y') return Number(context.parsed.x) || 0;
+  return Number(context.parsed.y) || 0;
+}
+
 function tooltipPct(context) {
-  return `${context.dataset.label}: ${Number(context.parsed.y ?? context.parsed.x ?? 0).toFixed(1)}%`;
+  return `${context.dataset.label}: ${_valueFromContext(context).toFixed(1)}%`;
 }
 
 function tooltipCurrency(context) {
-  const parsed = Number(context.parsed.x ?? context.parsed.y ?? 0);
-  return `${context.dataset.label}: ${fmtCurrency(parsed)}`;
+  return `${context.dataset.label}: ${fmtCurrency(_valueFromContext(context))}`;
 }
 
 function updateThemeToggleLabel(theme) {
