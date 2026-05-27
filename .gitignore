@@ -34,6 +34,7 @@ venv/
 /outputs/analysis/
 /outputs/profiling/
 /outputs/visualizations/
+/outputs/Graphs/
 /outputs/warehouse/
 /outputs/release/*.json
 /outputs/release/*.md
