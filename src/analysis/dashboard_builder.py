@@ -1,8 +1,8 @@
-"""Self-contained executive dashboard builder.
+"""Executive dashboard builder.
 
 The module is intentionally large because the dashboard is a single
-versioned artifact (~3.5 MB self-contained HTML with embedded JSON
-payload, CSS, and Chart.js bindings). Splitting the template across
+versioned HTML artifact with embedded JSON payload, CSS, and Chart.js
+bindings. Splitting the template across
 files would multiply the contracts that have to stay in lockstep with
 the pre-aggregated `kpi_cube` / `monthly_agg` / `risk_export` payloads
 without reducing the actual surface area you need to read together.
@@ -29,15 +29,7 @@ import pandas as pd
 ALL_VALUE = "All"
 
 DEFAULT_DASHBOARD_POLICY = {
-    "posture_thresholds": {
-        "weighted_discount_warn": 0.14,
-        "weighted_discount_critical": 0.20,
-        "margin_risk_share_warn": 0.12,
-        "margin_risk_share_critical": 0.20,
-        "high_risk_count_warn": 35,
-        "high_risk_count_critical": 80,
-    },
-    "kpi_card_thresholds": {
+    "thresholds": {
         "weighted_discount_warn": 0.14,
         "weighted_discount_critical": 0.20,
         "margin_risk_share_warn": 0.12,
@@ -73,7 +65,7 @@ def _load_dashboard_policy() -> dict:
         if isinstance(payload, dict):
             return payload
     except (OSError, json.JSONDecodeError):
-        pass
+        return DEFAULT_DASHBOARD_POLICY
     return DEFAULT_DASHBOARD_POLICY
 
 
@@ -1357,8 +1349,8 @@ const DATA = __DATA_JSON__;
 const ALL = "__ALL_VALUE__";
 const THEME_STORAGE_KEY = 'pricing_dashboard_theme';
 const POLICY = DATA.policy || {};
-const KPI_POLICY = POLICY.kpi_card_thresholds || {};
-const POSTURE_POLICY = POLICY.posture_thresholds || {};
+const KPI_POLICY = POLICY.thresholds || {};
+const POSTURE_POLICY = POLICY.thresholds || {};
 
 Chart.defaults.font.family = '"IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif';
 Chart.defaults.font.size = 11.5;

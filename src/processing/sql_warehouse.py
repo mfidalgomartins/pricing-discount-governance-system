@@ -6,6 +6,8 @@ from pathlib import Path
 
 import pandas as pd
 
+from src.utils.policy import get_high_discount_threshold
+
 try:
     import duckdb
 except ImportError as exc:  # pragma: no cover
@@ -74,10 +76,14 @@ def _load_raw_tables(conn: duckdb.DuckDBPyConnection, raw_dir: Path) -> None:
             """,
             [str(source_path)],
         )
+    conn.execute(
+        "create or replace table policy_thresholds as select ?::double as high_discount_threshold",
+        [get_high_discount_threshold()],
+    )
 
 
 def _run_model_file(conn: duckdb.DuckDBPyConnection, model_path: Path) -> None:
-    sql = model_path.read_text()
+    sql = model_path.read_text(encoding="utf-8")
     conn.execute(sql)
 
 
@@ -96,6 +102,16 @@ def _run_sql_validations(conn: duckdb.DuckDBPyConnection) -> pd.DataFrame:
     for mart_name in MART_PRIMARY_KEYS:
         row_count = int(conn.execute(f"select count(*) from {mart_name}").fetchone()[0])
         add_check(f"{mart_name}_row_count_positive", row_count > 0, f"row_count={row_count}")
+
+    for raw_name in RAW_TABLE_SOURCES:
+        staging_name = raw_name.replace("raw_", "stg_")
+        raw_count = int(conn.execute(f"select count(*) from {raw_name}").fetchone()[0])
+        staging_count = int(conn.execute(f"select count(*) from {staging_name}").fetchone()[0])
+        add_check(
+            f"{staging_name}_no_silent_drops",
+            raw_count == staging_count,
+            f"raw_rows={raw_count}, staging_rows={staging_count}",
+        )
 
     raw_order_items = int(conn.execute("select count(*) from stg_order_items").fetchone()[0])
     enriched_order_items = int(conn.execute("select count(*) from int_order_item_enriched").fetchone()[0])
@@ -187,7 +203,7 @@ def _run_sql_validations(conn: duckdb.DuckDBPyConnection) -> pd.DataFrame:
             select count(*)
             from int_order_item_pricing_metrics
             where discount_depth < 0
-               or discount_depth > 1
+               or discount_depth > 0.7
                or realized_price > list_price_at_sale
             """
         ).fetchone()[0]
@@ -196,6 +212,23 @@ def _run_sql_validations(conn: duckdb.DuckDBPyConnection) -> pd.DataFrame:
         "int_pricing_consistency",
         discount_violations == 0,
         f"violations={discount_violations}",
+    )
+
+    threshold_flag_violations = int(
+        conn.execute(
+            """
+            select count(*)
+            from int_order_item_pricing_metrics
+            cross join policy_thresholds
+            where high_discount_flag
+                != case when discount_depth >= high_discount_threshold then 1 else 0 end
+            """
+        ).fetchone()[0]
+    )
+    add_check(
+        "int_high_discount_flag_matches_policy",
+        threshold_flag_violations == 0,
+        f"violations={threshold_flag_violations}",
     )
 
     as_of_matches_data = bool(
@@ -266,7 +299,7 @@ def run_sql_warehouse_models(config: SqlLayerRunConfig) -> dict[str, pd.DataFram
             "marts_exported": sorted(marts.keys()),
             "all_sql_checks_passed": bool((validation_report["status"] == "PASS").all()),
         }
-        (config.outputs_dir / "sql_model_manifest.json").write_text(json.dumps(manifest, indent=2))
+        (config.outputs_dir / "sql_model_manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
         return {
             "sql_model_run_log": model_run_df,

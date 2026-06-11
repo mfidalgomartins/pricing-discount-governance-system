@@ -4,11 +4,9 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from src.utils.policy import load_policy_thresholds
+from src.utils.policy import get_high_discount_threshold
 
-# The base high-discount threshold is the middle value of the sensitivity list (default 0.20).
-# Changing high_discount_thresholds[1] in policy_thresholds.json shifts the flag consistently.
-_HIGH_DISCOUNT_THRESHOLD: float = float(load_policy_thresholds().get("high_discount_thresholds", [0.15, 0.20, 0.25])[1])
+_HIGH_DISCOUNT_THRESHOLD = get_high_discount_threshold()
 
 DISCOUNT_BUCKETS = [-0.001, 0.05, 0.10, 0.20, 0.30, 1.0]
 DISCOUNT_LABELS = ["0-5%", "5-10%", "10-20%", "20-30%", "30%+"]
@@ -93,7 +91,7 @@ def build_customer_pricing_profile(pricing_metrics: pd.DataFrame) -> pd.DataFram
             share_order_items_discounted=("discounted_flag", "mean"),
             revenue_high_discount=("high_discount_revenue_component", "sum"),
             product_diversity=("product_id", pd.Series.nunique),
-            avg_margin_proxy_pct=("margin_proxy_pct", "mean"),
+            gross_margin_value=("gross_margin_value", "sum"),
             realized_price_cv=("realized_price", lambda s: float(s.std(ddof=0) / s.mean()) if s.mean() > 0 else 0.0),
         )
     )
@@ -116,6 +114,11 @@ def build_customer_pricing_profile(pricing_metrics: pd.DataFrame) -> pd.DataFram
         customer_profile["revenue_high_discount"] / customer_profile["total_revenue"],
         0,
     )
+    customer_profile["avg_margin_proxy_pct"] = np.where(
+        customer_profile["total_revenue"] > 0,
+        customer_profile["gross_margin_value"] / customer_profile["total_revenue"],
+        0,
+    )
 
     fill_cols = [
         "share_orders_discounted",
@@ -127,7 +130,7 @@ def build_customer_pricing_profile(pricing_metrics: pd.DataFrame) -> pd.DataFram
     customer_profile[fill_cols] = customer_profile[fill_cols].fillna(0)
 
     return customer_profile.drop(
-        columns=["revenue_high_discount", "total_list_revenue", "weighted_discount_num"]
+        columns=["revenue_high_discount", "total_list_revenue", "weighted_discount_num", "gross_margin_value"]
     ).sort_values("total_revenue", ascending=False)
 
 
@@ -139,7 +142,7 @@ def build_segment_pricing_summary(pricing_metrics: pd.DataFrame) -> pd.DataFrame
             avg_discount_pct=("discount_depth", "mean"),
             median_discount_pct=("discount_depth", "median"),
             share_high_discount=("high_discount_flag", "mean"),
-            avg_margin_proxy_pct=("margin_proxy_pct", "mean"),
+            gross_margin_value=("gross_margin_value", "sum"),
             realized_price_variance=("realized_price", "var"),
             realized_price_std=("realized_price", "std"),
             realized_price_residual_std=("realized_price_residual_pct", "std"),
@@ -147,6 +150,11 @@ def build_segment_pricing_summary(pricing_metrics: pd.DataFrame) -> pd.DataFrame
         )
     )
 
+    segment_summary["avg_margin_proxy_pct"] = np.where(
+        segment_summary["total_revenue"] > 0,
+        segment_summary["gross_margin_value"] / segment_summary["total_revenue"],
+        0,
+    )
     segment_summary["margin_erosion_proxy"] = (
         (1 - segment_summary["avg_margin_proxy_pct"].clip(lower=0, upper=1))
         * segment_summary["share_high_discount"].clip(0, 1)
@@ -157,7 +165,7 @@ def build_segment_pricing_summary(pricing_metrics: pd.DataFrame) -> pd.DataFrame
     segment_summary["realized_price_residual_std"] = segment_summary["realized_price_residual_std"].fillna(0)
     segment_summary["realized_price_residual_abs_mean"] = segment_summary["realized_price_residual_abs_mean"].fillna(0)
 
-    return segment_summary.sort_values("margin_erosion_proxy", ascending=False)
+    return segment_summary.drop(columns="gross_margin_value").sort_values("margin_erosion_proxy", ascending=False)
 
 
 def build_segment_channel_diagnostics(pricing_metrics: pd.DataFrame) -> pd.DataFrame:
@@ -166,14 +174,19 @@ def build_segment_channel_diagnostics(pricing_metrics: pd.DataFrame) -> pd.DataF
         .agg(
             revenue=("line_revenue", "sum"),
             avg_discount_pct=("discount_depth", "mean"),
-            avg_margin_proxy_pct=("margin_proxy_pct", "mean"),
+            gross_margin_value=("gross_margin_value", "sum"),
             high_discount_share=("high_discount_flag", "mean"),
             order_item_count=("order_item_id", "count"),
         )
         .sort_values(["segment", "avg_discount_pct"], ascending=[True, False])
     )
+    diagnostics["avg_margin_proxy_pct"] = np.where(
+        diagnostics["revenue"] > 0,
+        diagnostics["gross_margin_value"] / diagnostics["revenue"],
+        0,
+    )
 
-    return diagnostics
+    return diagnostics.drop(columns="gross_margin_value")
 
 
 def build_feature_tables(enriched: pd.DataFrame) -> dict[str, pd.DataFrame]:

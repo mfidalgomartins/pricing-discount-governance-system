@@ -19,7 +19,8 @@
   - `0 <= discount_pct <= 0.7`
   - `realized_unit_price <= list_price_at_sale`
   - `quantity > 0`
-  - recomputed discount consistency tolerance
+  - recomputed discount absolute difference `<= 0.0001`
+  - parseable customer/order dates and no orders before customer signup
 
 ## Processed Data Checks (`validate_processed_tables`)
 - Required columns by analytical table.
@@ -32,6 +33,8 @@
   - share metrics in `[0, 1]`
   - `discount_depth` bounds and `realized <= list`
   - weighted discount reconciliation (line-item weighted vs aggregate ratio)
+  - line revenue, list revenue, cost, gross margin, margin percentage, and high-discount flag arithmetic
+  - customer-level revenue-weighted margin reconciliation
 - Taxonomy checks:
   - allowed `risk_tier` values
   - allowed `recommended_action` values
@@ -65,14 +68,10 @@ These files are generated under `outputs/` when the pipeline runs:
   - `technically_valid`
   - `analytically_acceptable`
   - `decision_support_only`
-  - `screening_grade_only`
-  - `not_committee_grade`
   - `publish_blocked`
 
 ## Readiness Semantics
 - `technically_valid`: structural and blocker checks pass (PK/FK, join-explosion, pricing arithmetic).
 - `analytically_acceptable`: technical validity plus analytical consistency checks pass (denominators, totals, weighted logic).
 - `decision_support_only`: analytically acceptable but constrained by decision caveats.
-- `screening_grade_only`: technically valid but analytical checks failed; usable for directional screening only.
-- `not_committee_grade`: analytically acceptable but major evidence constraints remain (synthetic data and margin proxy).
 - `publish_blocked`: blocker checks fail; outputs should not be published or used for decisions.

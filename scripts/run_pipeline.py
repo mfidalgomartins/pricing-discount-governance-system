@@ -13,7 +13,6 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.analysis.business_analysis import generate_analysis_outputs
 from src.analysis.data_profiling import run_data_profiling
 from src.analysis.dashboard_builder import build_executive_dashboard
 from src.analysis.formal_analysis import run_formal_pricing_analysis
@@ -143,12 +142,6 @@ def main() -> None:
     if not processed_valid:
         raise RuntimeError("Processed validation failed. Check outputs/processed_validation_report.csv")
 
-    analysis_tables = generate_analysis_outputs(
-        feature_tables=feature_tables,
-        risk_tables=risk_tables,
-        outputs_dir=OUTPUTS_DIR,
-    )
-
     profiling_tables = run_data_profiling(
         raw_tables=raw_tables,
         processed_tables=processed_tables,
@@ -197,7 +190,6 @@ def main() -> None:
         "row_counts": {
             "raw": {k: int(len(v)) for k, v in raw_tables.items()},
             "processed": {k: int(len(v)) for k, v in processed_tables.items()},
-            "analysis": {k: int(len(v)) for k, v in analysis_tables.items()},
             "profiling": {k: int(len(v)) for k, v in profiling_tables.items()},
             "formal_analysis": {k: int(len(v)) for k, v in formal_analysis_tables.items()},
             "visualization": {k: int(len(v)) for k, v in visualization_tables.items()},

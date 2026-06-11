@@ -8,11 +8,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from src.utils.policy import load_policy_thresholds
+from src.utils.policy import get_high_discount_threshold
+from src.validation.data_quality import DISCOUNT_FORMULA_TOLERANCE
 
-_HIGH_DISCOUNT_THRESHOLD: float = float(
-    load_policy_thresholds().get("high_discount_thresholds", [0.15, 0.20, 0.25])[1]
-)
+_HIGH_DISCOUNT_THRESHOLD = get_high_discount_threshold()
 
 
 def _check_row(
@@ -35,19 +34,16 @@ def _check_row(
 
 
 def _render_review(
-    assessment: str,
     release_state: str,
     readiness_flags: dict[str, bool],
     issues: list[tuple[str, str]],
     check_table: pd.DataFrame,
     required_caveats: list[str],
-    suggestions: list[str],
 ) -> str:
     lines = [
-        "# Final Validation Review (/validate-data)",
+        "# Final Validation Review",
         "",
         "## Overall Assessment",
-        f"- Legacy assessment: {assessment}",
         f"- Release readiness state: {release_state}",
         "",
         "## Readiness Classification",
@@ -56,8 +52,6 @@ def _render_review(
         "technically_valid",
         "analytically_acceptable",
         "decision_support_only",
-        "screening_grade_only",
-        "not_committee_grade",
         "publish_blocked",
     ]:
         lines.append(f"- {key}: {readiness_flags[key]}")
@@ -98,15 +92,6 @@ def _render_review(
     for caveat in required_caveats:
         lines.append(f"- {caveat}")
 
-    lines.extend(
-        [
-            "",
-            "## Suggested Improvements",
-        ]
-    )
-    for suggestion in suggestions:
-        lines.append(f"- {suggestion}")
-
     return "\n".join(lines)
 
 
@@ -122,10 +107,7 @@ def _issue_sort_key(item: tuple[str, str]) -> tuple[int, str]:
     return (order.get(severity, 3), message)
 
 
-def _release_readiness(
-    check_table: pd.DataFrame,
-    committee_constraints: list[str],
-) -> tuple[str, dict[str, bool]]:
+def _release_readiness(check_table: pd.DataFrame) -> tuple[str, dict[str, bool]]:
     fail_mask = check_table["status"] == "FAIL"
     blocker_failures = int((fail_mask & check_table["blocker"]).sum())
     analytical_failures = int(
@@ -136,20 +118,14 @@ def _release_readiness(
     technically_valid = blocker_failures == 0 and technical_failures == 0
     analytically_acceptable = technically_valid and analytical_failures == 0
     publish_blocked = blocker_failures > 0
-    screening_grade_only = (not publish_blocked) and technically_valid and not analytically_acceptable
     decision_support_only = analytically_acceptable and not publish_blocked
-    not_committee_grade = decision_support_only and len(committee_constraints) > 0
 
     if publish_blocked:
         release_state = "publish-blocked"
-    elif screening_grade_only:
-        release_state = "screening-grade only"
-    elif not_committee_grade:
-        release_state = "not committee-grade"
-    elif analytically_acceptable:
-        release_state = "analytically acceptable"
+    elif decision_support_only:
+        release_state = "decision-support only"
     elif technically_valid:
-        release_state = "technically valid"
+        release_state = "technical-only"
     else:
         release_state = "publish-blocked"
 
@@ -157,21 +133,9 @@ def _release_readiness(
         "technically_valid": technically_valid,
         "analytically_acceptable": analytically_acceptable,
         "decision_support_only": decision_support_only,
-        "screening_grade_only": screening_grade_only,
-        "not_committee_grade": not_committee_grade,
         "publish_blocked": publish_blocked,
     }
     return release_state, readiness_flags
-
-
-def _legacy_assessment(check_table: pd.DataFrame, issues: list[tuple[str, str]]) -> str:
-    failed_checks = int((check_table["status"] == "FAIL").sum())
-    has_material_issue = any(severity in {"High", "Medium"} for severity, _ in issues)
-    if failed_checks == 0:
-        return "share with caveats" if has_material_issue else "ready"
-    if failed_checks <= 2:
-        return "share with caveats"
-    return "needs revision"
 
 
 def _extract_dashboard_payload(dashboard_path: Path) -> dict | None:
@@ -281,7 +245,7 @@ def run_final_validation_review(
     checks.append(
         _check_row(
             "discount_logic_consistency",
-            max_abs_diff <= 0.001,
+            max_abs_diff <= DISCOUNT_FORMULA_TOLERANCE,
             f"max_abs_diff={max_abs_diff:.6f}",
             gate="consistency",
             severity="High",
@@ -493,7 +457,7 @@ def run_final_validation_review(
     coverage_start, coverage_end = _coverage_window(pricing)
     manifest_path = outputs_dir / "run_manifest.json"
     if manifest_path.exists():
-        manifest = json.loads(manifest_path.read_text())
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         manifest_start = manifest.get("configuration", {}).get("start_date")
         manifest_end = manifest.get("configuration", {}).get("end_date")
         if manifest_start == coverage_start and manifest_end == coverage_end:
@@ -711,13 +675,7 @@ def run_final_validation_review(
             )
         )
 
-    committee_constraints = [
-        "Data is synthetic and behaviorally simulated, not observed commercial history.",
-        "Margin remains a proxy based on modeled unit cost (not accounting gross margin).",
-    ]
-
-    release_state, readiness_flags = _release_readiness(check_table, committee_constraints)
-    legacy_assessment = _legacy_assessment(check_table, issues)
+    release_state, readiness_flags = _release_readiness(check_table)
 
     required_caveats = [
         "Synthetic data design remains a simulation, not observed commercial history.",
@@ -726,23 +684,15 @@ def run_final_validation_review(
         "Pricing inconsistency outlier detection is threshold-based and sensitive to peer-group variance.",
     ]
 
-    suggestions = [
-        "Add sensitivity runs with alternative risk-tier thresholds and component weights.",
-        "Add API-backed dashboard mode for larger datasets and lighter payloads.",
-        "Add committee-grade gates only after replacing synthetic data and margin proxy with ledger-aligned metrics.",
-    ]
-
     issues = sorted(issues, key=_issue_sort_key)
     report_md = _render_review(
-        legacy_assessment,
         release_state,
         readiness_flags,
         issues,
         check_table,
         required_caveats,
-        suggestions,
     )
-    (outputs_dir / "final_validation_review.md").write_text(report_md)
+    (outputs_dir / "final_validation_review.md").write_text(report_md, encoding="utf-8")
 
     readiness_df = pd.DataFrame(
         [{"readiness_state": state, "is_true": value} for state, value in readiness_flags.items()]
@@ -751,7 +701,7 @@ def run_final_validation_review(
 
     summary_payload = {
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
-        "overall_assessment": legacy_assessment,
+        "overall_assessment": release_state,
         "release_readiness_state": release_state,
         "readiness_flags": readiness_flags,
         "failed_checks": failed_checks,
@@ -774,7 +724,7 @@ def run_final_validation_review(
         "all_checks_passed": failed_checks == 0,
         "share_orders_high_discount_variance": float(customer_profile["share_orders_high_discount"].var(ddof=0)),
     }
-    (outputs_dir / "final_validation_summary.json").write_text(json.dumps(summary_payload, indent=2))
+    (outputs_dir / "final_validation_summary.json").write_text(json.dumps(summary_payload, indent=2), encoding="utf-8")
 
     release_dir = outputs_dir / "release"
     release_dir.mkdir(parents=True, exist_ok=True)
@@ -782,13 +732,11 @@ def run_final_validation_review(
         [
             "# Release Readiness Snapshot",
             "",
-            f"- Overall assessment: {legacy_assessment}",
+            f"- Overall assessment: {release_state}",
             f"- Release readiness state: {release_state}",
             f"- technically_valid: {readiness_flags['technically_valid']}",
             f"- analytically_acceptable: {readiness_flags['analytically_acceptable']}",
             f"- decision_support_only: {readiness_flags['decision_support_only']}",
-            f"- screening_grade_only: {readiness_flags['screening_grade_only']}",
-            f"- not_committee_grade: {readiness_flags['not_committee_grade']}",
             f"- publish_blocked: {readiness_flags['publish_blocked']}",
             f"- failed_checks: {failed_checks}",
             f"- failed_blocker_checks: {summary_payload['failed_blocker_checks']}",

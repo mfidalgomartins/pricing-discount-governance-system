@@ -42,6 +42,9 @@ select
             then ((e.quantity * e.realized_unit_price) - (e.quantity * e.unit_cost)) / (e.quantity * e.realized_unit_price)
         else null
     end as margin_proxy_pct,
-    case when e.discount_pct >= 0.20 then 1 else 0 end as high_discount_flag,
+    case
+        when e.discount_pct >= (select high_discount_threshold from policy_thresholds) then 1
+        else 0
+    end as high_discount_flag,
     case when e.discount_pct >= 0.05 then 1 else 0 end as discounted_flag
 from int_order_item_enriched e;

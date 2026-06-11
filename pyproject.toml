@@ -1,7 +1,7 @@
 [project]
 name = "pricing-discount-governance-system"
 version = "1.0.0"
-description = "Synthetic pricing governance analytics: discount-leakage, margin-erosion, and commercial-risk pipeline with reproducible DuckDB warehouse and HTML dashboard."
+description = "Reproducible pricing governance analytics for discount leakage, margin exposure, and customer intervention prioritization."
 readme = "README.md"
 license = { file = "LICENSE" }
 requires-python = ">=3.12"
@@ -20,8 +20,9 @@ dependencies = [
     "numpy==2.4.3",
     "matplotlib==3.10.8",
     "seaborn==0.13.2",
-    "nbformat==5.10.4",
     "duckdb==1.5.1",
+    "pillow==12.2.0",
+    "reportlab==4.5.1",
 ]
 
 [project.optional-dependencies]

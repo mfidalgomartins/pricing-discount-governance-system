@@ -152,6 +152,10 @@ def _parse_temporal(series: pd.Series, column_name: str) -> pd.Series:
 
 
 def _expected_non_negative(column_name: str) -> bool:
+    signed_metric_keywords = ["residual", "change", "growth", "delta", "difference", "deviation"]
+    if any(key in column_name.lower() for key in signed_metric_keywords):
+        return False
+
     keywords = ["price", "discount", "quantity", "revenue", "cost", "orders", "customers", "share", "variance"]
     return any(key in column_name.lower() for key in keywords)
 
@@ -198,7 +202,7 @@ def _profile_single_table(table_name: str, frame: pd.DataFrame) -> dict[str, pd.
                 parsed = parsed.dropna()
                 if not parsed.empty:
                     parsed_all.append(parsed)
-            except Exception:
+            except (TypeError, ValueError, OverflowError):
                 continue
         if parsed_all:
             combined = pd.concat(parsed_all)
@@ -374,20 +378,6 @@ def _profile_single_table(table_name: str, frame: pd.DataFrame) -> dict[str, pd.
                 }
             )
 
-    if {"discount_pct", "list_price_at_sale", "realized_unit_price"}.issubset(frame.columns):
-        implied_discount = 1 - (frame["realized_unit_price"] / frame["list_price_at_sale"])
-        mismatch = int((np.abs(implied_discount - frame["discount_pct"]) > 0.02).sum())
-        if mismatch > 0:
-            issues.append(
-                {
-                    "table_name": table_name,
-                    "column_name": "discount_pct",
-                    "severity": "High",
-                    "issue_type": "pricing_inconsistency",
-                    "detail": f"{mismatch} rows with discount arithmetic mismatch >2pp",
-                }
-            )
-
     if {"list_price", "unit_cost"}.issubset(frame.columns):
         above_list_cost = int((frame["unit_cost"] > frame["list_price"]).sum())
         if above_list_cost > 0:
@@ -481,49 +471,6 @@ def _cross_table_join_checks(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     return pd.DataFrame(issues)
 
 
-def _build_analytical_focus(column_profile: pd.DataFrame) -> pd.DataFrame:
-    focus_records: list[dict] = []
-
-    for table_name, subset in column_profile.groupby("table_name"):
-        best_dimensions = subset[
-            (subset["column_type"].isin(["dimension", "structural"]))
-            & (subset["cardinality_ratio"] >= 0.001)
-            & (subset["cardinality_ratio"] <= 0.65)
-        ]["column_name"].tolist()
-
-        best_metrics = subset[subset["column_type"] == "metric"]["column_name"].tolist()
-        join_keys = subset[subset["column_type"] == "identifier"]["column_name"].tolist()
-
-        hierarchy_hint = ""
-        if {"order_date", "order_month", "order_quarter"}.issubset(set(subset["column_name"])):
-            hierarchy_hint = "order_date > order_quarter > order_month"
-        elif {"region", "segment"}.issubset(set(subset["column_name"])):
-            hierarchy_hint = "region > segment"
-        elif {"category", "product_name"}.issubset(set(subset["column_name"])):
-            hierarchy_hint = "category > product_name"
-
-        follow_up = ""
-        if "discount_pct" in set(subset["column_name"]) or "discount_depth" in set(subset["column_name"]):
-            follow_up = "discount distribution stability and policy threshold adherence"
-        elif "governance_priority_score" in set(subset["column_name"]):
-            follow_up = "risk tier drift and intervention effectiveness"
-        elif "margin_proxy_pct" in set(subset["column_name"]):
-            follow_up = "margin erosion diagnostics by segment/channel/product"
-
-        focus_records.append(
-            {
-                "table_name": table_name,
-                "best_dimensions": ", ".join(best_dimensions[:8]),
-                "best_metrics": ", ".join(best_metrics[:10]),
-                "potential_join_keys": ", ".join(join_keys[:8]),
-                "likely_hierarchies": hierarchy_hint,
-                "useful_follow_up_analysis": follow_up,
-            }
-        )
-
-    return pd.DataFrame(focus_records).sort_values("table_name")
-
-
 def _build_population_coverage(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     total_customers = int(tables.get("customers", pd.DataFrame()).get("customer_id", pd.Series(dtype=str)).nunique())
     transacting_customers = int(
@@ -561,7 +508,6 @@ def _build_population_coverage(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
 def _render_markdown(
     profile_summary: pd.DataFrame,
     issues: pd.DataFrame,
-    analytical_focus: pd.DataFrame,
     column_profile: pd.DataFrame,
     population_coverage: pd.DataFrame,
 ) -> str:
@@ -619,25 +565,6 @@ def _render_markdown(
         )
         lines.append(f"- Transacting but not profiled: {int(row['transacting_not_profiled_customers']):,}")
         lines.append(f"- Profiled but not scored: {int(row['profiled_not_scored_customers']):,}")
-
-    lines.append("")
-    lines.append("## Recommended Analytical Focus")
-    for row in analytical_focus.itertuples(index=False):
-        lines.append(f"### {row.table_name}")
-        lines.append(f"- Best dimensions for slicing: {row.best_dimensions if row.best_dimensions else 'N/A'}")
-        lines.append(f"- Best metrics for analysis: {row.best_metrics if row.best_metrics else 'N/A'}")
-        lines.append(f"- Potential join keys: {row.potential_join_keys if row.potential_join_keys else 'N/A'}")
-        lines.append(f"- Likely hierarchies: {row.likely_hierarchies if row.likely_hierarchies else 'N/A'}")
-        lines.append(
-            f"- Useful follow-up analyses: {row.useful_follow_up_analysis if row.useful_follow_up_analysis else 'N/A'}"
-        )
-
-    lines.append("")
-    lines.append("## Data Model and Documentation Improvements")
-    lines.append("- Add a dedicated data dictionary table with business definitions, allowed ranges, and owners for each field.")
-    lines.append("- Introduce explicit data types and constraints (date parsing, numeric precision, enum lists) at ingestion boundaries.")
-    lines.append("- Version synthetic generation assumptions in docs so analytical changes are traceable over time.")
-    lines.append("- Add relationship tests (FK/PK) as automated checks in CI beyond local pytest execution.")
 
     return "\n".join(lines)
 
@@ -697,7 +624,6 @@ def run_data_profiling(
     join_issues_df = _cross_table_join_checks(combined_tables)
     issues_df = pd.concat([local_issues_df, join_issues_df], ignore_index=True) if not local_issues_df.empty or not join_issues_df.empty else pd.DataFrame(columns=["table_name", "column_name", "severity", "issue_type", "detail"])
 
-    analytical_focus_df = _build_analytical_focus(column_profile_df)
     population_coverage_df = _build_population_coverage(combined_tables)
 
     profile_summary_df.to_csv(outputs_dir / "table_profile_summary.csv", index=False)
@@ -705,17 +631,15 @@ def run_data_profiling(
     top_values_df.to_csv(outputs_dir / "table_top_values.csv", index=False)
     numeric_summary_df.to_csv(outputs_dir / "table_numeric_summary.csv", index=False)
     issues_df.to_csv(outputs_dir / "data_quality_issues.csv", index=False)
-    analytical_focus_df.to_csv(outputs_dir / "recommended_analytical_focus.csv", index=False)
     population_coverage_df.to_csv(outputs_dir / "population_coverage.csv", index=False)
 
     markdown = _render_markdown(
         profile_summary=profile_summary_df,
         issues=issues_df,
-        analytical_focus=analytical_focus_df,
         column_profile=column_profile_df,
         population_coverage=population_coverage_df,
     )
-    (outputs_dir / "profiling_summary.md").write_text(markdown)
+    (outputs_dir / "profiling_summary.md").write_text(markdown, encoding="utf-8")
 
     return {
         "table_profile_summary": profile_summary_df,
@@ -723,6 +647,5 @@ def run_data_profiling(
         "table_top_values": top_values_df,
         "table_numeric_summary": numeric_summary_df,
         "data_quality_issues": issues_df,
-        "recommended_analytical_focus": analytical_focus_df,
         "population_coverage": population_coverage_df,
     }

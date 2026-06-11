@@ -143,7 +143,7 @@ def validate_metric_contracts(
 
             series = pd.to_numeric(table[col], errors="coerce")
             valid_mask = series.notna()
-            violations = pd.Series(False, index=table.index)
+            violations = table[col].notna() & series.isna()
 
             min_value = bound_spec.get("min")
             max_value = bound_spec.get("max")
@@ -158,7 +158,7 @@ def validate_metric_contracts(
                     table_name,
                     f"bound_{col}",
                     violation_count == 0,
-                    f"violations={violation_count}, min={min_value}, max={max_value}",
+                    f"violations={violation_count}, min={min_value}, max={max_value}; non-numeric values count as violations",
                 )
             )
 

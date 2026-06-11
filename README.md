@@ -1,19 +1,23 @@
 # Pricing Discipline & Discount Governance
 
-Analytics system for detecting discount leakage, margin erosion, and commercial risk. Uses a fully synthetic dataset and a reproducible Python + DuckDB pipeline.
+Reproducible pricing governance analytics for detecting discount leakage, quantifying margin exposure, and prioritizing customer interventions across a synthetic B2B revenue book.
 
 [![CI](https://github.com/mfidalgomartins/pricing-discount-governance-system/actions/workflows/ci.yml/badge.svg)](https://github.com/mfidalgomartins/pricing-discount-governance-system/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Data](https://img.shields.io/badge/data-100%25%20synthetic-orange)
 
-**Live dashboard:** [Pricing Discipline Command Center](https://mfidalgomartins.github.io/pricing-discount-governance-system/)
+**[Open the live dashboard](https://mfidalgomartins.github.io/pricing-discount-governance-system/)** · **[Read the 33-page analytical report](outputs/reports/pricing_discount_governance_report.pdf)**
 
 > All data is synthetic and reproducible. No real customer, product, or transaction data is included. The governance score is a decision-support heuristic — it prioritizes review queues and does not claim causal attribution or validated prediction.
+
+![Segment pricing health: discount versus margin](outputs/graphs/07_segment_pricing_health.png)
 
 ## Business Problem
 
 Discount-led growth can look healthy while quietly reducing price realization and margin quality. This project builds a governed analytics layer that separates sustainable pricing performance from structural discount dependency across customers, segments, products, channels, regions, and sales reps.
+
+The published baseline covers **38,349 order lines**, **1,173 transacting customers**, and **$1.87B synthetic revenue** from **January 2023 to December 2025**.
 
 ## What It Delivers
 
@@ -21,9 +25,10 @@ Discount-led growth can look healthy while quietly reducing price realization an
 - Python and DuckDB SQL pipeline from raw data to governed marts.
 - Data quality checks for schema, PK/FK integrity, row-count gates, bounds, reconciliation, and no-silent-drop joins.
 - Operational customer risk score with documented thresholds and caveats.
-- Sensitivity analysis for discount and risk thresholds.
-- Accessible, self-contained HTML dashboard generated under `outputs/dashboard/` and copied to `docs/` for GitHub Pages.
-- Notebook and documentation for technical review.
+- Sensitivity analysis around the governed high-discount threshold.
+- Accessible HTML dashboard with embedded analytical data and a versioned local Chart.js asset.
+- Publication chart pack and a 33-page analytical PDF report.
+- Focused documentation for technical review.
 
 ## Dataset & Grain
 
@@ -67,6 +72,7 @@ The pipeline validates raw data before building SQL marts, validates pandas join
 ```bash
 make install   # create .venv and install pinned dependencies
 make run       # full pipeline — 1200 customers, 18 000 orders
+make report    # rebuild the publication chart pack and PDF report
 make test      # pytest with coverage
 make preflight # repository health check
 ```
@@ -77,6 +83,8 @@ Or without `make`:
 python3 -m venv .venv && . .venv/bin/activate
 pip install -r requirements.lock
 python scripts/run_pipeline.py
+python scripts/build_report_assets.py
+python scripts/build_report_pdf.py
 pytest -q -p no:cacheprovider
 python scripts/preflight_check.py
 ```
@@ -90,28 +98,29 @@ make run-smoke
 #   --sales-reps 14 --orders 2400 --start-date 2024-01-01 --end-date 2024-12-31
 ```
 
-All thresholds — including `high_discount_flag` — are read from `config/policy_thresholds.json` and stay consistent with the sensitivity analysis.
+The base `high_discount_flag` threshold and its sensitivity range are defined separately in `config/policy_thresholds.json`. Python, SQL, reports, and visualizations consume the same base threshold.
 
 ## Outputs
 
 - Local dashboard output: `outputs/dashboard/pricing-discipline-command-center.html`
 - GitHub Pages dashboard copy: `docs/pricing-discipline-command-center.html`
 - GitHub Pages entrypoint: `docs/index.html`
+- Analytical report: `outputs/reports/pricing_discount_governance_report.pdf`
+- Publication chart pack: `outputs/graphs/`
 - Runtime outputs: regenerated locally under `outputs/`
 - Processed tables and SQL marts: regenerated locally under `data/processed/`
-- Notebook: `notebooks/pricing_discount_governance_system.ipynb`
 
-Runtime outputs and processed marts are intentionally ignored because they are reproducible. The generated dashboard in `outputs/dashboard/` and the published copy in `docs/` are versioned.
+Runtime tables and processed marts are intentionally ignored because they are reproducible. The dashboard, report, and publication chart pack are versioned as reviewable release artefacts.
 
 ## Tests & Quality Gates
 
 ```bash
 make lint      # compile-check all Python modules
-make test      # pytest with coverage (49 tests)
+make test      # pytest with coverage
 make preflight # required-file and artifact checks
 ```
 
-Coverage focuses on raw validation order, pandas merge integrity, SQL warehouse reconciliation, deterministic as-of date, CLI guards, metric contracts, release gates, visualization outputs, and dashboard HTML/a11y contracts.
+Coverage focuses on raw validation order, pandas merge integrity, SQL/Python metric parity, weighted margin reconciliation, deterministic dates, CLI guards, metric contracts, release gates, visualization outputs, and dashboard HTML/accessibility contracts.
 
 ## Repository Map
 
@@ -119,8 +128,7 @@ Coverage focuses on raw validation order, pandas merge integrity, SQL warehouse 
 config/       policy thresholds, release policy, metric contracts
 data/         synthetic raw inputs and generated processed data
 docs/         GitHub Pages dashboard and project documentation
-notebooks/    reproducible analytical notebook
-scripts/      pipeline, dashboard, publishing, release and cleanup commands
+scripts/      pipeline, dashboard, publishing, and release commands
 sql/          DuckDB staging, intermediate, and mart models
 src/          ingestion, processing, features, scoring, validation, analysis
 tests/        pytest regression and quality checks

@@ -62,7 +62,7 @@ customer_base as (
         avg(discounted_flag)::double as share_order_items_discounted,
         sum(case when high_discount_flag = 1 then line_revenue else 0 end) as revenue_high_discount,
         count(distinct product_id) as product_diversity,
-        avg(margin_proxy_pct) as avg_margin_proxy_pct,
+        sum(gross_margin_value) as gross_margin_value,
         stddev_pop(realized_price) / nullif(avg(realized_price), 0) as realized_price_cv
     from int_order_item_pricing_metrics
     group by 1
@@ -79,7 +79,7 @@ select
     cb.weighted_discount_pct,
     cb.share_order_items_discounted,
     cb.product_diversity,
-    cb.avg_margin_proxy_pct,
+    cb.gross_margin_value / nullif(cb.total_revenue, 0) as avg_margin_proxy_pct,
     coalesce(cb.realized_price_cv, 0.0) as realized_price_cv,
     coalesce(os.share_orders_discounted, 0.0) as share_orders_discounted,
     coalesce(os.share_orders_high_discount, 0.0) as share_orders_high_discount,

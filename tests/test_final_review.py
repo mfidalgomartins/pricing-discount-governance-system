@@ -79,7 +79,5 @@ def test_final_validation_review_generates_outputs(tmp_path: Path) -> None:
         "technically_valid",
         "analytically_acceptable",
         "decision_support_only",
-        "screening_grade_only",
-        "not_committee_grade",
         "publish_blocked",
     }

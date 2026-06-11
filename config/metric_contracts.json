@@ -6,7 +6,7 @@
       "description": "Order-item grain pricing fact table used for all revenue, discount, margin proxy, and time-series diagnostics.",
       "grain": "one row per order_item_id",
       "primary_key": ["order_item_id"],
-      "not_null_keys": ["order_item_id", "order_id", "order_date", "order_month", "customer_id", "product_id"],
+      "not_null_keys": ["order_item_id", "order_id", "order_date", "order_month", "customer_id", "product_id", "line_revenue", "line_list_revenue", "discount_depth", "high_discount_flag", "margin_proxy_pct"],
       "required_columns": [
         "order_item_id",
         "order_id",
@@ -42,7 +42,7 @@
       "description": "Customer-level pricing behavior profile used as the input to governance risk scoring.",
       "grain": "one row per customer_id with at least one order",
       "primary_key": ["customer_id"],
-      "not_null_keys": ["customer_id"],
+      "not_null_keys": ["customer_id", "total_orders", "total_revenue", "avg_discount_pct", "share_orders_discounted", "share_orders_high_discount", "revenue_high_discount_share", "avg_margin_proxy_pct", "realized_price_cv", "repeat_discount_behavior"],
       "required_columns": [
         "customer_id",
         "segment",
@@ -75,7 +75,7 @@
       "description": "Customer-level operational governance score. It is a prioritization heuristic, not a causal or predictive model.",
       "grain": "one row per customer_id with score components and recommended action",
       "primary_key": ["customer_id"],
-      "not_null_keys": ["customer_id", "risk_tier", "recommended_action"],
+      "not_null_keys": ["customer_id", "pricing_risk_score", "discount_dependency_score", "margin_erosion_score", "governance_priority_score", "main_risk_driver", "risk_tier", "recommended_action", "low_data_flag"],
       "required_columns": [
         "customer_id",
         "pricing_risk_score",
@@ -104,7 +104,7 @@
       "description": "Segment-level pricing quality summary with margin proxy and mix-normalized residual dispersion.",
       "grain": "one row per segment",
       "primary_key": ["segment"],
-      "not_null_keys": ["segment"],
+      "not_null_keys": ["segment", "total_revenue", "avg_discount_pct", "median_discount_pct", "share_high_discount", "avg_margin_proxy_pct", "realized_price_residual_std", "realized_price_residual_abs_mean", "margin_erosion_proxy"],
       "required_columns": [
         "segment",
         "total_revenue",
@@ -132,7 +132,7 @@
       "description": "Portfolio-level pricing health snapshot derived from processed order-item facts.",
       "grain": "one row per pipeline run",
       "primary_key": [],
-      "not_null_keys": ["total_revenue"],
+      "not_null_keys": ["total_revenue", "weighted_realized_discount", "price_realization", "high_discount_revenue_share", "margin_proxy_pct"],
       "required_columns": [
         "total_revenue",
         "weighted_realized_discount",

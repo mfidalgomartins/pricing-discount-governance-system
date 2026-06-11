@@ -26,15 +26,10 @@ def _base_raw() -> dict:
     return generate_synthetic_business_data(_base_config())
 
 
-# ---------------------------------------------------------------------------
-# CR-1: validate_raw_tables must not crash when a required column is missing
-# ---------------------------------------------------------------------------
-
 def test_validate_raw_tables_returns_failure_on_missing_column() -> None:
     raw = _base_raw()
     raw["order_items"] = raw["order_items"].drop(columns=["discount_pct"])
 
-    # Must return a structured result — NOT raise KeyError
     report, valid = validate_raw_tables(raw)
 
     assert not valid, "Validation should fail when a required column is absent"
@@ -55,10 +50,6 @@ def test_validate_raw_tables_returns_failure_on_missing_table() -> None:
     assert any("products" in name for name in failed)
 
 
-# ---------------------------------------------------------------------------
-# CR-2: negative discount caught by raw validation
-# ---------------------------------------------------------------------------
-
 def test_negative_discount_caught_by_raw_validation() -> None:
     raw = _base_raw()
     raw["order_items"] = raw["order_items"].copy()
@@ -74,10 +65,6 @@ def test_negative_discount_caught_by_raw_validation() -> None:
     assert "order_items_discount_bounds" in failed_names
 
 
-# ---------------------------------------------------------------------------
-# CR-2: zero list price caught by raw validation
-# ---------------------------------------------------------------------------
-
 def test_zero_list_price_caught_by_raw_validation() -> None:
     raw = _base_raw()
     raw["order_items"] = raw["order_items"].copy()
@@ -91,9 +78,49 @@ def test_zero_list_price_caught_by_raw_validation() -> None:
     assert "order_items_positive_list_price" in failed_names
 
 
-# ---------------------------------------------------------------------------
-# CR-2: n_products < 5 guard in CLI
-# ---------------------------------------------------------------------------
+def test_non_numeric_discount_returns_structured_failure() -> None:
+    raw = _base_raw()
+    raw["order_items"] = raw["order_items"].copy()
+    raw["order_items"]["discount_pct"] = raw["order_items"]["discount_pct"].astype(object)
+    raw["order_items"].loc[0, "discount_pct"] = "invalid"
+
+    report, valid = validate_raw_tables(raw)
+
+    assert not valid
+    failed_names = set(report.loc[report["status"] == "FAIL", "check_name"])
+    assert "order_items_discount_pct_numeric" in failed_names
+
+
+def test_discount_formula_mismatch_caught_by_raw_validation() -> None:
+    raw = _base_raw()
+    raw["order_items"] = raw["order_items"].copy()
+    raw["order_items"].loc[0, "discount_pct"] += 0.001
+
+    report, valid = validate_raw_tables(raw)
+
+    assert not valid
+    failed_names = set(report.loc[report["status"] == "FAIL", "check_name"])
+    assert "order_items_discount_formula_consistency" in failed_names
+
+
+def test_order_before_signup_caught_by_raw_validation() -> None:
+    raw = _base_raw()
+    customer_id = raw["orders"].loc[0, "customer_id"]
+    raw["customers"] = raw["customers"].copy()
+    raw["customers"].loc[raw["customers"]["customer_id"] == customer_id, "signup_date"] = pd.Timestamp("2030-01-01")
+
+    report, valid = validate_raw_tables(raw)
+
+    assert not valid
+    failed_names = set(report.loc[report["status"] == "FAIL", "check_name"])
+    assert "orders_not_before_customer_signup" in failed_names
+
+
+def test_synthetic_config_rejects_invalid_inputs() -> None:
+    with pytest.raises(ValueError, match="n_products"):
+        SyntheticDataConfig(n_products=4)
+    with pytest.raises(ValueError, match="start_date"):
+        SyntheticDataConfig(start_date="2025-01-01", end_date="2024-01-01")
 
 def test_cli_rejects_products_below_minimum() -> None:
     import scripts.run_pipeline as run_pipeline
@@ -108,10 +135,6 @@ def test_cli_accepts_products_at_minimum() -> None:
     args = run_pipeline.parse_args(["--products", "5"])
     assert args.products == 5
 
-
-# ---------------------------------------------------------------------------
-# Unit tests for pure scoring helpers (HV-3)
-# ---------------------------------------------------------------------------
 
 def test_risk_tier_from_score_boundaries() -> None:
     assert _risk_tier_from_score(80.0) == "Critical"
@@ -160,10 +183,6 @@ def test_scale_excess_zero_max_excess_returns_zeros() -> None:
     assert (result == 0.0).all()
 
 
-# ---------------------------------------------------------------------------
-# Unit tests for pricing health verdict (HV-3)
-# ---------------------------------------------------------------------------
-
 def _health_row(weighted_discount: float, high_discount_share: float, margin_proxy: float) -> pd.Series:
     return pd.Series({
         "weighted_realized_discount": weighted_discount,
@@ -188,14 +207,9 @@ def test_pricing_health_verdict_discount_reliant() -> None:
 
 
 def test_pricing_health_verdict_boundary_healthy_threshold() -> None:
-    # Exactly at the healthy boundary — should be Healthy
     verdict, _ = _pricing_health_verdict(_health_row(0.12, 0.20, 0.45))
     assert "Healthy" in verdict
 
-
-# ---------------------------------------------------------------------------
-# CR-2: synthetic data generator survives n_products=5
-# ---------------------------------------------------------------------------
 
 def test_synthetic_data_generates_with_minimum_products() -> None:
     cfg = SyntheticDataConfig(
@@ -209,4 +223,5 @@ def test_synthetic_data_generates_with_minimum_products() -> None:
     )
     raw = generate_synthetic_business_data(cfg)
     assert len(raw["products"]) == 5
+    assert raw["products"]["category"].nunique() == 5
     assert len(raw["order_items"]) > 0

@@ -19,7 +19,7 @@ def _small_config() -> SyntheticDataConfig:
     )
 
 
-def test_dashboard_builder_outputs_self_contained_html(tmp_path) -> None:
+def test_dashboard_builder_outputs_publishable_html(tmp_path) -> None:
     raw_tables = generate_synthetic_business_data(_small_config())
     enriched = build_order_item_enriched(raw_tables)
     feature_tables = build_feature_tables(enriched)

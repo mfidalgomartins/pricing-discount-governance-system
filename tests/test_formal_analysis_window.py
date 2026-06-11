@@ -35,7 +35,7 @@ def test_formal_analysis_handles_non_2023_2025_window(tmp_path) -> None:
     )
 
     report = (tmp_path / "outputs" / "formal_analysis_report.md").read_text(encoding="utf-8")
-    assert "Revenue growth (2025 vs 2023): N/A for current date window." in report
+    assert "Revenue growth: N/A for a single-year analysis window." in report
     assert "Time period: full available coverage (2024-01-01 to 2024-12-31)." in report
     assert "Pricing discipline verdict:" in report
     assert (tmp_path / "outputs" / "threshold_sensitivity_analysis.csv").exists()

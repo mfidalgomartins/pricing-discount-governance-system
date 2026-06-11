@@ -62,7 +62,7 @@ Models:
 ## Metric Definitions (Warehouse Precision)
 - `weighted_realized_discount = 1 - sum(line_revenue) / sum(line_list_revenue)`
 - `price_realization = sum(line_revenue) / sum(line_list_revenue)`
-- `margin_proxy_pct = sum(gross_margin_value) / sum(line_revenue)`
+- Aggregate `avg_margin_proxy_pct = sum(gross_margin_value) / sum(line_revenue)`; the metric is revenue-weighted rather than a simple average of line percentages.
 - `share_orders_high_discount = avg(high_discount_order)` at customer order grain
 - `revenue_high_discount_share = revenue_high_discount / total_revenue`
 - `margin_erosion_proxy = (1 - avg_margin_proxy_pct) * share_high_discount * 100`
@@ -76,6 +76,8 @@ Implemented in `src/processing/sql_warehouse.py`:
 - revenue reconciliation (`intermediate` vs `segment` vs `monthly` marts)
 - share-bounds checks for customer mart
 - pricing consistency checks (`discount_depth` bounds, `realized <= list`)
+- raw-to-staging no-silent-drop checks
+- high-discount flag consistency with the configured policy threshold
 
 ## Reusable Query Patterns
 Common stakeholder questions can be answered directly from marts:
@@ -85,14 +87,6 @@ Common stakeholder questions can be answered directly from marts:
 - product pricing dependence ranking (`mart_product_pricing_summary`)
 
 See `docs/sql_query_patterns.md` for concrete query templates.
-
-## Productionization Guidance
-A real team could productionize this workflow by:
-1. Moving SQL models into dbt or a warehouse-native scheduler.
-2. Registering model contracts (types, tests, ownership) in CI.
-3. Incrementalizing `int_order_item_pricing_metrics` by order date partition.
-4. Publishing marts to BI semantic layer with governed metric names.
-5. Versioning threshold policies (high-discount, risk tiers) as controlled config.
 
 ## Performance Notes
 - Join and metric derivation are centralized in intermediate tables to avoid repeated scans.

@@ -50,3 +50,31 @@ def test_metric_contracts_pass_for_pipeline_outputs(tmp_path) -> None:
     assert not report.empty
     assert is_valid, f"Metric contracts failed:\n{report[report['status'] == 'FAIL']}"
     assert "overall_pricing_health" in set(report["contract_table"])
+
+
+def test_metric_contracts_reject_non_numeric_bounded_value(tmp_path) -> None:
+    raw_tables = generate_synthetic_business_data(_small_config())
+    enriched = build_order_item_enriched(raw_tables)
+    feature_tables = build_feature_tables(enriched)
+    risk_tables = build_risk_outputs(feature_tables)
+    processed_tables = {"order_item_enriched": enriched, **feature_tables, **risk_tables}
+    processed_tables["order_item_pricing_metrics"] = processed_tables["order_item_pricing_metrics"].copy()
+    processed_tables["order_item_pricing_metrics"]["line_revenue"] = processed_tables[
+        "order_item_pricing_metrics"
+    ]["line_revenue"].astype(object)
+    processed_tables["order_item_pricing_metrics"].loc[0, "line_revenue"] = "invalid"
+
+    outputs_dir = tmp_path / "outputs"
+    outputs_dir.mkdir()
+    report, is_valid = validate_metric_contracts(
+        processed_tables=processed_tables,
+        outputs_dir=outputs_dir,
+        config_path=CONFIGS_DIR / "metric_contracts.json",
+    )
+
+    assert not is_valid
+    failure = report[
+        (report["contract_table"] == "order_item_pricing_metrics")
+        & (report["check_name"] == "bound_line_revenue")
+    ]
+    assert failure["status"].eq("FAIL").all()

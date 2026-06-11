@@ -10,7 +10,7 @@ from src.validation.release_gate import evaluate_release_gate
 
 def _summary_payload() -> dict:
     return {
-        "release_readiness_state": "not committee-grade",
+        "release_readiness_state": "decision-support only",
         "failed_checks": 0,
         "failed_blocker_checks": 0,
         "dashboard_size_mb": 3.0,
@@ -18,8 +18,6 @@ def _summary_payload() -> dict:
             "technically_valid": True,
             "analytically_acceptable": True,
             "decision_support_only": True,
-            "screening_grade_only": False,
-            "not_committee_grade": True,
             "publish_blocked": False,
         },
     }

@@ -4,7 +4,7 @@ select
     sales_channel,
     sum(line_revenue) as revenue,
     avg(discount_depth) as avg_discount_pct,
-    avg(margin_proxy_pct) as avg_margin_proxy_pct,
+    sum(gross_margin_value) / nullif(sum(line_revenue), 0) as avg_margin_proxy_pct,
     avg(high_discount_flag)::double as high_discount_share,
     count(*) as order_item_count
 from int_order_item_pricing_metrics

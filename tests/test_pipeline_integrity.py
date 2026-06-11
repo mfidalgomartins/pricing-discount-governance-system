@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from src.analysis.data_profiling import _profile_single_table
 from src.features.pricing_features import build_feature_tables
 from src.ingestion.load_raw import save_raw_tables
 from src.ingestion.synthetic_data import SyntheticDataConfig, generate_synthetic_business_data
@@ -11,6 +12,7 @@ from src.processing.build_base_tables import build_order_item_enriched
 from src.processing.sql_warehouse import SqlLayerRunConfig, run_sql_warehouse_models
 from src.scoring.risk_scoring import build_risk_outputs
 from src.utils.paths import PROJECT_ROOT
+from src.utils.policy import get_high_discount_threshold
 from src.validation.data_quality import validate_processed_tables, validate_raw_tables
 
 
@@ -33,6 +35,14 @@ def test_raw_data_validation_passes() -> None:
     assert is_valid, f"Raw validation failed:\n{report[report['status'] == 'FAIL']}"
     assert len(raw_tables["order_items"]) > len(raw_tables["orders"])
     assert raw_tables["order_items"]["discount_pct"].between(0, 0.7).all()
+    assert raw_tables["products"]["category"].nunique() == 5
+
+    order_dates = raw_tables["orders"].merge(
+        raw_tables["customers"][["customer_id", "signup_date"]],
+        on="customer_id",
+        validate="many_to_one",
+    )
+    assert (order_dates["order_date"] >= order_dates["signup_date"]).all()
 
 
 def test_processed_tables_validation_passes() -> None:
@@ -111,6 +121,45 @@ def test_weighted_discount_and_margin_consistency() -> None:
     assert abs(weighted_margin_direct - weighted_margin_from_totals) <= 1e-9
 
 
+def test_customer_and_segment_margin_are_revenue_weighted() -> None:
+    raw_tables = generate_synthetic_business_data(_small_config())
+    enriched = build_order_item_enriched(raw_tables)
+    features = build_feature_tables(enriched)
+    pricing = features["order_item_pricing_metrics"]
+
+    for grain, table_name in [
+        ("customer_id", "customer_pricing_profile"),
+        ("segment", "segment_pricing_summary"),
+    ]:
+        expected = (
+            pricing.groupby(grain, as_index=False)
+            .agg(revenue=("line_revenue", "sum"), margin=("gross_margin_value", "sum"))
+        )
+        expected["expected_margin_proxy_pct"] = expected["margin"] / expected["revenue"]
+        actual = features[table_name].merge(
+            expected[[grain, "expected_margin_proxy_pct"]],
+            on=grain,
+            validate="one_to_one",
+        )
+        assert np.allclose(actual["avg_margin_proxy_pct"], actual["expected_margin_proxy_pct"])
+
+
+def test_profiling_allows_signed_residual_metrics() -> None:
+    frame = pd.DataFrame(
+        {
+            "order_item_id": ["OI1", "OI2"],
+            "realized_price_residual_pct": [-0.10, 0.10],
+        }
+    )
+
+    issues = _profile_single_table("order_item_pricing_metrics", frame)["issues"]
+
+    assert issues.empty or not (
+        (issues["column_name"] == "realized_price_residual_pct")
+        & (issues["issue_type"] == "impossible_negative_value")
+    ).any()
+
+
 def test_sql_warehouse_layer_execution(tmp_path) -> None:
     config = SyntheticDataConfig(
         seed=11,
@@ -152,4 +201,25 @@ def test_sql_warehouse_layer_execution(tmp_path) -> None:
         float(np.average(pricing["discount_depth"], weights=pricing["line_list_revenue"])),
         rel=1e-4,
     )
+    high_discount_revenue = pricing.loc[
+        pricing["discount_depth"] >= get_high_discount_threshold(),
+        "line_revenue",
+    ].sum()
+    assert float(sql_overall["high_discount_revenue_share"]) == pytest.approx(
+        float(high_discount_revenue / pricing["line_revenue"].sum()),
+        rel=1e-9,
+    )
     assert str(sql_overall["as_of_date"])[:10] == pricing["order_date"].max().strftime("%Y-%m-%d")
+
+    pandas_customer = build_feature_tables(enriched)["customer_pricing_profile"]
+    customer_parity = sql_customer.merge(
+        pandas_customer[["customer_id", "avg_margin_proxy_pct", "revenue_high_discount_share"]],
+        on="customer_id",
+        suffixes=("_sql", "_pandas"),
+        validate="one_to_one",
+    )
+    assert np.allclose(customer_parity["avg_margin_proxy_pct_sql"], customer_parity["avg_margin_proxy_pct_pandas"])
+    assert np.allclose(
+        customer_parity["revenue_high_discount_share_sql"],
+        customer_parity["revenue_high_discount_share_pandas"],
+    )

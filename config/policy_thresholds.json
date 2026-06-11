@@ -59,6 +59,7 @@
       "medium_min": 45
     }
   },
-  "high_discount_thresholds": [0.15, 0.2, 0.25],
+  "high_discount_threshold": 0.2,
+  "high_discount_sensitivity_thresholds": [0.15, 0.2, 0.25],
   "methodology_note": "Operational governance thresholds for synthetic portfolio analytics. Scores are descriptive decision-support heuristics, not causal or predictive models."
 }

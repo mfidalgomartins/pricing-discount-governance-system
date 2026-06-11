@@ -6,7 +6,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from src.utils.policy import load_policy_thresholds
+from src.utils.policy import get_high_discount_threshold, load_policy_thresholds
 
 _POLICY = load_policy_thresholds()
 _HEALTH_POLICY = _POLICY["pricing_health"]
@@ -19,8 +19,7 @@ MIXED_WEIGHTED_DISCOUNT_MAX = float(_HEALTH_POLICY["mixed_weighted_discount_max"
 MIXED_HIGH_DISCOUNT_REVENUE_SHARE_MAX = float(_HEALTH_POLICY["mixed_high_discount_revenue_share_max"])
 MIXED_MARGIN_PROXY_MIN = float(_HEALTH_POLICY["mixed_margin_proxy_min"])
 
-# Base high-discount threshold used for revenue/margin aggregations — aligned with pricing_features.
-_HIGH_DISCOUNT_THRESHOLD: float = float(_POLICY.get("high_discount_thresholds", [0.15, 0.20, 0.25])[1])
+_HIGH_DISCOUNT_THRESHOLD = get_high_discount_threshold()
 
 
 def _pct_rank(series: pd.Series, reverse: bool = False) -> pd.Series:
@@ -28,12 +27,15 @@ def _pct_rank(series: pd.Series, reverse: bool = False) -> pd.Series:
     return (1 - ranked) if reverse else ranked
 
 
-def _compute_growth_2025_vs_2023(yearly: pd.DataFrame) -> float | None:
-    if {2023, 2025}.issubset(set(yearly["year"])):
-        rev_2023 = yearly.loc[yearly["year"] == 2023, "revenue"].iloc[0]
-        rev_2025 = yearly.loc[yearly["year"] == 2025, "revenue"].iloc[0]
-        return (rev_2025 / rev_2023 - 1) * 100 if rev_2023 else np.nan
-    return None
+def _compute_period_growth(yearly: pd.DataFrame) -> tuple[int, int, float] | None:
+    ordered = yearly.sort_values("year")
+    if len(ordered) < 2:
+        return None
+
+    start = ordered.iloc[0]
+    end = ordered.iloc[-1]
+    growth_pct = (float(end["revenue"]) / float(start["revenue"]) - 1) * 100 if start["revenue"] else np.nan
+    return int(start["year"]), int(end["year"]), growth_pct
 
 
 def _pricing_health_verdict(overall: pd.Series) -> tuple[str, str]:
@@ -48,7 +50,7 @@ def _pricing_health_verdict(overall: pd.Series) -> tuple[str, str]:
     ):
         return (
             "Healthy pricing discipline",
-            "Discount intensity is controlled and margin quality remains robust.",
+            "Discount intensity and margin proxy remain within the configured healthy thresholds.",
         )
 
     if (
@@ -58,17 +60,17 @@ def _pricing_health_verdict(overall: pd.Series) -> tuple[str, str]:
     ):
         return (
             "Mixed pricing quality",
-            "Growth quality is acceptable but discount dependency requires active monitoring.",
+            "At least one pricing-health metric falls outside the healthy range but remains within mixed thresholds.",
         )
 
     return (
         "Discount-reliant growth risk",
-        "Growth is materially supported by high discounting and exposes margin quality.",
+        "At least one pricing-health metric falls outside the configured mixed thresholds.",
     )
 
 
 def _build_threshold_sensitivity(pricing: pd.DataFrame) -> pd.DataFrame:
-    thresholds = [float(v) for v in _POLICY.get("high_discount_thresholds", [0.15, 0.20, 0.25])]
+    thresholds = [float(v) for v in _POLICY["high_discount_sensitivity_thresholds"]]
     rows: list[dict] = []
 
     customer_revenue = pricing.groupby("customer_id", as_index=False).agg(total_revenue=("line_revenue", "sum"))
@@ -99,11 +101,11 @@ def _build_threshold_sensitivity(pricing: pd.DataFrame) -> pd.DataFrame:
                     high_discount_revenue / total_revenue if total_revenue > 0 else np.nan
                 ),
                 "high_discount_order_item_share": float(high_discount_mask.mean()),
-                "margin_proxy_pct_on_high_discount": float(
-                    pricing.loc[high_discount_mask, "margin_proxy_pct"].mean()
-                )
-                if high_discount_mask.any()
-                else np.nan,
+                "margin_proxy_pct_on_high_discount": (
+                    float(pricing.loc[high_discount_mask, "gross_margin_value"].sum() / high_discount_revenue)
+                    if high_discount_revenue > 0
+                    else np.nan
+                ),
                 "customer_share_over_40pct_high_discount_revenue": float(
                     (customer_sensitivity["high_discount_share"] >= 0.40).mean()
                 ),
@@ -232,7 +234,7 @@ def _discount_dependency(pricing: pd.DataFrame, customer_profile: pd.DataFrame) 
         .agg(
             revenue=("line_revenue", "sum"),
             avg_discount_pct=("discount_depth", "mean"),
-            avg_margin_proxy_pct=("margin_proxy_pct", "mean"),
+            gross_margin_value=("gross_margin_value", "sum"),
             high_discount_revenue=("line_revenue", lambda s: s[pricing.loc[s.index, "discount_depth"] >= _HIGH_DISCOUNT_THRESHOLD].sum()),
         )
         .sort_values("high_discount_revenue", ascending=False)
@@ -248,6 +250,12 @@ def _discount_dependency(pricing: pd.DataFrame, customer_profile: pd.DataFrame) 
         segment_dependency["high_discount_revenue"] / segment_dependency["revenue"],
         np.nan,
     )
+    segment_dependency["avg_margin_proxy_pct"] = np.where(
+        segment_dependency["revenue"] > 0,
+        segment_dependency["gross_margin_value"] / segment_dependency["revenue"],
+        np.nan,
+    )
+    segment_dependency = segment_dependency.drop(columns="gross_margin_value")
 
     product_dependency = (
         pricing.groupby(["product_id", "product_name", "category"], as_index=False)
@@ -331,10 +339,16 @@ def _pricing_inconsistency(pricing: pd.DataFrame) -> dict[str, pd.DataFrame]:
             order_lines=("order_item_id", "count"),
             avg_discount_pct=("discount_depth", "mean"),
             discount_std=("discount_depth", "std"),
-            avg_margin_proxy_pct=("margin_proxy_pct", "mean"),
+            gross_margin_value=("gross_margin_value", "sum"),
         )
         .query("order_lines >= 120")
     )
+    rep_behavior["avg_margin_proxy_pct"] = np.where(
+        rep_behavior["revenue"] > 0,
+        rep_behavior["gross_margin_value"] / rep_behavior["revenue"],
+        np.nan,
+    )
+    rep_behavior = rep_behavior.drop(columns="gross_margin_value")
 
     rep_behavior["peer_avg_discount"] = rep_behavior.groupby(["team", "rep_region"])["avg_discount_pct"].transform("mean")
     rep_behavior["peer_discount_std"] = rep_behavior.groupby(["team", "rep_region"])["avg_discount_pct"].transform("std")
@@ -349,11 +363,17 @@ def _pricing_inconsistency(pricing: pd.DataFrame) -> dict[str, pd.DataFrame]:
         .agg(
             revenue=("line_revenue", "sum"),
             avg_discount_pct=("discount_depth", "mean"),
-            avg_margin_proxy_pct=("margin_proxy_pct", "mean"),
+            gross_margin_value=("gross_margin_value", "sum"),
             order_lines=("order_item_id", "count"),
         )
         .sort_values("avg_discount_pct", ascending=False)
     )
+    channel_region["avg_margin_proxy_pct"] = np.where(
+        channel_region["revenue"] > 0,
+        channel_region["gross_margin_value"] / channel_region["revenue"],
+        np.nan,
+    )
+    channel_region = channel_region.drop(columns="gross_margin_value")
 
     product_variance = (
         pricing.groupby(["product_id", "product_name", "category", "sales_channel"], as_index=False)
@@ -395,7 +415,7 @@ def _product_level_patterns(pricing: pd.DataFrame) -> pd.DataFrame:
             order_lines=("order_item_id", "count"),
             avg_discount_pct=("discount_depth", "mean"),
             high_discount_share=("high_discount_flag", "mean"),
-            avg_margin_proxy_pct=("margin_proxy_pct", "mean"),
+            gross_margin_value=("gross_margin_value", "sum"),
         )
         .sort_values("revenue", ascending=False)
     )
@@ -405,6 +425,12 @@ def _product_level_patterns(pricing: pd.DataFrame) -> pd.DataFrame:
         product_view["revenue"] / product_view["list_revenue"],
         np.nan,
     )
+    product_view["avg_margin_proxy_pct"] = np.where(
+        product_view["revenue"] > 0,
+        product_view["gross_margin_value"] / product_view["revenue"],
+        np.nan,
+    )
+    product_view = product_view.drop(columns="gross_margin_value")
 
     conditions = [
         (product_view["avg_discount_pct"] < 0.15)
@@ -536,12 +562,16 @@ def _render_formal_report(payload: dict) -> str:
     verdict = payload["pricing_health_verdict"]
     verdict_reason = payload["pricing_health_reason"]
 
-    growth_2025_vs_2023 = _compute_growth_2025_vs_2023(yearly)
-    growth_line = (
-        f"Revenue growth (2025 vs 2023): {growth_2025_vs_2023:.2f}%."
-        if growth_2025_vs_2023 is not None and not np.isnan(growth_2025_vs_2023)
-        else "Revenue growth (2025 vs 2023): N/A for current date window."
-    )
+    period_growth = _compute_period_growth(yearly)
+    if period_growth is None:
+        growth_line = "Revenue growth: N/A for a single-year analysis window."
+    else:
+        start_year, end_year, growth_pct = period_growth
+        growth_line = (
+            f"Revenue growth ({end_year} vs {start_year}): {growth_pct:.2f}%."
+            if not np.isnan(growth_pct)
+            else f"Revenue growth ({end_year} vs {start_year}): N/A because start-year revenue is zero."
+        )
 
     top_segment_dependency = segment_dependency.sort_values("high_discount_revenue_share", ascending=False).iloc[0]
     top_margin_risk = margin_risk.iloc[0]
@@ -550,7 +580,10 @@ def _render_formal_report(payload: dict) -> str:
 
     recommendation_lines: list[str] = []
     if overall["high_discount_revenue_share"] >= 0.30:
-        recommendation_lines.append("tighten approval thresholds for deals above 20% discount in exposed segment/channel combinations")
+        recommendation_lines.append(
+            f"tighten approval thresholds for deals above {_HIGH_DISCOUNT_THRESHOLD:.0%} discount "
+            "in exposed segment/channel combinations"
+        )
     if float(top_segment_dependency["high_discount_revenue_share"]) >= 0.40:
         recommendation_lines.append(
             f"review segment pricing architecture for {top_segment_dependency['segment']} where high-discount dependency is structurally elevated"
@@ -611,7 +644,7 @@ def _render_formal_report(payload: dict) -> str:
         "## Detailed Findings",
         "### A. Overall Pricing Health",
         f"- Average realized discount: {overall['avg_realized_discount']:.2%}.",
-        f"- Share of revenue under high discount (>=20%): {overall['high_discount_revenue_share']:.2%}.",
+        f"- Share of revenue under high discount (>={_HIGH_DISCOUNT_THRESHOLD:.0%}): {overall['high_discount_revenue_share']:.2%}.",
         f"- List vs realized performance (price realization): {overall['price_realization']:.2%}.",
         f"- Margin proxy: {overall['margin_proxy_pct']:.2%}.",
         "",
@@ -734,7 +767,7 @@ def run_formal_pricing_analysis(
     }
 
     formal_report_md = _render_formal_report(payload)
-    (outputs_dir / "formal_analysis_report.md").write_text(formal_report_md)
+    (outputs_dir / "formal_analysis_report.md").write_text(formal_report_md, encoding="utf-8")
 
     overall_health.to_csv(outputs_dir / "overall_pricing_health.csv", index=False)
     yearly_health.to_csv(outputs_dir / "yearly_pricing_health.csv", index=False)
@@ -772,7 +805,7 @@ def run_formal_pricing_analysis(
             "checks": len(validations),
         },
     }
-    (outputs_dir / "formal_analysis_summary.json").write_text(json.dumps(summary_payload, indent=2))
+    (outputs_dir / "formal_analysis_summary.json").write_text(json.dumps(summary_payload, indent=2), encoding="utf-8")
     executive_summary = "\n".join(
         [
             "# Executive Summary",
@@ -786,7 +819,7 @@ def run_formal_pricing_analysis(
             f"- Validation checks passed: {(validations['status'] == 'PASS').sum()}/{len(validations)}",
         ]
     )
-    (outputs_dir / "executive_summary.md").write_text(executive_summary)
+    (outputs_dir / "executive_summary.md").write_text(executive_summary, encoding="utf-8")
 
     return {
         "overall_pricing_health": overall_health,

@@ -17,7 +17,7 @@ Is the company growing through pricing discipline, or through discounting patter
 - `discount_depth`: order-item realized discount (`discount_pct`).
 - `price_realization`: `sum(line_revenue) / sum(line_list_revenue)`.
 - `weighted_realized_discount`: `1 - sum(line_revenue) / sum(line_list_revenue)`.
-- `high_discount_revenue_share`: revenue share from order lines with discount >= 20%.
+- `high_discount_revenue_share`: revenue share from order lines at or above the configured `high_discount_threshold` (default 20%).
 - `margin_proxy_pct`: `(line_revenue - line_cost) / line_revenue`.
 - `repeat_discount_behavior`: share of consecutive customer orders where both were high-discount.
 
@@ -42,7 +42,7 @@ Default thresholds are explicit policy assumptions, not universal constants:
 - Avg discount threshold: 18%
 - High-discount order share threshold: 35%
 - High-discount revenue share threshold: 40%
-- Repeat high-discount threshold: 20%
+- Repeat-discount behavior escalation threshold: 20% of consecutive order pairs
 - Margin proxy floor: 38%
 - Realized price CV threshold: 45%
 
@@ -50,4 +50,3 @@ Default thresholds are explicit policy assumptions, not universal constants:
 - Scores indicate intervention priority, not causal proof.
 - Segment/channel outliers are triage signals; policy action still requires commercial context.
 - Synthetic data supports method design and governance logic testing, not claims about a real company.
-

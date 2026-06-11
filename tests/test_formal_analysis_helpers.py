@@ -9,11 +9,8 @@ from src.analysis.formal_analysis import (
     _discount_dependency,
     _margin_erosion_risk,
 )
+from src.utils.policy import get_high_discount_threshold
 
-
-# ---------------------------------------------------------------------------
-# Minimal fixture builders
-# ---------------------------------------------------------------------------
 
 def _make_pricing(n: int = 20, seed: int = 42) -> pd.DataFrame:
     rng = np.random.default_rng(seed)
@@ -44,7 +41,7 @@ def _make_pricing(n: int = 20, seed: int = 42) -> pd.DataFrame:
             "line_list_revenue": line_list_revenue,
             "gross_margin_value": gross_margin,
             "margin_proxy_pct": gross_margin / line_revenue,
-            "high_discount_flag": (discount_depths >= 0.20).astype(int),
+            "high_discount_flag": (discount_depths >= get_high_discount_threshold()).astype(int),
             "year": 2024,
         }
     )
@@ -74,10 +71,6 @@ def _make_risk_scores(customer_profile: pd.DataFrame) -> pd.DataFrame:
     scores["recommended_action"] = "Review"
     return scores
 
-
-# ---------------------------------------------------------------------------
-# _build_governance_action_queue
-# ---------------------------------------------------------------------------
 
 class TestBuildGovernanceActionQueue:
     def test_returns_empty_on_none_risk_scores(self) -> None:
@@ -120,10 +113,6 @@ class TestBuildGovernanceActionQueue:
         assert (result["margin_at_risk_revenue"] >= 0).all()
 
 
-# ---------------------------------------------------------------------------
-# _discount_dependency
-# ---------------------------------------------------------------------------
-
 class TestDiscountDependency:
     def test_returns_four_tables(self) -> None:
         pricing = _make_pricing()
@@ -157,10 +146,6 @@ class TestDiscountDependency:
         share = result["product_discount_dependency"]["high_discount_revenue_share"].dropna()
         assert (share >= 0).all() and (share <= 1).all()
 
-
-# ---------------------------------------------------------------------------
-# _margin_erosion_risk
-# ---------------------------------------------------------------------------
 
 class TestMarginErosionRisk:
     def test_returns_dataframe(self) -> None:

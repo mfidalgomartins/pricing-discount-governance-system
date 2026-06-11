@@ -16,6 +16,24 @@ class SyntheticDataConfig:
     start_date: str = "2023-01-01"
     end_date: str = "2025-12-31"
 
+    def __post_init__(self) -> None:
+        positive_counts = {
+            "n_customers": self.n_customers,
+            "n_products": self.n_products,
+            "n_sales_reps": self.n_sales_reps,
+            "n_orders": self.n_orders,
+        }
+        invalid = [name for name, value in positive_counts.items() if value <= 0]
+        if invalid:
+            raise ValueError(f"Counts must be greater than zero: {', '.join(invalid)}")
+        if self.n_products < 5:
+            raise ValueError("n_products must be at least 5 to cover every product category")
+
+        start = pd.Timestamp(self.start_date)
+        end = pd.Timestamp(self.end_date)
+        if start > end:
+            raise ValueError("start_date must be earlier than or equal to end_date")
+
 
 def _generate_customers(config: SyntheticDataConfig, rng: np.random.Generator) -> pd.DataFrame:
     segments = ["SMB", "Mid-Market", "Enterprise", "Public Sector"]
@@ -32,9 +50,9 @@ def _generate_customers(config: SyntheticDataConfig, rng: np.random.Generator) -
     }
     company_size = [rng.choice(company_size_map[s], p=[0.7, 0.3] if s == "SMB" else [0.6, 0.4]) for s in segment]
 
-    signup_dates = pd.to_datetime("2019-01-01") + pd.to_timedelta(
-        rng.integers(0, 1460, size=config.n_customers), unit="D"
-    )
+    signup_end = pd.Timestamp(config.start_date) - pd.Timedelta(days=1)
+    signup_start = signup_end - pd.Timedelta(days=1460)
+    signup_dates = signup_start + pd.to_timedelta(rng.integers(0, 1461, size=config.n_customers), unit="D")
 
     customers = pd.DataFrame(
         {
@@ -72,7 +90,12 @@ def _generate_products(config: SyntheticDataConfig, rng: np.random.Generator) ->
     categories = ["Core Platform", "Analytics", "Security", "Collaboration", "Professional Services"]
     category_weights = [0.28, 0.22, 0.18, 0.16, 0.16]
 
-    category = rng.choice(categories, size=config.n_products, p=category_weights)
+    category = np.array(
+        categories
+        + list(rng.choice(categories, size=config.n_products - len(categories), p=category_weights)),
+        dtype=object,
+    )
+    rng.shuffle(category)
 
     pricing_rules = {
         "Core Platform": (4500, 18000, 0.36, 0.52, 0.48),
@@ -259,6 +282,7 @@ def _quantity_by_context(category: str, company_size: str, rng: np.random.Genera
 
 
 def _generate_order_items(
+    config: SyntheticDataConfig,
     orders: pd.DataFrame,
     customers: pd.DataFrame,
     products: pd.DataFrame,
@@ -297,7 +321,7 @@ def _generate_order_items(
             product = _select_product_for_segment(products, customer["segment"], rng)
             quantity = _quantity_by_context(product["category"], customer["company_size"], rng)
 
-            year_uplift = 1 + 0.03 * (order.order_date.year - 2023)
+            year_uplift = 1 + 0.03 * (order.order_date.year - pd.Timestamp(config.start_date).year)
             list_price_at_sale = float(product["list_price"]) * year_uplift * (1 + rng.normal(0, 0.015))
             list_price_at_sale = max(list_price_at_sale, float(product["list_price"]) * 0.9)
 
@@ -364,7 +388,7 @@ def generate_synthetic_business_data(config: SyntheticDataConfig | None = None) 
     products = _generate_products(config, rng)
     sales_reps = _generate_sales_reps(config, rng)
     orders = _generate_orders(config, customers, sales_reps, rng)
-    order_items = _generate_order_items(orders, customers, products, sales_reps, rng)
+    order_items = _generate_order_items(config, orders, customers, products, sales_reps, rng)
 
     raw_tables: dict[str, pd.DataFrame] = {
         "customers": customers[["customer_id", "signup_date", "segment", "region", "company_size"]],

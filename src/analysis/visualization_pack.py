@@ -10,6 +10,10 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
 
+from src.utils.policy import get_high_discount_threshold
+
+_HIGH_DISCOUNT_THRESHOLD = get_high_discount_threshold()
+
 
 def _currency_millions(x: float, _pos: int) -> str:
     return f"${x/1_000_000:.1f}M"
@@ -176,7 +180,10 @@ def create_visualization_pack(
         monthly_comp["order_month_date"],
         monthly_comp["standard_discount_revenue"],
         monthly_comp["high_discount_revenue"],
-        labels=["<20% discount", ">=20% discount"],
+        labels=[
+            f"<{_HIGH_DISCOUNT_THRESHOLD:.0%} discount",
+            f">={_HIGH_DISCOUNT_THRESHOLD:.0%} discount",
+        ],
         colors=["#74c0fc", "#fa5252"],
         alpha=0.9,
     )
@@ -201,10 +208,16 @@ def create_visualization_pack(
         .agg(
             revenue=("line_revenue", "sum"),
             avg_discount_pct=("discount_depth", "mean"),
-            avg_margin_proxy_pct=("margin_proxy_pct", "mean"),
+            gross_margin_value=("gross_margin_value", "sum"),
         )
         .sort_values("avg_discount_pct", ascending=False)
     )
+    channel_cmp["avg_margin_proxy_pct"] = np.where(
+        channel_cmp["revenue"] > 0,
+        channel_cmp["gross_margin_value"] / channel_cmp["revenue"],
+        np.nan,
+    )
+    channel_cmp = channel_cmp.drop(columns="gross_margin_value")
     top_channels = channel_cmp.head(2)["sales_channel"].tolist()
     channel_title = (
         f"{' and '.join(top_channels)} Channels Carry the Highest Discount Burden"
@@ -247,10 +260,16 @@ def create_visualization_pack(
             revenue=("line_revenue", "sum"),
             high_discount_revenue=("line_revenue", lambda s: s[pricing.loc[s.index, "high_discount_flag"] == 1].sum()),
             avg_discount_pct=("discount_depth", "mean"),
-            avg_margin_proxy_pct=("margin_proxy_pct", "mean"),
+            gross_margin_value=("gross_margin_value", "sum"),
         )
         .sort_values("revenue", ascending=False)
     )
+    product_dep["avg_margin_proxy_pct"] = np.where(
+        product_dep["revenue"] > 0,
+        product_dep["gross_margin_value"] / product_dep["revenue"],
+        np.nan,
+    )
+    product_dep = product_dep.drop(columns="gross_margin_value")
     product_dep["high_discount_revenue_share"] = np.where(
         product_dep["revenue"] > 0,
         product_dep["high_discount_revenue"] / product_dep["revenue"],
@@ -307,7 +326,7 @@ def create_visualization_pack(
         markdown_lines.append("")
 
     viz_doc = "\n".join(markdown_lines)
-    (outputs_dir / "visualization_pack.md").write_text(viz_doc)
+    (outputs_dir / "visualization_pack.md").write_text(viz_doc, encoding="utf-8")
 
     return {
         "segment_risk_visual_base": seg,

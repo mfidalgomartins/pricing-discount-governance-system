@@ -24,6 +24,7 @@ venv/
 /data/processed/*.csv
 /data/processed/*.parquet
 /data/processed/*.duckdb
+/data/processed/report_stats.json
 /data/processed/sql_marts/*.csv
 
 # Reproducible runtime outputs
@@ -34,7 +35,6 @@ venv/
 /outputs/analysis/
 /outputs/profiling/
 /outputs/visualizations/
-/outputs/Graphs/
 /outputs/warehouse/
 /outputs/release/*.json
 /outputs/release/*.md
