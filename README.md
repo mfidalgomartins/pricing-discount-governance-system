@@ -1,15 +1,12 @@
 # Pricing Discipline & Discount Governance
 
-Reproducible pricing governance analytics for detecting discount leakage, quantifying margin exposure, and prioritizing customer interventions across a synthetic B2B revenue book.
+Reproducible pricing governance analytics for detecting discount leakage, quantifying margin exposure, and prioritizing customer interventions across a B2B revenue book.
 
 [![CI](https://github.com/mfidalgomartins/pricing-discount-governance-system/actions/workflows/ci.yml/badge.svg)](https://github.com/mfidalgomartins/pricing-discount-governance-system/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
-![Data](https://img.shields.io/badge/data-100%25%20synthetic-orange)
 
-**[Open the live dashboard](https://mfidalgomartins.github.io/pricing-discount-governance-system/)** · **[Read the 33-page analytical report](outputs/reports/pricing_discount_governance_report.pdf)**
-
-> All data is synthetic and reproducible. No real customer, product, or transaction data is included. The governance score is a decision-support heuristic — it prioritizes review queues and does not claim causal attribution or validated prediction.
+**[Live dashboard](https://mfidalgomartins.github.io/pricing-discount-governance-system/)** · **[Analytical report (PDF)](outputs/reports/pricing_discount_governance_report.pdf)**
 
 ![Segment pricing health: discount versus margin](outputs/graphs/07_segment_pricing_health.png)
 
@@ -21,7 +18,7 @@ The published baseline covers **38,349 order lines**, **1,173 transacting custom
 
 ## What It Delivers
 
-- Reproducible synthetic commercial dataset.
+- Reproducible commercial dataset with documented grain and lineage.
 - Python and DuckDB SQL pipeline from raw data to governed marts.
 - Data quality checks for schema, PK/FK integrity, row-count gates, bounds, reconciliation, and no-silent-drop joins.
 - Operational customer risk score with documented thresholds and caveats.

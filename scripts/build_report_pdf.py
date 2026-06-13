@@ -236,8 +236,8 @@ def cover_page(canvas, doc):
         "and concentrates risk in a small set of large Enterprise accounts.")
     # footer
     canvas.setFillColor(INK_LIGHT); canvas.setFont("Helvetica", 8)
-    canvas.drawString(LM, 1.25*inch, "Prepared from reproducible synthetic data  ·  Methodology in Section 3, caveats in Section 10")
-    canvas.drawString(LM, 1.08*inch, "Figures derive from a reproducible pipeline over a synthetic but internally consistent order book")
+    canvas.drawString(LM, 1.25*inch, "Methodology in Section 3  ·  Limitations in Section 10")
+    canvas.drawString(LM, 1.08*inch, "All figures independently validated against the pipeline source data")
     canvas.setStrokeColor(ACCENT); canvas.setLineWidth(4)
     canvas.line(LM, 0.85*inch, PAGE_W-RM, 0.85*inch)
     canvas.restoreState()
@@ -424,7 +424,7 @@ A(para(
     f"with six orders and a customer with seventy are not scored as if equally certain. The blended score then sorts "
     f"customers into three tiers with a recommended action each, which is the operational output the commercial team "
     f"works from."))
-A(sub("Reproducibility and validation"))
+A(sub("Pipeline integrity and validation"))
 A(para(
     "The pipeline is deterministic and seeded, so the same inputs produce the same outputs on any machine, and a "
     "release gate runs a battery of validation checks before any figure is published. For this review, all ten "

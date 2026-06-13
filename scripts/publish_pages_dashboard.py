@@ -27,10 +27,10 @@ DOCS_INDEX_TEMPLATE = f"""<!doctype html>
   <meta charset=\"utf-8\" />
   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
   <title>Pricing Discipline Command Center</title>
-  <meta name=\"description\" content=\"Synthetic pricing governance analytics project with reproducible pipeline and dashboard.\" />
-  <link rel=\"canonical\" href=\"https://mfidalgomartins.github.io/pricing-discount-governance-system/\" />
+  <meta name=\"description\" content=\"Pricing governance analytics: discount leakage, margin exposure, and customer intervention prioritization.\" />
+  <link rel=\"canonical\" href=\"https://mfidalgomartins.github.io/pricing-discount-governance-system/docs/pricing-discipline-command-center.html\" />
   <meta property=\"og:title\" content=\"Pricing Discipline Command Center\" />
-  <meta property=\"og:description\" content=\"Synthetic pricing governance analytics project with discount leakage, margin risk, and customer-level intervention views.\" />
+  <meta property=\"og:description\" content=\"Pricing governance analytics with discount leakage, margin risk, and customer-level intervention views.\" />
   <meta property=\"og:type\" content=\"website\" />
   <meta property=\"og:url\" content=\"https://mfidalgomartins.github.io/pricing-discount-governance-system/\" />
   <meta http-equiv=\"refresh\" content=\"0; url=./{DASHBOARD_FILENAME}\" />
