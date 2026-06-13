@@ -14,7 +14,7 @@ Reproducible pricing governance analytics for detecting discount leakage, quanti
 
 Discount-led growth can look healthy while quietly reducing price realization and margin quality. This project builds a governed analytics layer that separates sustainable pricing performance from structural discount dependency across customers, segments, products, channels, regions, and sales reps.
 
-The published baseline covers **38,349 order lines**, **1,173 transacting customers**, and **$1.87B synthetic revenue** from **January 2023 to December 2025**.
+The published baseline covers **38,349 order lines**, **1,173 transacting customers**, and **$1.87B in revenue** from **January 2023 to December 2025**.
 
 ## What It Delivers
 
