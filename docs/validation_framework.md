@@ -52,6 +52,8 @@ These files are generated under `outputs/` when the pipeline runs:
 - `outputs/final_validation_review.md`
 - `outputs/final_validation_summary.json`
 
+Operational rule: treat any `FAIL` status in these files as a blocker until reviewed. The pipeline raises an exception for blocker failures; do not reuse partially generated artifacts for publication.
+
 ## Final Review Layer (`run_final_validation_review`)
 - Consolidates cross-layer spot checks into a single executive-ready review.
 - Forces current-run consistency for:
@@ -75,3 +77,31 @@ These files are generated under `outputs/` when the pipeline runs:
 - `analytically_acceptable`: technical validity plus analytical consistency checks pass (denominators, totals, weighted logic).
 - `decision_support_only`: analytically acceptable but constrained by decision caveats.
 - `publish_blocked`: blocker checks fail; outputs should not be published or used for decisions.
+
+## Release Gate
+
+`scripts/release_gate.py` evaluates `outputs/final_validation_summary.json` and `outputs/metric_contract_validation.csv` against `config/release_policy.json`.
+
+Current blocking rules:
+- Required readiness flags must match policy.
+- Failed checks must be `0`.
+- Failed blocker checks must be `0`.
+- Dashboard size must be below the configured maximum.
+- Metric-contract failures must be `0`.
+
+Outputs:
+- `outputs/release/release_gate_report.json`
+- `outputs/release/release_gate_report.md`
+
+The full pipeline already runs this gate. Use the standalone script to re-check an existing run after reviewing generated outputs.
+
+## Failure Triage
+
+| Failure surface | First file to inspect | Common cause |
+|---|---|---|
+| Raw validation | `outputs/raw_validation_report.csv` | missing columns, duplicate keys, FK gaps, invalid dates, price arithmetic mismatch |
+| SQL warehouse | `outputs/warehouse/sql_validation_report.csv` | no-silent-drop failure, mart grain duplication, revenue reconciliation drift |
+| Processed validation | `outputs/processed_validation_report.csv` | score/share bounds, weighted metric mismatch, customer population mismatch |
+| Metric contracts | `outputs/metric_contract_validation.csv` | changed metric name, unit, bound, nullability, or type |
+| Release gate | `outputs/release/release_gate_report.md` | failed readiness flag, metric contract failure, oversized dashboard |
+| Repository preflight | terminal output from `make preflight` | missing required artifact, stale dashboard copy, broken Markdown link, oversized/forbidden tracked file |

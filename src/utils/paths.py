@@ -16,6 +16,20 @@ SQL_MARTS_DIR = DATA_PROCESSED_DIR / "sql_marts"
 WAREHOUSE_DB_PATH = DATA_PROCESSED_DIR / "pricing_governance.duckdb"
 
 
+def resolve_project_path(path: str | Path) -> Path:
+    candidate = Path(path)
+    if not candidate.is_absolute():
+        candidate = PROJECT_ROOT / candidate
+    resolved = candidate.resolve()
+
+    try:
+        resolved.relative_to(PROJECT_ROOT)
+    except ValueError as exc:
+        raise ValueError(f"Path escapes project root: {path}") from exc
+
+    return resolved
+
+
 def ensure_project_directories() -> None:
     for directory in [
         DATA_RAW_DIR,

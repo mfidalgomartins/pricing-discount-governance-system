@@ -230,7 +230,7 @@ def _profile_single_table(table_name: str, frame: pd.DataFrame) -> dict[str, pd.
     dimension_cols = column_profile.loc[column_profile["column_type"].isin(["dimension", "structural"]), "column_name"].tolist()
     top_values_records: list[dict] = []
     for col in dimension_cols:
-        vc = frame[col].astype(str).fillna("<NULL>").value_counts(dropna=False).head(5)
+        vc = frame[col].fillna("<NULL>").astype(str).value_counts(dropna=False).head(5)
         for value, count in vc.items():
             top_values_records.append(
                 {
@@ -334,7 +334,7 @@ def _profile_single_table(table_name: str, frame: pd.DataFrame) -> dict[str, pd.
                 }
             )
 
-        if frame[col].dtype == object:
+        if pd.api.types.is_object_dtype(frame[col]) or pd.api.types.is_string_dtype(frame[col]):
             non_null = frame[col].dropna().astype(str)
             if len(non_null) > 0:
                 numeric_like = non_null.str.match(r"^-?\d+(\.\d+)?$")

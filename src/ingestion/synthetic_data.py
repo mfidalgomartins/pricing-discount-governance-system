@@ -145,16 +145,21 @@ def _generate_sales_reps(config: SyntheticDataConfig, rng: np.random.Generator) 
     return sales_reps
 
 
-def _sample_sales_channel(segment: str, rng: np.random.Generator) -> str:
-    channel_mix = {
-        "SMB": ("Online", [0.42, 0.28, 0.20, 0.10]),
-        "Mid-Market": ("Direct", [0.14, 0.44, 0.26, 0.16]),
-        "Enterprise": ("Direct", [0.08, 0.66, 0.18, 0.08]),
-        "Public Sector": ("Direct", [0.05, 0.57, 0.24, 0.14]),
+def _sample_sales_channels(segments: pd.Series, rng: np.random.Generator) -> np.ndarray:
+    channels = np.array(["Online", "Direct", "Partner", "Reseller"], dtype=object)
+    channel_probs = {
+        "SMB": [0.42, 0.28, 0.20, 0.10],
+        "Mid-Market": [0.14, 0.44, 0.26, 0.16],
+        "Enterprise": [0.08, 0.66, 0.18, 0.08],
+        "Public Sector": [0.05, 0.57, 0.24, 0.14],
     }
-    channels = ["Online", "Direct", "Partner", "Reseller"]
-    _, probs = channel_mix[segment]
-    return rng.choice(channels, p=probs)
+    sampled = np.empty(len(segments), dtype=object)
+    segment_values = segments.to_numpy()
+    for segment, probs in channel_probs.items():
+        mask = segment_values == segment
+        if mask.any():
+            sampled[mask] = rng.choice(channels, size=int(mask.sum()), p=probs)
+    return sampled
 
 
 def _generate_orders(
@@ -179,37 +184,41 @@ def _generate_orders(
     order_dates = pd.to_datetime(order_dates)
 
     reps_by_region = sales_reps.groupby("region")["sales_rep_id"].apply(list).to_dict()
+    all_reps = sales_reps["sales_rep_id"].to_numpy()
+    non_channel_reps = sales_reps.loc[sales_reps["team"] != "Channel", "sales_rep_id"].to_numpy()
+    if len(non_channel_reps) == 0:
+        non_channel_reps = all_reps
     primary_rep = {
-        row.customer_id: rng.choice(reps_by_region.get(row.region, sales_reps["sales_rep_id"].tolist()))
+        row.customer_id: rng.choice(reps_by_region.get(row.region, all_reps))
         for row in customers.itertuples(index=False)
     }
 
-    orders_records = []
-    for i, (cust_idx, order_date) in enumerate(zip(sampled_customer_idx, order_dates), start=1):
-        customer = customers.loc[cust_idx]
-        segment = customer["segment"]
-        region = customer["region"]
-        channel = _sample_sales_channel(segment, rng)
+    sampled_customers = customers.loc[sampled_customer_idx, ["customer_id", "segment", "region"]].reset_index(drop=True)
+    sales_channel = _sample_sales_channels(sampled_customers["segment"], rng)
+    assigned_rep = sampled_customers["customer_id"].map(primary_rep).to_numpy(dtype=object)
 
-        regional_reps = reps_by_region.get(region, sales_reps["sales_rep_id"].tolist())
-        assigned_rep = primary_rep[customer["customer_id"]] if rng.random() < 0.76 else rng.choice(regional_reps)
+    override_primary = rng.random(config.n_orders) >= 0.76
+    region_values = sampled_customers["region"].to_numpy()
+    for region in pd.unique(region_values):
+        mask = override_primary & (region_values == region)
+        if mask.any():
+            regional_reps = np.array(reps_by_region.get(region, all_reps), dtype=object)
+            assigned_rep[mask] = rng.choice(regional_reps, size=int(mask.sum()))
 
-        # Keep online deals mostly with non-channel reps to mimic inside sales ownership.
-        if channel == "Online" and rng.random() < 0.65:
-            non_channel_reps = sales_reps.loc[sales_reps["team"] != "Channel", "sales_rep_id"].to_list()
-            assigned_rep = rng.choice(non_channel_reps)
+    # Manter deals online maioritariamente com reps non-channel.
+    online_inside_sales = (sales_channel == "Online") & (rng.random(config.n_orders) < 0.65)
+    if online_inside_sales.any():
+        assigned_rep[online_inside_sales] = rng.choice(non_channel_reps, size=int(online_inside_sales.sum()))
 
-        orders_records.append(
-            {
-                "order_id": f"O{i:07d}",
-                "customer_id": customer["customer_id"],
-                "order_date": order_date,
-                "sales_channel": channel,
-                "sales_rep_id": assigned_rep,
-            }
-        )
-
-    orders = pd.DataFrame(orders_records).sort_values("order_date").reset_index(drop=True)
+    orders = pd.DataFrame(
+        {
+            "order_id": [f"O{i:07d}" for i in range(1, config.n_orders + 1)],
+            "customer_id": sampled_customers["customer_id"].to_numpy(),
+            "order_date": order_dates,
+            "sales_channel": sales_channel,
+            "sales_rep_id": assigned_rep,
+        }
+    ).sort_values("order_date").reset_index(drop=True)
     return orders
 
 

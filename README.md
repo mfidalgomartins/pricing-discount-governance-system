@@ -97,6 +97,31 @@ make run-smoke
 
 The base `high_discount_flag` threshold and its sensitivity range are defined separately in `config/policy_thresholds.json`. Python, SQL, reports, and visualizations consume the same base threshold.
 
+## Operational Runbook
+
+Use [docs/operations_runbook.md](docs/operations_runbook.md) for the practical operating checklist: environment setup, deterministic run settings, data-contract requirements, validation triage, release gate, privacy notes, and publication steps.
+
+Minimum production-style workflow:
+
+```bash
+make install
+make run-smoke
+make lint
+make test
+make preflight
+```
+
+Before publishing reviewable artifacts, run:
+
+```bash
+make run
+make report
+python scripts/release_gate.py
+make preflight
+```
+
+Do not publish if `outputs/final_validation_summary.json`, `outputs/release/release_gate_report.json`, or any validation CSV reports failed checks. Runtime CSV/JSON/Markdown outputs are reproducible and ignored by git unless explicitly listed in [outputs/README.md](outputs/README.md).
+
 ## Outputs
 
 - Local dashboard output: `outputs/dashboard/pricing-discipline-command-center.html`
@@ -118,6 +143,8 @@ make preflight # required-file and artifact checks
 ```
 
 Coverage focuses on raw validation order, pandas merge integrity, SQL/Python metric parity, weighted margin reconciliation, deterministic dates, CLI guards, metric contracts, release gates, visualization outputs, and dashboard HTML/accessibility contracts.
+
+CI runs install, compile check, repository preflight, unit tests, a smoke pipeline run, and the release gate. Local release candidates should pass the same sequence before updating dashboard/report artifacts.
 
 ## Repository Map
 

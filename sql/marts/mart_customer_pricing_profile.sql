@@ -17,24 +17,25 @@ order_sequence as (
         order_id,
         order_date,
         high_discount_order,
-        lag(high_discount_order) over (
-            partition by customer_id
-            order by order_date, order_id
-        ) as prev_high_discount_order
+        case
+            when high_discount_order = 1
+             and coalesce(
+                    lag(high_discount_order) over (
+                        partition by customer_id
+                        order by order_date, order_id
+                    ),
+                    0
+                 ) = 1 then 1
+            else 0
+        end as repeat_high_discount_pair
     from order_level
 ),
 repeat_behavior as (
     select
         customer_id,
+        -- Regra de negocio: mede pares consecutivos de encomendas com desconto alto.
         case
-            when count(*) > 1 then
-                sum(
-                    case
-                        when high_discount_order = 1
-                         and coalesce(prev_high_discount_order, 0) = 1 then 1
-                        else 0
-                    end
-                )::double / (count(*) - 1)
+            when count(*) > 1 then cast(sum(repeat_high_discount_pair) as double) / (count(*) - 1)
             else 0
         end as repeat_discount_behavior
     from order_sequence
@@ -43,8 +44,8 @@ repeat_behavior as (
 order_stats as (
     select
         customer_id,
-        avg(discounted_order)::double as share_orders_discounted,
-        avg(high_discount_order)::double as share_orders_high_discount
+        cast(avg(discounted_order) as double) as share_orders_discounted,
+        cast(avg(high_discount_order) as double) as share_orders_high_discount
     from order_level
     group by 1
 ),
@@ -58,8 +59,9 @@ customer_base as (
         count(*) as total_order_items,
         sum(line_revenue) as total_revenue,
         avg(discount_depth) as avg_discount_pct,
-        sum(discount_depth * line_list_revenue) / nullif(sum(line_list_revenue), 0) as weighted_discount_pct,
-        avg(discounted_flag)::double as share_order_items_discounted,
+        sum(line_list_revenue) as total_list_revenue,
+        sum(discount_depth * line_list_revenue) as weighted_discount_value,
+        cast(avg(discounted_flag) as double) as share_order_items_discounted,
         sum(case when high_discount_flag = 1 then line_revenue else 0 end) as revenue_high_discount,
         count(distinct product_id) as product_diversity,
         sum(gross_margin_value) as gross_margin_value,
@@ -76,10 +78,16 @@ select
     cb.total_order_items,
     cb.total_revenue,
     cb.avg_discount_pct,
-    cb.weighted_discount_pct,
+    case
+        when cb.total_list_revenue > 0 then cb.weighted_discount_value / cb.total_list_revenue
+        else 0
+    end as weighted_discount_pct,
     cb.share_order_items_discounted,
     cb.product_diversity,
-    cb.gross_margin_value / nullif(cb.total_revenue, 0) as avg_margin_proxy_pct,
+    case
+        when cb.total_revenue > 0 then cb.gross_margin_value / cb.total_revenue
+        else 0
+    end as avg_margin_proxy_pct,
     coalesce(cb.realized_price_cv, 0.0) as realized_price_cv,
     coalesce(os.share_orders_discounted, 0.0) as share_orders_discounted,
     coalesce(os.share_orders_high_discount, 0.0) as share_orders_high_discount,

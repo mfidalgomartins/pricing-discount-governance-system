@@ -364,15 +364,20 @@ def validate_processed_tables(processed_tables: dict[str, pd.DataFrame]) -> tupl
         if {"line_revenue", "line_list_revenue"}.issubset(pricing.columns):
             total_revenue = float(pricing["line_revenue"].sum())
             total_list_revenue = float(pricing["line_list_revenue"].sum())
-            weighted_direct = float(np.average(pricing["discount_depth"], weights=pricing["line_list_revenue"]))
-            weighted_from_totals = float(1 - (total_revenue / total_list_revenue)) if total_list_revenue else np.nan
-            weighted_match = bool(abs(weighted_direct - weighted_from_totals) <= 0.001)
+            if total_list_revenue > 0:
+                weighted_direct = float(np.average(pricing["discount_depth"], weights=pricing["line_list_revenue"]))
+                weighted_from_totals = float(1 - (total_revenue / total_list_revenue))
+                weighted_match = bool(abs(weighted_direct - weighted_from_totals) <= 0.001)
+                detail = f"weighted_direct={weighted_direct:.6f}, weighted_from_totals={weighted_from_totals:.6f}"
+            else:
+                weighted_match = False
+                detail = "total_list_revenue must be positive for weighted discount reconciliation"
             checks.append(
                 _result_row(
                     "order_item_pricing_metrics_weighted_discount_reconciliation",
                     "PASS" if weighted_match else "FAIL",
                     0 if weighted_match else 1,
-                    f"weighted_direct={weighted_direct:.6f}, weighted_from_totals={weighted_from_totals:.6f}",
+                    detail,
                 )
             )
 

@@ -240,8 +240,15 @@ def create_visualization_pack(
     ax.set_ylabel("Average discount (%)")
     ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _p: f"{x*100:.0f}%"))
 
-    for i, row in channel_cmp.reset_index().iterrows():
-        ax.text(i, row["avg_discount_pct"] + 0.004, f"Margin {row['avg_margin_proxy_pct']*100:.1f}%", ha="center", va="bottom", fontsize=9)
+    for i, row in enumerate(channel_cmp.itertuples(index=False)):
+        ax.text(
+            i,
+            row.avg_discount_pct + 0.004,
+            f"Margin {row.avg_margin_proxy_pct*100:.1f}%",
+            ha="center",
+            va="bottom",
+            fontsize=9,
+        )
 
     _save(fig, viz_dir / "channel_pricing_comparison.png")
     chart_manifest.append(
@@ -254,11 +261,14 @@ def create_visualization_pack(
     )
 
     # 6) Product pricing dependence ranking
+    pricing_with_discount_scope = pricing.assign(
+        high_discount_revenue=pricing["line_revenue"].where(pricing["high_discount_flag"] == 1, 0.0)
+    )
     product_dep = (
-        pricing.groupby(["product_id", "product_name", "category"], as_index=False)
+        pricing_with_discount_scope.groupby(["product_id", "product_name", "category"], as_index=False)
         .agg(
             revenue=("line_revenue", "sum"),
-            high_discount_revenue=("line_revenue", lambda s: s[pricing.loc[s.index, "high_discount_flag"] == 1].sum()),
+            high_discount_revenue=("high_discount_revenue", "sum"),
             avg_discount_pct=("discount_depth", "mean"),
             gross_margin_value=("gross_margin_value", "sum"),
         )

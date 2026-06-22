@@ -4,9 +4,11 @@ Publication-ready deliverables for the Pricing Discount Governance System. Every
 
 ```
 outputs/
-├── reports/    Analytical PDF report (start here)
-├── graphs/     The chart pack used throughout the report
-└── dashboard/  Standalone interactive command center (open the .html directly)
+├── reports/     Analytical PDF report (start here)
+├── graphs/      The chart pack used throughout the report
+├── dashboard/   Standalone interactive command center (open the .html directly)
+├── warehouse/   SQL model logs, manifest, and validation report
+└── release/     Release gate reports from the latest pipeline run
 ```
 
 ## Reports
@@ -26,6 +28,33 @@ Eighteen charts, one per analytical question, covering trend, distribution, comp
 [`pricing-discipline-command-center.html`](dashboard/pricing-discipline-command-center.html) opens locally with no server or build step. Data is embedded inline and the only local dependency, Chart.js, ships in `vendor/`. It carries KPI cards, scope filters, and four interactive charts that re-slice the book by segment, region, category, and channel.
 
 Published version: https://mfidalgomartins.github.io/pricing-discount-governance-system/
+
+## Operational Files
+
+Generated diagnostics in the root of `outputs/` are designed for audit and troubleshooting:
+
+| File | Purpose |
+|---|---|
+| `run_manifest.json` | run parameters, row counts, and validation flags |
+| `raw_validation_report.csv` | source contract checks |
+| `processed_validation_report.csv` | processed table checks |
+| `metric_contract_validation.csv` | published metric contract checks |
+| `final_validation_summary.json` | final readiness state and blocker counts |
+| `final_validation_review.md` | human-readable validation review |
+| `release/release_gate_report.md` | release policy pass/fail summary |
+
+Most CSV/JSON/Markdown diagnostics are ignored by git and should be regenerated rather than hand-edited.
+
+## Rebuild Order
+
+```bash
+make run
+make report
+python scripts/release_gate.py
+make preflight
+```
+
+Do not publish if the release gate fails or if validation reports contain unresolved `FAIL` rows.
 
 ---
 

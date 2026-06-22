@@ -27,6 +27,16 @@ def _pct_rank(series: pd.Series, reverse: bool = False) -> pd.Series:
     return (1 - ranked) if reverse else ranked
 
 
+def _add_discount_scope_columns(pricing: pd.DataFrame) -> pd.DataFrame:
+    out = pricing.copy()
+    high_discount_mask = out["discount_depth"] >= _HIGH_DISCOUNT_THRESHOLD
+    margin_risk_mask = high_discount_mask & (out["margin_proxy_pct"] < 0.35)
+    out["high_discount_revenue"] = out["line_revenue"].where(high_discount_mask, 0.0)
+    out["margin_at_risk_revenue"] = out["line_revenue"].where(margin_risk_mask, 0.0)
+    out["discount_leakage_value"] = out["line_list_revenue"] - out["line_revenue"]
+    return out
+
+
 def _compute_period_growth(yearly: pd.DataFrame) -> tuple[int, int, float] | None:
     ordered = yearly.sort_values("year")
     if len(ordered) < 2:
@@ -125,20 +135,15 @@ def _build_governance_action_queue(
     if customer_risk_scores is None or customer_risk_scores.empty:
         return pd.DataFrame()
 
+    pricing_scoped = _add_discount_scope_columns(pricing)
     customer_leakage = (
-        pricing.groupby("customer_id", as_index=False)
+        pricing_scoped.groupby("customer_id", as_index=False)
         .agg(
             revenue_in_scope=("line_revenue", "sum"),
             total_list_revenue=("line_list_revenue", "sum"),
-            high_discount_revenue=("line_revenue", lambda s: s[pricing.loc[s.index, "discount_depth"] >= _HIGH_DISCOUNT_THRESHOLD].sum()),
-            margin_at_risk_revenue=(
-                "line_revenue",
-                lambda s: s[
-                    (pricing.loc[s.index, "discount_depth"] >= _HIGH_DISCOUNT_THRESHOLD)
-                    & (pricing.loc[s.index, "margin_proxy_pct"] < 0.35)
-                ].sum(),
-            ),
-            discount_leakage_value=("line_revenue", lambda s: (pricing.loc[s.index, "line_list_revenue"] - s).sum()),
+            high_discount_revenue=("high_discount_revenue", "sum"),
+            margin_at_risk_revenue=("margin_at_risk_revenue", "sum"),
+            discount_leakage_value=("discount_leakage_value", "sum"),
         )
     )
 
@@ -173,11 +178,12 @@ def _build_governance_action_queue(
 
 
 def _overall_pricing_health(pricing: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
+    pricing_scoped = _add_discount_scope_columns(pricing)
     total_revenue = float(pricing["line_revenue"].sum())
     total_list_revenue = float(pricing["line_list_revenue"].sum())
     total_margin = float(pricing["gross_margin_value"].sum())
 
-    high_discount_revenue = float(pricing.loc[pricing["discount_depth"] >= _HIGH_DISCOUNT_THRESHOLD, "line_revenue"].sum())
+    high_discount_revenue = float(pricing_scoped["high_discount_revenue"].sum())
     avg_realized_discount = float(pricing["discount_depth"].mean())
     weighted_discount = 1 - (total_revenue / total_list_revenue) if total_list_revenue else np.nan
     price_realization = total_revenue / total_list_revenue if total_list_revenue else np.nan
@@ -198,13 +204,13 @@ def _overall_pricing_health(pricing: pd.DataFrame) -> tuple[pd.DataFrame, pd.Dat
     )
 
     yearly = (
-        pricing.groupby("year", as_index=False)
+        pricing_scoped.groupby("year", as_index=False)
         .agg(
             revenue=("line_revenue", "sum"),
             list_revenue=("line_list_revenue", "sum"),
             margin_proxy_value=("gross_margin_value", "sum"),
             avg_realized_discount=("discount_depth", "mean"),
-            high_discount_revenue=("line_revenue", lambda s: s[pricing.loc[s.index, "discount_depth"] >= _HIGH_DISCOUNT_THRESHOLD].sum()),
+            high_discount_revenue=("high_discount_revenue", "sum"),
         )
         .sort_values("year")
     )
@@ -221,6 +227,7 @@ def _overall_pricing_health(pricing: pd.DataFrame) -> tuple[pd.DataFrame, pd.Dat
 
 
 def _discount_dependency(pricing: pd.DataFrame, customer_profile: pd.DataFrame) -> dict[str, pd.DataFrame]:
+    pricing_scoped = _add_discount_scope_columns(pricing)
     customer_dependency = customer_profile.copy()
     customer_dependency["high_discount_revenue_value"] = (
         customer_dependency["revenue_high_discount_share"] * customer_dependency["total_revenue"]
@@ -230,12 +237,12 @@ def _discount_dependency(pricing: pd.DataFrame, customer_profile: pd.DataFrame) 
     )
 
     segment_dependency = (
-        pricing.groupby("segment", as_index=False)
+        pricing_scoped.groupby("segment", as_index=False)
         .agg(
             revenue=("line_revenue", "sum"),
             avg_discount_pct=("discount_depth", "mean"),
             gross_margin_value=("gross_margin_value", "sum"),
-            high_discount_revenue=("line_revenue", lambda s: s[pricing.loc[s.index, "discount_depth"] >= _HIGH_DISCOUNT_THRESHOLD].sum()),
+            high_discount_revenue=("high_discount_revenue", "sum"),
         )
         .sort_values("high_discount_revenue", ascending=False)
     )
@@ -258,11 +265,11 @@ def _discount_dependency(pricing: pd.DataFrame, customer_profile: pd.DataFrame) 
     segment_dependency = segment_dependency.drop(columns="gross_margin_value")
 
     product_dependency = (
-        pricing.groupby(["product_id", "product_name", "category"], as_index=False)
+        pricing_scoped.groupby(["product_id", "product_name", "category"], as_index=False)
         .agg(
             revenue=("line_revenue", "sum"),
             avg_discount_pct=("discount_depth", "mean"),
-            high_discount_revenue=("line_revenue", lambda s: s[pricing.loc[s.index, "discount_depth"] >= _HIGH_DISCOUNT_THRESHOLD].sum()),
+            high_discount_revenue=("high_discount_revenue", "sum"),
             order_lines=("order_item_id", "count"),
         )
         .sort_values("revenue", ascending=False)

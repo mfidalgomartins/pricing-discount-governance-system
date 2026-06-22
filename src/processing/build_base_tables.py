@@ -4,6 +4,40 @@ from __future__ import annotations
 import pandas as pd
 
 
+REQUIRED_RAW_COLUMNS = {
+    "customers": {"customer_id", "signup_date", "segment", "region", "company_size"},
+    "products": {"product_id", "product_name", "category", "list_price", "unit_cost"},
+    "orders": {"order_id", "customer_id", "order_date", "sales_channel", "sales_rep_id"},
+    "order_items": {
+        "order_item_id",
+        "order_id",
+        "product_id",
+        "quantity",
+        "list_price_at_sale",
+        "realized_unit_price",
+        "discount_pct",
+    },
+    "sales_reps": {"sales_rep_id", "team", "region"},
+}
+
+
+def _require_raw_tables(raw_tables: dict[str, pd.DataFrame]) -> None:
+    missing_tables = sorted(set(REQUIRED_RAW_COLUMNS) - set(raw_tables))
+    if missing_tables:
+        raise KeyError(f"Missing required raw table(s): {', '.join(missing_tables)}")
+
+    missing_columns = {
+        table_name: sorted(required_cols - set(raw_tables[table_name].columns))
+        for table_name, required_cols in REQUIRED_RAW_COLUMNS.items()
+        if required_cols - set(raw_tables[table_name].columns)
+    }
+    if missing_columns:
+        details = "; ".join(
+            f"{table}: {', '.join(columns)}" for table, columns in missing_columns.items()
+        )
+        raise KeyError(f"Missing required raw column(s): {details}")
+
+
 def _merge_many_to_one(
     left: pd.DataFrame,
     right: pd.DataFrame,
@@ -32,6 +66,8 @@ def _merge_many_to_one(
 
 
 def build_order_item_enriched(raw_tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
+    _require_raw_tables(raw_tables)
+
     customers = raw_tables["customers"].copy()
     products = raw_tables["products"].copy()
     orders = raw_tables["orders"].copy()

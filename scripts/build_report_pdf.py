@@ -33,6 +33,13 @@ SENSITIVITY_THRESHOLDS = sorted(float(value) for value in S["high_discount_sensi
 LOW_THRESHOLD = SENSITIVITY_THRESHOLDS[0]
 BASE_THRESHOLD = float(S["high_discount_threshold"])
 HIGH_THRESHOLD = SENSITIVITY_THRESHOLDS[-1]
+SEG_VALUE = {row["segment"]: row for row in S.get("segment_value_pool", [])}
+CHAN_VALUE = {row["sales_channel"]: row for row in S.get("channel_value_pool", [])}
+RISK_DETAIL = {row["risk_tier"]: row for row in S.get("risk_tier_detail", [])}
+SCENARIOS = {int(row["realization_improvement_pp"]): row for row in S.get("recovery_scenarios", [])}
+CAT_VALUE = {row["category"]: row for row in S.get("category", [])}
+PROF_SERVICES = CAT_VALUE.get("Professional Services", S["category"][1])
+CORE_PLATFORM = CAT_VALUE.get("Core Platform", S["category"][-1])
 
 # ---------------------------------------------------------------------------
 # Palette
@@ -117,6 +124,12 @@ def sub(title):
 
 def para(text, style=BODY):
     return Paragraph(text, style)
+
+TBL_WRAP = ParagraphStyle("tblwrap", fontName="Times-Roman", fontSize=9,
+                          leading=11.2, textColor=INK, alignment=TA_LEFT)
+
+def tbl_para(text):
+    return Paragraph(text, TBL_WRAP)
 
 def bullets(items):
     return [Paragraph(t, BULLET, bulletText="•") for t in items]
@@ -291,7 +304,7 @@ addall(section("Executive summary", "What the book is telling us"))
 A(para(
     f"This review examines whether the business is growing on healthy pricing or on discounting that "
     f"quietly erodes margin. The answer, across {money(S['total_revenue'],2)} of revenue and "
-    f"{S['n_order_items']:,} order lines spanning {S['coverage'].lower()}, is the second. Revenue is "
+    f"{S['n_order_items']:,} order lines spanning {S['coverage']}, is the second. Revenue is "
     f"steady, but it is purchased at a discount that has not come down in three years and that lands "
     f"hardest on the largest accounts. The verdict is a discount-reliant growth risk: not a crisis, but a "
     f"structural drag that is large enough to act on and concentrated enough to fix.", LEAD))
@@ -301,8 +314,8 @@ A(para(
     f"The difference, {money(S['revenue_forgone'])}, is revenue given away through discount. That puts price "
     f"realization at {pct(S['price_realization'])}, and it has barely moved month to month, holding inside a "
     f"{pct(S['pr_min'])} to {pct(S['pr_max'])} band for {S['n_months']} straight months. Stability at this level is "
-    f"the tell. A discount that never relaxes is not a sequence of tactical deals; it is a standing policy that "
-    f"the organisation has stopped noticing."))
+    f"the key evidence. A discount that never relaxes is not a sequence of tactical deals; it is an operating norm "
+    f"that has become embedded in the commercial model."))
 A(para(
     f"Discount depth and margin move against each other with discipline. At the customer level the correlation "
     f"between average discount and average margin is {S['disc_margin_r']:.2f}, and the slope is almost exactly "
@@ -318,6 +331,12 @@ A(para(
     f"flowing through deals discounted past the high-discount line. Revenue is concentrated too: the top "
     f"{pct(0.20,0)} of customers account for {pct(S['top20_rev_share'])} of revenue. A governance effort aimed at a "
     f"few dozen accounts can therefore reach most of the exposure without disturbing the long tail."))
+A(para(
+    f"The management implication is specific. The issue should not be treated as a broad price-rise programme or an "
+    f"across-the-board tightening of sales discretion. The value pool sits in three places: Enterprise discount depth, "
+    f"indirect-channel approval discipline, and Professional Services economics. A two-point improvement in realization "
+    f"on the analysed list-price base is worth approximately {money(SCENARIOS.get(2, {}).get('annualized_revenue_capture', S['total_list_revenue']*0.02))} "
+    f"over the same period, before any volume response. That is the prize to manage against."))
 
 A(sub("The five findings that matter"))
 addall(bullets([
@@ -331,7 +350,7 @@ addall(bullets([
     f"{pct(S['segments'][0]['share_high_discount'])}.",
     f"<b>Indirect channels discount deepest.</b> The reseller channel runs a {pct(S['channel']['Reseller']['discount'])} "
     f"weighted discount against {pct(S['channel']['Online']['discount'])} Online, and the Enterprise-reseller cell reaches "
-    f"{pct(S['enterprise_reseller_disc'])} with {pct(0.886)} of its revenue deeply discounted.",
+    f"{pct(S['enterprise_reseller_disc'])} with {pct(S.get('enterprise_reseller', {}).get('high_discount_share', 0.886))} of its revenue deeply discounted.",
     f"<b>The exposure is nameable.</b> {S['high_tier_customers']} accounts carrying {money(S['high_tier_revenue'])} sit in "
     f"the high-risk tier with an average priority score of {S['risk_tiers'][0]['avg_governance_priority']:.0f} out of 100, "
     f"each flagged for discount-policy redesign.",
@@ -341,7 +360,7 @@ A(para(
     f"Section 11 sets out the response. In short: ring-fence the {S['high_tier_customers']} high-risk accounts for renegotiation "
     f"at renewal, put a {pct(S['high_discount_threshold'],0)} approval gate on the reseller and partner channels where depth concentrates, and re-price "
     f"the Professional Services category, which discounts like the rest of the book but earns a "
-    f"{pct(S['category'][1]['margin'])} margin against a portfolio average above {pct(S['margin_proxy'])}. None of these moves "
+    f"{pct(PROF_SERVICES['margin'])} margin against a portfolio average above {pct(S['margin_proxy'])}. None of these moves "
     f"requires new revenue. Each recovers value the book is already producing and then discounting away."))
 
 # ===========================================================================
@@ -353,7 +372,7 @@ A(para(
     "deal closed three points cheaper is invisible in a quarterly revenue number; ten thousand of them are a margin "
     "problem that no one decided to create. The purpose of this review is to make that accumulated decision visible, "
     "to quantify what it costs, and to locate it precisely enough that it can be governed rather than merely "
-    "lamented."))
+    "described after the fact."))
 A(para(
     f"The analytical question is deliberately narrow. It is not whether the business is growing; revenue is stable "
     f"across the window. It is whether that revenue rests on healthy pricing or on a discounting habit that erodes "
@@ -377,6 +396,21 @@ A(para(
     f"the recommendations carry the argument. For the commercial and finance owner, the findings sections give the "
     f"segment, channel, and account detail needed to act. For the technical reviewer, Sections 3 and 4 document the "
     f"data lineage, the metric definitions, and the validation that stands behind every figure."))
+A(sub("Decision frame"))
+A(para(
+    "The report is designed to support three decisions: where to intervene first, which discounting behaviour should "
+    "be governed by policy rather than left to deal discretion, and how management should measure whether the "
+    "intervention works. It is not designed to set final list prices, approve individual account tactics, or replace "
+    "field judgement. Those decisions require competitive context, contract terms, renewal dates, and customer-level "
+    "commercial intelligence that sit outside the transaction data."))
+decision_tbl = [
+    ["Decision need", "Evidence used in this report", "Management output"],
+    ["Size the value pool", tbl_para("List value, billed revenue, realization trend, annual leakage"), tbl_para("Realization-improvement target")],
+    ["Locate the exposure", tbl_para("Segment, channel, category, region and segment-channel cuts"), tbl_para("Priority plays by cell")],
+    ["Turn diagnosis into action", tbl_para("Customer risk scores, tiering, concentration and driver analysis"), tbl_para("Named account worklist")],
+]
+A(CondPageBreak(1.8*inch))
+A(styled_table(decision_tbl, [1.55*inch, 3.0*inch, CONTENT_W-4.55*inch], align_right_from=99))
 
 A(figure("02_price_realization_trend.png",
          "Figure 1. Price realization has held inside a two-point band for three years. The shaded area is the share "
@@ -393,6 +427,17 @@ A(para(
     f"enriched order-item grain of {S['n_order_items']:,} rows. That grain is the atom of the analysis: one row per "
     f"product sold on one order, carrying its list price, its realized price, the discount between them, an estimated "
     f"unit cost, and the segment, channel, region, and tenure context of the sale."))
+lineage_tbl = [
+    ["Layer", "Role in the analysis", "Primary control"],
+    ["Raw inputs", tbl_para("Customers, products, orders, order items and sales representatives"), tbl_para("Schema and required-column checks")],
+    ["Order-item grain", tbl_para("Joins commercial context to realized price, list price, cost and discount"), tbl_para("Row-count and grain integrity checks")],
+    ["Feature layer", tbl_para("Constructs discount depth, margin proxy, residual price dispersion and exposure flags"), tbl_para("Metric-contract reconciliation")],
+    ["Scoring layer", tbl_para("Prioritises customers by dependency, margin erosion and pricing risk"), tbl_para("Tier and score distribution checks")],
+    ["Report layer", tbl_para("Publishes only validated metrics and rendered chart assets"), tbl_para("Release gate before PDF generation")],
+]
+A(CondPageBreak(2.0*inch))
+A(styled_table(lineage_tbl, [1.2*inch, 3.6*inch, CONTENT_W-4.8*inch], align_right_from=99))
+A(Spacer(1, 6))
 A(sub("The margin proxy and why it is a proxy"))
 A(para(
     "Cost of goods is estimated rather than booked, so margin throughout this report is a proxy, defined as realized "
@@ -470,7 +515,7 @@ A(para(
 # ===========================================================================
 addall(section("Findings: the aggregate picture", "Axis one: does the book realize its prices"))
 A(para(
-    f"Start with the whole book. Over {S['coverage'].lower()} the business billed {money(S['total_revenue'],2)} against "
+    f"Start with the whole book. Over {S['coverage']} the business billed {money(S['total_revenue'],2)} against "
     f"a list value of {money(S['total_list_revenue'],2)}. The {money(S['revenue_forgone'])} difference is the cost of "
     f"discount, and at {pct(S['price_realization'])} realization it is large in both absolute and relative terms. For "
     f"every five dollars the catalogue says the book is worth, it collects a little over four."))
@@ -481,6 +526,24 @@ A(para(
     f"behind it moves just as little, oscillating around {pct(S['weighted_discount'])} without trend. Revenue, plotted "
     f"against that flat discount line in Figure 2, is similarly trendless. The book is not growing into its discount or "
     f"out of it. It is holding both constant."))
+annual_tbl = [["Year", "Revenue", "List value", "Forgone", "Realization", "High-disc rev."]]
+for r in S.get("annual_summary", []):
+    annual_tbl.append([
+        str(int(r["order_year"])),
+        money(r["revenue"]),
+        money(r["list_revenue"]),
+        money(r["revenue_forgone"]),
+        pct(r["price_realization"]),
+        pct(r["high_discount_revenue_share"]),
+    ])
+A(CondPageBreak(1.6*inch))
+A(styled_table(annual_tbl, [0.7*inch, 1.15*inch, 1.15*inch, 1.05*inch, 1.1*inch, CONTENT_W-5.15*inch]))
+A(Spacer(1, 6))
+A(para(
+    "The annual view is deliberately included because it is harder to dismiss than a monthly line. The same pattern "
+    "holds after seasonality is absorbed into full-year totals: realization remains in the low eighties, annual "
+    "forgone revenue remains material, and high-discount revenue remains a recurring part of the book. That makes the "
+    "issue a management system problem, not a calendar effect."))
 A(figure("01_revenue_trend_discount_overlay.png",
          "Figure 2. Monthly revenue against the revenue-weighted discount. Neither trends. The discount is a level the "
          "organisation operates at, not a response to conditions that vary."))
@@ -496,6 +559,19 @@ A(para(
     f"intervention. A two-point improvement in realization, from {pct(S['price_realization'])} toward "
     f"{pct(S['price_realization']+0.02)}, is worth on the order of {money(S['total_list_revenue']*0.02)} a period, every "
     f"period, which is the budget any governance effort should be measured against."))
+scenario_tbl = [["Realization lift", "New realization", "Revenue capture on analysed list base"]]
+for points in [1, 2, 3]:
+    s = SCENARIOS.get(points)
+    if s:
+        scenario_tbl.append([f"+{points} pp", pct(s["new_price_realization"]), money(s["annualized_revenue_capture"])])
+A(CondPageBreak(1.3*inch))
+A(styled_table(scenario_tbl, [1.55*inch, 1.55*inch, CONTENT_W-3.1*inch]))
+A(Spacer(1, 6))
+A(para(
+    "These scenarios are not forecasts and do not assume demand elasticity, competitive response, or renewal timing. "
+    "They are sizing cases: what management would recover if the existing list-price base billed one, two, or three "
+    "points closer to list. The cases provide a practical value yardstick for prioritising governance work and for "
+    "deciding how much commercial disruption is justified."))
 
 # ===========================================================================
 # 6. FINDINGS — DEPTH AND MARGIN
@@ -520,7 +596,7 @@ A(para(
     f"{S['disc_margin_r']:.2f} and a fitted slope of {S['disc_margin_slope']:.2f} margin points per discount point. A "
     f"slope of one is the worst case for a discounter: it means depth is not bought down by volume or mix at the account "
     f"level either. The customer who is discounted ten points deeper than another is, on average, ten margin points "
-    f"thinner, full stop."))
+    f"thinner after the book is read at account grain."))
 A(figure("06_discount_margin_correlation.png",
          "Figure 4. Every customer plotted by discount and margin, sized by revenue. The downward fit is steep and tight; "
          "deeper-discounted customers are reliably thinner-margin customers, with no volume offset visible."))
@@ -577,6 +653,24 @@ A(para(
     f"{pct(S['segments'][3]['share_high_discount'])}. These are not two points on a smooth gradient but two different "
     f"pricing regimes operating in the same company. SMB has, in effect, already solved the problem this review "
     f"describes. Enterprise has not."))
+seg_value_tbl = [["Segment", "Forgone", "Share of forgone", "Realization", "Customers"]]
+for s in S.get("segment_value_pool", []):
+    seg_value_tbl.append([
+        s["segment"],
+        money(s["revenue_forgone"]),
+        pct(s["share_of_revenue_forgone"]),
+        pct(s["price_realization"]),
+        f"{int(s['customers']):,}",
+    ])
+A(CondPageBreak(1.5*inch))
+A(styled_table(seg_value_tbl, [1.45*inch, 1.15*inch, 1.35*inch, 1.15*inch, CONTENT_W-5.1*inch], highlight_rows=[1]))
+A(Spacer(1, 6))
+A(para(
+    f"The value-pool view confirms the operational priority. Enterprise is not only the largest revenue segment; it is "
+    f"also the largest contributor to discount leakage, carrying {pct(SEG_VALUE.get('Enterprise', {}).get('share_of_revenue_forgone', 0))} "
+    f"of total forgone revenue. That is why the recommended programme starts with Enterprise account renewals rather "
+    f"than broad enablement or generic sales training. The problem is measurable at segment level and actionable at "
+    f"account level."))
 A(sub("Channel sharpens the same picture"))
 A(para(
     f"Cutting by channel shows the indirect routes to market discount markedly deeper than the direct ones. The "
@@ -585,14 +679,31 @@ A(para(
     f"{pct(S['channel']['Online']['discount'])} Online. Direct is the largest channel at "
     f"{money(S['channel']['Direct']['revenue'])}, so its discount sets the book average, but the indirect channels are "
     f"where depth concentrates per dollar of revenue."))
+channel_value_tbl = [["Channel", "Revenue", "Forgone", "Realization", "Margin"]]
+for c in S.get("channel_value_pool", []):
+    channel_value_tbl.append([
+        c["sales_channel"],
+        money(c["revenue"]),
+        money(c["revenue_forgone"]),
+        pct(c["price_realization"]),
+        pct(c["margin_proxy_pct"]),
+    ])
+A(CondPageBreak(1.5*inch))
+A(styled_table(channel_value_tbl, [1.3*inch, 1.2*inch, 1.15*inch, 1.15*inch, CONTENT_W-4.8*inch]))
+A(Spacer(1, 6))
+A(para(
+    "The channel value pool matters because an approval rule changes behaviour only where it is placed. Direct carries "
+    "the largest dollars, but Reseller and Partner carry the lowest realization and the highest depth. The control "
+    "therefore belongs at the indirect-channel deal review point: it catches the behaviour with the worst realization "
+    "without slowing down every direct renewal."))
 A(figure("09_channel_discount_ladder.png",
          "Figure 8. Weighted discount by channel, revenue noted at each base. Indirect channels discount close to half "
          "again as deep as Online."))
 A(para(
     f"The interaction of segment and channel is where the exposure peaks, and it is worth isolating because it names "
     f"the single worst cell in the book. Where Enterprise meets the reseller channel, average discount reaches "
-    f"{pct(S['enterprise_reseller_disc'])} and {pct(0.886)} of that cell's revenue is deeply discounted, against a "
-    f"margin proxy of {pct(0.409)}. The heatmap makes the gradient legible: discount darkens reliably from the SMB-Online "
+    f"{pct(S['enterprise_reseller_disc'])} and {pct(S['enterprise_reseller']['high_discount_share'])} of that cell's revenue is deeply discounted, against a "
+    f"margin proxy of {pct(S['enterprise_reseller']['avg_margin_proxy_pct'])}. The heatmap makes the gradient legible: discount darkens reliably from the SMB-Online "
     f"corner to the Enterprise-reseller corner, the two regimes sitting at opposite ends of the same grid."))
 A(figure("08_segment_channel_heatmap.png",
          "Figure 9. Average discount by segment and channel. The gradient runs cleanly from the disciplined SMB-Online "
@@ -610,11 +721,11 @@ A(figure("10_region_comparison.png",
 A(sub("One product category breaks the pattern"))
 A(para(
     f"Product category mostly tracks margin as expected, with one exception sharp enough to act on. Professional "
-    f"Services discounts at {pct(S['category'][1]['discount'])}, in line with the rest of the catalogue, but earns a "
-    f"margin proxy of only {pct(S['category'][1]['margin'])}, less than a third of the {pct(S['category'][0]['margin'])} "
+    f"Services discounts at {pct(PROF_SERVICES['discount'])}, in line with the rest of the catalogue, but earns a "
+    f"margin proxy of only {pct(PROF_SERVICES['margin'])}, less than a third of the {pct(CAT_VALUE.get('Collaboration', S['category'][0])['margin'])} "
     f"that Collaboration earns and far below the {pct(S['margin_proxy'])} book average. It is discounted like a "
     f"high-margin product while behaving like a low-margin one. Core Platform, by contrast, is the revenue engine at "
-    f"{money(S['category'][4]['revenue'])} and earns a respectable {pct(S['category'][4]['margin'])}, so the category "
+    f"{money(CORE_PLATFORM['revenue'])} and earns a respectable {pct(CORE_PLATFORM['margin'])}, so the category "
     f"problem is specific rather than general."))
 A(figure("11_category_margin_vs_discount.png",
          "Figure 11. Discount against margin by category. Professional Services is the outlier: ordinary discount, "
@@ -651,6 +762,27 @@ A(para(
     f"marked for segment-pricing review. The low tier is the long, healthy tail: {rt['Low']['customers']} customers "
     f"and {money(rt['Low']['total_revenue'])} that need only monitoring. The shape of the priority distribution, a "
     f"thin upper tail above a broad healthy base, is what makes a small high-touch programme viable."))
+risk_detail_tbl = [["Tier", "Customers", "Revenue share", "Avg discount", "Avg margin", "High-disc rev."]]
+for tier in ["High", "Medium", "Low"]:
+    d = RISK_DETAIL.get(tier)
+    if d:
+        risk_detail_tbl.append([
+            tier,
+            f"{int(d['customers']):,}",
+            pct(d["revenue_share"]),
+            pct(d["avg_discount_pct"]),
+            pct(d["avg_margin_proxy_pct"]),
+            pct(d["revenue_high_discount_share"]),
+        ])
+A(CondPageBreak(1.5*inch))
+A(styled_table(risk_detail_tbl, [0.9*inch, 1.0*inch, 1.15*inch, 1.15*inch, 1.1*inch, CONTENT_W-5.3*inch], highlight_rows=[1]))
+A(Spacer(1, 6))
+A(para(
+    "The tier table is the bridge from analytics to account management. The high tier is smaller, more discounted, "
+    "and more exposed to high-discount revenue than the rest of the book, so it should be handled as a named-account "
+    "intervention. The medium tier is too large for bespoke treatment; it needs rule-based review as renewals come "
+    "up. The low tier should not be disturbed unless its score moves. This prevents governance from becoming a "
+    "blanket control that slows healthy business."))
 A(figure("13_risk_tier_breakdown.png",
          "Figure 14. The three risk tiers by customer count and by revenue. A few dozen high-risk accounts carry "
          "revenue out of all proportion to their number."))
@@ -715,6 +847,22 @@ A(para(
     "tolerance. The formal-analysis release gate ran ten structural checks on the analysis window, coverage, and "
     "internal consistency, and all ten passed. The numbers in this report are therefore not only reproducible but "
     "independently recomputed, which is the standard the methodology section promised."))
+robust_tbl = [
+    ["Challenge to the finding", "Check performed", "Result"],
+    ["Threshold dependence", tbl_para(f"Moved high-discount line across {', '.join(pct(value, 0) for value in S['high_discount_sensitivity_thresholds'])}"), tbl_para("Diagnosis and ranking remain stable")],
+    ["Aggregation artefact", tbl_para("Compared line-level bucket results with customer-level scatter"), tbl_para("Both show the same discount-margin gradient")],
+    ["Geographic mix", tbl_para("Cut weighted discount by region"), tbl_para("Regional spread is under one point")],
+    ["Single-driver risk", tbl_para("Aggregated primary score drivers by customer revenue"), tbl_para("Discount dependency is the dominant driver")],
+    ["Metric publication error", tbl_para("Recomputed published metrics through contracts and release gate"), tbl_para("All checks passed")],
+]
+A(CondPageBreak(2.0*inch))
+A(styled_table(robust_tbl, [1.55*inch, 3.0*inch, CONTENT_W-4.55*inch], align_right_from=99))
+A(Spacer(1, 6))
+A(para(
+    "The robustness case is therefore cumulative rather than dependent on any one statistic. The same commercial "
+    "story appears in the aggregate trend, in the line-level margin staircase, in the customer scatter, in the "
+    "segment-channel heatmap, and in the customer risk queue. A different threshold would resize the opportunity, but "
+    "it would not change where management should start."))
 
 # ===========================================================================
 # 10. RISKS, LIMITATIONS, CAVEATS
@@ -723,6 +871,16 @@ addall(section("Risks, limitations, and caveats", "What this review cannot tell 
 A(para(
     "Honest analysis states its own boundaries. Four matter here, and none of them is fatal to the conclusions, but "
     "each shapes how far the conclusions can be pushed."))
+caveat_tbl = [
+    ["Boundary", "What it could change", "Evidence needed to close"],
+    ["Synthetic data", tbl_para("Absolute dollar opportunity and account names in a live setting"), tbl_para("Production order, cost and contract data")],
+    ["Margin proxy", tbl_para("Level of profitability by product or account"), tbl_para("Booked cost, implementation effort and service delivery cost")],
+    ["Observational design", tbl_para("Causal size of a price-realization intervention"), tbl_para("Renewal test, matched cohort or controlled price experiment")],
+    ["Score weighting", tbl_para("Borderline medium-versus-low prioritisation"), tbl_para("Commercial review of accounts near tier thresholds")],
+]
+A(CondPageBreak(1.8*inch))
+A(styled_table(caveat_tbl, [1.25*inch, 2.8*inch, CONTENT_W-4.05*inch], align_right_from=99))
+A(Spacer(1, 6))
 A(sub("The data is synthetic"))
 A(para(
     "The order book is generated rather than drawn from a production system. It is internally consistent and behaves "
@@ -778,11 +936,12 @@ A(para(
     f"{pct(S['enterprise_reseller_disc'])} with nearly nine-tenths of that revenue deeply discounted. Introduce a hard "
     f"approval gate above the {pct(S['high_discount_threshold'],0)} line for these channels, so that any deal past the high-discount threshold "
     f"requires explicit sign-off against a stated reason. This is a forward-looking control that stops the standing "
-    f"level from regenerating after Priority 1 resets it, and it is cheap: it changes a default, not a headcount."))
+    f"level from regenerating after Priority 1 resets it. The intervention changes a default and an approval path, not "
+    f"the organisation structure."))
 A(sub("Priority 3: re-price Professional Services"))
 A(para(
-    f"Professional Services is discounted like the rest of the catalogue, at {pct(S['category'][1]['discount'])}, while "
-    f"earning a {pct(S['category'][1]['margin'])} margin proxy against a book average above {pct(S['margin_proxy'])}. "
+    f"Professional Services is discounted like the rest of the catalogue, at {pct(PROF_SERVICES['discount'])}, while "
+    f"earning a {pct(PROF_SERVICES['margin'])} margin proxy against a book average above {pct(S['margin_proxy'])}. "
     f"This is the least defensible discount in the portfolio. Either lift its net price by curtailing discount on the "
     f"category, or, if the market will not bear it, reclassify the work and price it as the low-margin service it is so "
     f"that it stops being bundled into discount decisions calibrated for high-margin product. This move is narrow and "
@@ -794,6 +953,22 @@ A(para(
     f"owners accountable for both. The measurement is already built; the pipeline produces realization at every cut in "
     f"this report. What is missing is the standing attention, and standing attention is what keeps a level from "
     f"drifting back up once it has been reset."))
+A(sub("Control model"))
+control_tbl = [
+    ["Control point", "Rule", "Review cadence", "Owner"],
+    ["High-risk renewals", tbl_para("Target net price set before negotiation; variance from target explicitly approved"), tbl_para("Renewal calendar"), tbl_para("Segment GM + Finance")],
+    ["Indirect deep discounts", tbl_para(f"Deals above {pct(S['high_discount_threshold'],0)} require reason code and margin review"), tbl_para("Deal desk"), tbl_para("Channel Sales + Pricing")],
+    ["Professional Services", tbl_para("Separate service pricing guardrail from product discount authority"), tbl_para("Quarterly"), tbl_para("Services GM + FP&amp;A")],
+    ["Realization monitoring", tbl_para("Monthly realization by segment, channel and category; escalation on adverse movement"), tbl_para("Monthly business review"), tbl_para("Revenue Operations")],
+]
+A(CondPageBreak(2.0*inch))
+A(styled_table(control_tbl, [1.35*inch, 3.0*inch, 1.3*inch, CONTENT_W-5.65*inch], align_right_from=99))
+A(Spacer(1, 6))
+A(para(
+    "The control model is intentionally simple. It does not ask management to police every order line. It puts "
+    "additional scrutiny only where the analysis shows repeatable exposure: high-risk renewals, indirect-channel deep "
+    "discounting, and the low-margin services category. The monthly realization metric then tests whether those "
+    "controls are changing the book rather than only changing individual approvals."))
 A(Spacer(1, 8))
 A(para("<b>Sequenced, the programme reads:</b>", BODY))
 addall(bullets([
@@ -804,6 +979,17 @@ addall(bullets([
     f"<b>Standing:</b> review the medium tier ({rt['Medium']['customers']} accounts, {money(rt['Medium']['total_revenue'])}) "
     f"on a rolling basis as renewals arrive, refreshing the risk scores each cycle so the worklist stays current.",
 ]))
+A(sub("Further questions before scale"))
+addall(bullets([
+    "<b>Elasticity and win-rate:</b> which Enterprise and indirect-channel deals can absorb a two-to-three point net-price lift without materially reducing close rate?",
+    "<b>Contract timing:</b> which of the high-risk accounts renew inside the next two quarters, and what share of the value pool is addressable in the current planning cycle?",
+    "<b>Competitive exceptions:</b> which deep discounts are tied to documented competitive displacement, regulated procurement rules, or strategic account-entry logic?",
+    "<b>Cost calibration:</b> how do booked cost and implementation effort change the Professional Services margin proxy once actual delivery economics are loaded?",
+]))
+A(para(
+    "These questions do not weaken the recommendation; they define the next evidence needed to turn a diagnostic "
+    "programme into a priced execution plan. The current analysis is sufficient to prioritise where to act. The open "
+    "questions determine how much of the value pool can be captured, when, and with what commercial trade-off."))
 
 # ===========================================================================
 # 12. APPENDIX

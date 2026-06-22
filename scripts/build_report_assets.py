@@ -599,6 +599,89 @@ top10_rev_share = float(cum[int(0.10*len(cum))-1])
 top20_rev_share = float(cum[int(0.20*len(cum))-1])
 revenue_forgone = float(overall["total_list_revenue"] - overall["total_revenue"])
 
+oi["order_year"] = pd.to_datetime(oi["order_date"]).dt.year
+oi["revenue_forgone"] = oi["line_list_revenue"] - oi["line_revenue"]
+oi["high_discount_revenue"] = np.where(oi["high_discount_flag"].astype(bool), oi["line_revenue"], 0.0)
+annual = (
+    oi.groupby("order_year", as_index=False)
+    .agg(
+        revenue=("line_revenue", "sum"),
+        list_revenue=("line_list_revenue", "sum"),
+        revenue_forgone=("revenue_forgone", "sum"),
+        gross_margin_value=("gross_margin_value", "sum"),
+        high_discount_revenue=("high_discount_revenue", "sum"),
+        order_items=("order_item_id", "count"),
+    )
+    .sort_values("order_year")
+)
+annual["price_realization"] = annual["revenue"] / annual["list_revenue"]
+annual["weighted_discount_pct"] = 1 - annual["price_realization"]
+annual["margin_proxy_pct"] = annual["gross_margin_value"] / annual["revenue"]
+annual["high_discount_revenue_share"] = annual["high_discount_revenue"] / annual["revenue"]
+
+segment_value = (
+    oi.groupby("segment", as_index=False)
+    .agg(
+        revenue=("line_revenue", "sum"),
+        list_revenue=("line_list_revenue", "sum"),
+        revenue_forgone=("revenue_forgone", "sum"),
+        gross_margin_value=("gross_margin_value", "sum"),
+        high_discount_revenue=("high_discount_revenue", "sum"),
+        order_items=("order_item_id", "count"),
+        customers=("customer_id", "nunique"),
+    )
+)
+segment_value["price_realization"] = segment_value["revenue"] / segment_value["list_revenue"]
+segment_value["weighted_discount_pct"] = 1 - segment_value["price_realization"]
+segment_value["margin_proxy_pct"] = segment_value["gross_margin_value"] / segment_value["revenue"]
+segment_value["share_of_revenue_forgone"] = segment_value["revenue_forgone"] / revenue_forgone
+segment_value["high_discount_revenue_share"] = segment_value["high_discount_revenue"] / segment_value["revenue"]
+segment_value = segment_value.set_index("segment").reindex(SEG_ORDER).reset_index()
+
+channel_value = (
+    oi.groupby("sales_channel", as_index=False)
+    .agg(
+        revenue=("line_revenue", "sum"),
+        list_revenue=("line_list_revenue", "sum"),
+        revenue_forgone=("revenue_forgone", "sum"),
+        gross_margin_value=("gross_margin_value", "sum"),
+        high_discount_revenue=("high_discount_revenue", "sum"),
+        order_items=("order_item_id", "count"),
+        customers=("customer_id", "nunique"),
+    )
+)
+channel_value["price_realization"] = channel_value["revenue"] / channel_value["list_revenue"]
+channel_value["weighted_discount_pct"] = 1 - channel_value["price_realization"]
+channel_value["margin_proxy_pct"] = channel_value["gross_margin_value"] / channel_value["revenue"]
+channel_value["share_of_revenue_forgone"] = channel_value["revenue_forgone"] / revenue_forgone
+channel_value["high_discount_revenue_share"] = channel_value["high_discount_revenue"] / channel_value["revenue"]
+channel_value = channel_value.set_index("sales_channel").reindex(CHAN_ORDER).reset_index()
+
+risk_detail = (
+    cust.groupby("risk_tier", as_index=False)
+    .agg(
+        customers=("customer_id", "count"),
+        revenue=("total_revenue", "sum"),
+        avg_discount_pct=("avg_discount_pct", "mean"),
+        avg_margin_proxy_pct=("avg_margin_proxy_pct", "mean"),
+        revenue_high_discount_share=("revenue_high_discount_share", "mean"),
+        avg_priority=("governance_priority_score", "mean"),
+    )
+)
+risk_detail["revenue_share"] = risk_detail["revenue"] / float(cust["total_revenue"].sum())
+
+er_mask = (segchan["segment"] == "Enterprise") & (segchan["sales_channel"] == "Reseller")
+enterprise_reseller = segchan.loc[er_mask].iloc[0].to_dict()
+
+recovery_scenarios = [
+    {
+        "realization_improvement_pp": points,
+        "annualized_revenue_capture": float(overall["total_list_revenue"] * (points / 100)),
+        "new_price_realization": float(overall["price_realization"] + (points / 100)),
+    }
+    for points in (1, 2, 3)
+]
+
 stats = {
     "n_order_items": int(len(oi)),
     "n_customers": int(len(prof)),
@@ -627,6 +710,13 @@ stats = {
     "disc_margin_slope": float(np.polyfit(prof["avg_discount_pct"]*100, prof["avg_margin_proxy_pct"]*100, 1)[0]),
     "top10_rev_share": top10_rev_share,
     "top20_rev_share": top20_rev_share,
+    "top10_customer_count": int(max(1, round(0.10 * len(prof)))),
+    "top20_customer_count": int(max(1, round(0.20 * len(prof)))),
+    "annual_summary": annual.to_dict(orient="records"),
+    "segment_value_pool": segment_value.to_dict(orient="records"),
+    "channel_value_pool": channel_value.to_dict(orient="records"),
+    "risk_tier_detail": risk_detail.to_dict(orient="records"),
+    "recovery_scenarios": recovery_scenarios,
     "segments": seg.to_dict(orient="records"),
     "risk_tiers": risk_tier.to_dict(orient="records"),
     "drivers": driver.to_dict(orient="records"),
@@ -640,6 +730,13 @@ stats = {
     "high_tier_revenue": float(rt.loc["High", "total_revenue"]),
     "p90_priority": float(s.quantile(0.90)),
     "enterprise_reseller_disc": float(segchan[(segchan.segment=="Enterprise")&(segchan.sales_channel=="Reseller")]["avg_discount_pct"].iloc[0]),
+    "enterprise_reseller": {
+        "revenue": float(enterprise_reseller["revenue"]),
+        "avg_discount_pct": float(enterprise_reseller["avg_discount_pct"]),
+        "high_discount_share": float(enterprise_reseller["high_discount_share"]),
+        "order_item_count": int(enterprise_reseller["order_item_count"]),
+        "avg_margin_proxy_pct": float(enterprise_reseller["avg_margin_proxy_pct"]),
+    },
 }
 (PROC / "report_stats.json").write_text(json.dumps(stats, indent=2), encoding="utf-8")
 print("\nwrote data/processed/report_stats.json")

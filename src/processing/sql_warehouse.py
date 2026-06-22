@@ -46,7 +46,6 @@ MODEL_ORDER = {
     "marts": [
         "mart_customer_pricing_profile.sql",
         "mart_segment_pricing_summary.sql",
-        "mart_segment_channel_diagnostics.sql",
         "mart_product_pricing_summary.sql",
         "mart_monthly_pricing_health.sql",
         "mart_overall_pricing_health.sql",
@@ -56,7 +55,6 @@ MODEL_ORDER = {
 MART_PRIMARY_KEYS = {
     "mart_customer_pricing_profile": ["customer_id"],
     "mart_segment_pricing_summary": ["segment"],
-    "mart_segment_channel_diagnostics": ["segment", "sales_channel"],
     "mart_product_pricing_summary": ["product_id"],
     "mart_monthly_pricing_health": ["order_month"],
     "mart_overall_pricing_health": ["as_of_date"],
