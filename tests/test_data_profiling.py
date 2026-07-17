@@ -15,10 +15,15 @@ from src.analysis.data_profiling import (
 
 
 def test_column_classification_and_temporal_parsing() -> None:
-    assert _classify_column(pd.Series(["C1", "C2"]), "customer_id", ["customer_id"], []) == "identifier"
+    assert (
+        _classify_column(pd.Series(["C1", "C2"]), "customer_id", ["customer_id"], [])
+        == "identifier"
+    )
     assert _classify_column(pd.Series([1, 0]), "high_discount_flag", [], []) == "boolean"
     assert _classify_column(pd.Series([10.5, 11.2]), "line_revenue", [], []) == "metric"
-    assert _classify_column(pd.Series(["2024-01", "2024-02"]), "order_month", [], []) == "structural"
+    assert (
+        _classify_column(pd.Series(["2024-01", "2024-02"]), "order_month", [], []) == "structural"
+    )
     assert _classify_column(pd.Series(["Enterprise", "SMB"]), "segment", [], []) == "dimension"
 
     parsed_quarter = _parse_temporal(pd.Series(["2024Q1", "2024Q2"]), "order_quarter")
@@ -27,7 +32,7 @@ def test_column_classification_and_temporal_parsing() -> None:
     assert parsed_quarter.notna().all()
     assert parsed_month.notna().sum() == 1
     assert _expected_non_negative("line_revenue")
-    assert not _expected_non_negative("realized_price_residual_pct")
+    assert not _expected_non_negative("price_realization_residual_pct")
 
 
 def test_profile_single_table_detects_pricing_and_quality_issues() -> None:
@@ -68,7 +73,9 @@ def test_cross_table_join_checks_and_population_coverage() -> None:
                 "sales_rep_id": ["S1", "missing-rep"],
             }
         ),
-        "order_items": pd.DataFrame({"order_id": ["O1", "missing-order"], "product_id": ["P1", "missing-product"]}),
+        "order_items": pd.DataFrame(
+            {"order_id": ["O1", "missing-order"], "product_id": ["P1", "missing-product"]}
+        ),
         "customer_pricing_profile": pd.DataFrame({"customer_id": ["C1"]}),
         "customer_risk_scores": pd.DataFrame({"customer_id": ["C1", "missing-profile"]}),
     }
@@ -87,8 +94,12 @@ def test_cross_table_join_checks_and_population_coverage() -> None:
 
 def test_run_data_profiling_writes_expected_outputs(tmp_path) -> None:
     raw_tables = {
-        "customers": pd.DataFrame({"customer_id": ["C1", "C2"], "signup_date": ["2024-01-01", "2024-01-03"]}),
-        "products": pd.DataFrame({"product_id": ["P1"], "list_price": [100.0], "unit_cost": [40.0]}),
+        "customers": pd.DataFrame(
+            {"customer_id": ["C1", "C2"], "signup_date": ["2024-01-01", "2024-01-03"]}
+        ),
+        "products": pd.DataFrame(
+            {"product_id": ["P1"], "list_price": [100.0], "unit_cost": [40.0]}
+        ),
         "sales_reps": pd.DataFrame({"sales_rep_id": ["S1"], "region": ["North"]}),
         "orders": pd.DataFrame(
             {
@@ -110,7 +121,9 @@ def test_run_data_profiling_writes_expected_outputs(tmp_path) -> None:
         ),
     }
     processed_tables = {
-        "customer_pricing_profile": pd.DataFrame({"customer_id": ["C1"], "avg_discount_pct": [0.10]}),
+        "customer_pricing_profile": pd.DataFrame(
+            {"customer_id": ["C1"], "avg_discount_pct": [0.10]}
+        ),
         "customer_risk_scores": pd.DataFrame(
             {
                 "customer_id": ["C1"],
@@ -121,7 +134,9 @@ def test_run_data_profiling_writes_expected_outputs(tmp_path) -> None:
         ),
     }
 
-    outputs = run_data_profiling(raw_tables, processed_tables, tmp_path / "outputs", tmp_path / "docs")
+    outputs = run_data_profiling(
+        raw_tables, processed_tables, tmp_path / "outputs", tmp_path / "docs"
+    )
 
     assert set(outputs) == {
         "table_profile_summary",
@@ -170,7 +185,9 @@ def test_render_markdown_handles_empty_issues() -> None:
         ]
     )
 
-    markdown = _render_markdown(profile_summary, pd.DataFrame(), column_profile, population_coverage)
+    markdown = _render_markdown(
+        profile_summary, pd.DataFrame(), column_profile, population_coverage
+    )
 
     assert "# Formal Data Profiling Report" in markdown
     assert "No material issues detected" in markdown

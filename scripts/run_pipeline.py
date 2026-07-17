@@ -3,18 +3,22 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-from datetime import datetime
-from pathlib import Path
+import platform
 import sys
+from datetime import date
+from pathlib import Path
+from time import perf_counter
 
+import duckdb
 import pandas as pd
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from src.analysis.data_profiling import run_data_profiling
+from scripts.publish_pages_dashboard import publish as publish_pages_dashboard
 from src.analysis.dashboard_builder import build_executive_dashboard
+from src.analysis.data_profiling import run_data_profiling
 from src.analysis.formal_analysis import run_formal_pricing_analysis
 from src.analysis.visualization_pack import create_visualization_pack
 from src.features.pricing_features import build_feature_tables
@@ -23,6 +27,7 @@ from src.ingestion.synthetic_data import SyntheticDataConfig, generate_synthetic
 from src.processing.build_base_tables import build_order_item_enriched
 from src.processing.sql_warehouse import SqlLayerRunConfig, run_sql_warehouse_models
 from src.scoring.risk_scoring import build_risk_outputs
+from src.utils.io import write_text
 from src.utils.paths import (
     CONFIGS_DIR,
     DASHBOARD_DIR,
@@ -35,13 +40,10 @@ from src.utils.paths import (
     WAREHOUSE_DB_PATH,
     ensure_project_directories,
 )
-from src.utils.io import write_text
+from src.validation.data_quality import validate_processed_tables, validate_raw_tables
 from src.validation.final_review import run_final_validation_review
 from src.validation.metric_contracts import validate_metric_contracts
-from src.validation.data_quality import validate_processed_tables, validate_raw_tables
 from src.validation.release_gate import evaluate_release_gate
-from scripts.publish_pages_dashboard import publish as publish_pages_dashboard
-
 
 logging.basicConfig(
     level=logging.INFO,
@@ -60,18 +62,28 @@ def _positive_int(value: str) -> int:
 
 def _valid_date(value: str) -> str:
     try:
-        datetime.strptime(value, "%Y-%m-%d")
+        parsed = date.fromisoformat(value)
     except ValueError as exc:
         raise argparse.ArgumentTypeError("must use YYYY-MM-DD format") from exc
+    if parsed.isoformat() != value:
+        raise argparse.ArgumentTypeError("must use YYYY-MM-DD format")
     return value
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Run Pricing & Discount Governance pipeline end-to-end.")
-    parser.add_argument("--seed", type=int, default=42, help="Random seed for synthetic data generation")
+    parser = argparse.ArgumentParser(
+        description="Run Pricing & Discount Governance pipeline end-to-end."
+    )
+    parser.add_argument(
+        "--seed", type=int, default=42, help="Random seed for synthetic data generation"
+    )
     parser.add_argument("--customers", type=_positive_int, default=1200)
-    parser.add_argument("--products", type=_positive_int, default=28,
-                        help="Number of products (min 5, one per product category)")
+    parser.add_argument(
+        "--products",
+        type=_positive_int,
+        default=28,
+        help="Number of products (min 5, one per product category)",
+    )
     parser.add_argument("--sales-reps", type=_positive_int, default=45)
     parser.add_argument("--orders", type=_positive_int, default=18000)
     parser.add_argument("--start-date", type=_valid_date, default="2023-01-01")
@@ -90,8 +102,19 @@ def save_processed_tables(processed_tables: dict[str, pd.DataFrame]) -> None:
         table.to_csv(DATA_PROCESSED_DIR / f"{name}.csv", index=False)
 
 
+def _repository_path(path: Path) -> str:
+    return path.resolve().relative_to(PROJECT_ROOT.resolve()).as_posix()
+
+
+def publish_validated_dashboard(release_gate_passed: bool) -> None:
+    if not release_gate_passed:
+        raise RuntimeError("Release gate failed. Dashboard was not published.")
+    publish_pages_dashboard()
+
+
 def main() -> None:
     args = parse_args()
+    pipeline_started = perf_counter()
     ensure_project_directories()
 
     config = SyntheticDataConfig(
@@ -103,15 +126,30 @@ def main() -> None:
         start_date=args.start_date,
         end_date=args.end_date,
     )
+    logger.info(
+        "Pipeline started: seed=%s customers=%s products=%s sales_reps=%s orders=%s window=%s..%s",
+        args.seed,
+        args.customers,
+        args.products,
+        args.sales_reps,
+        args.orders,
+        args.start_date,
+        args.end_date,
+    )
 
+    logger.info("Stage 1/12: generate and persist source tables")
     raw_tables = generate_synthetic_business_data(config)
     save_raw_tables(raw_tables, DATA_RAW_DIR)
 
+    logger.info("Stage 2/12: validate source contracts")
     raw_validation_report, raw_valid = validate_raw_tables(raw_tables)
     raw_validation_report.to_csv(OUTPUTS_DIR / "raw_validation_report.csv", index=False)
     if not raw_valid:
-        raise RuntimeError("Raw validation failed. SQL warehouse was not built. Check outputs/raw_validation_report.csv")
+        raise RuntimeError(
+            "Raw validation failed. SQL warehouse was not built. Check outputs/raw_validation_report.csv"
+        )
 
+    logger.info("Stage 3/12: build and validate DuckDB models")
     sql_tables = run_sql_warehouse_models(
         SqlLayerRunConfig(
             raw_dir=DATA_RAW_DIR,
@@ -124,8 +162,11 @@ def main() -> None:
     sql_validation_report = sql_tables["sql_validation_report"]
     sql_validation_passed = bool((sql_validation_report["status"] == "PASS").all())
     if not sql_validation_passed:
-        raise RuntimeError("SQL warehouse validation failed. Check outputs/warehouse/sql_validation_report.csv")
+        raise RuntimeError(
+            "SQL warehouse validation failed. Check outputs/warehouse/sql_validation_report.csv"
+        )
 
+    logger.info("Stage 4/12: build pandas features and customer risk scores")
     order_item_enriched = build_order_item_enriched(raw_tables)
     feature_tables = build_feature_tables(order_item_enriched)
     risk_tables = build_risk_outputs(feature_tables)
@@ -137,11 +178,15 @@ def main() -> None:
     }
     save_processed_tables(processed_tables)
 
+    logger.info("Stage 5/12: validate processed tables and metric arithmetic")
     processed_validation_report, processed_valid = validate_processed_tables(processed_tables)
     processed_validation_report.to_csv(OUTPUTS_DIR / "processed_validation_report.csv", index=False)
     if not processed_valid:
-        raise RuntimeError("Processed validation failed. Check outputs/processed_validation_report.csv")
+        raise RuntimeError(
+            "Processed validation failed. Check outputs/processed_validation_report.csv"
+        )
 
+    logger.info("Stage 6/12: profile data quality and population coverage")
     profiling_tables = run_data_profiling(
         raw_tables=raw_tables,
         processed_tables=processed_tables,
@@ -149,12 +194,14 @@ def main() -> None:
         docs_dir=OUTPUTS_DIR,
     )
 
+    logger.info("Stage 7/12: run formal pricing analysis")
     formal_analysis_tables = run_formal_pricing_analysis(
         processed_tables=processed_tables,
         outputs_dir=OUTPUTS_DIR,
         docs_dir=OUTPUTS_DIR,
     )
 
+    logger.info("Stage 8/12: enforce governed metric contracts")
     metric_contract_report, metric_contract_valid = validate_metric_contracts(
         processed_tables=processed_tables,
         outputs_dir=OUTPUTS_DIR,
@@ -164,20 +211,27 @@ def main() -> None:
     if not metric_contract_valid:
         raise RuntimeError("Metric contracts failed. Check outputs/metric_contract_validation.csv")
 
+    logger.info("Stage 9/12: build analytical visualization outputs")
     visualization_tables = create_visualization_pack(
         processed_tables=processed_tables,
         outputs_dir=OUTPUTS_DIR,
         docs_dir=OUTPUTS_DIR,
     )
 
+    logger.info("Stage 10/12: build the dashboard candidate")
     dashboard_path = build_executive_dashboard(
         processed_tables=processed_tables,
         dashboard_dir=DASHBOARD_DIR,
     )
-    publish_pages_dashboard()
 
     run_manifest = {
+        "manifest_version": 1,
         "project": "Pricing Discipline & Discount Governance System",
+        "runtime": {
+            "python": platform.python_version(),
+            "pandas": pd.__version__,
+            "duckdb": duckdb.__version__,
+        },
         "configuration": {
             "seed": args.seed,
             "n_customers": args.customers,
@@ -193,23 +247,31 @@ def main() -> None:
             "profiling": {k: int(len(v)) for k, v in profiling_tables.items()},
             "formal_analysis": {k: int(len(v)) for k, v in formal_analysis_tables.items()},
             "visualization": {k: int(len(v)) for k, v in visualization_tables.items()},
-            "sql_warehouse": {k: int(len(v)) for k, v in sql_tables.items() if isinstance(v, pd.DataFrame)},
+            "sql_warehouse": {
+                k: int(len(v)) for k, v in sql_tables.items() if isinstance(v, pd.DataFrame)
+            },
         },
         "validation": {
             "raw_passed": raw_valid,
             "processed_passed": processed_valid,
             "metric_contracts_passed": metric_contract_valid,
             "sql_warehouse_passed": sql_validation_passed,
-            "raw_report": str(OUTPUTS_DIR / "raw_validation_report.csv"),
-            "processed_report": str(OUTPUTS_DIR / "processed_validation_report.csv"),
-            "metric_contract_report": str(OUTPUTS_DIR / "metric_contract_validation.csv"),
-            "sql_validation_report": str(OUTPUTS_DIR / "warehouse" / "sql_validation_report.csv"),
+            "raw_report": _repository_path(OUTPUTS_DIR / "raw_validation_report.csv"),
+            "processed_report": _repository_path(OUTPUTS_DIR / "processed_validation_report.csv"),
+            "metric_contract_report": _repository_path(
+                OUTPUTS_DIR / "metric_contract_validation.csv"
+            ),
+            "sql_validation_report": _repository_path(
+                OUTPUTS_DIR / "warehouse" / "sql_validation_report.csv"
+            ),
         },
-        "dashboard": str(dashboard_path),
+        "dashboard": _repository_path(dashboard_path),
+        "dashboard_published": False,
     }
 
     write_text(OUTPUTS_DIR / "run_manifest.json", json.dumps(run_manifest, indent=2))
 
+    logger.info("Stage 11/12: perform final cross-output validation")
     final_validation_tables = run_final_validation_review(
         raw_tables=raw_tables,
         processed_tables=processed_tables,
@@ -217,8 +279,11 @@ def main() -> None:
         docs_dir=OUTPUTS_DIR,
         dashboard_path=dashboard_path,
     )
-    run_manifest["row_counts"]["final_validation"] = {k: int(len(v)) for k, v in final_validation_tables.items()}
+    run_manifest["row_counts"]["final_validation"] = {
+        k: int(len(v)) for k, v in final_validation_tables.items()
+    }
 
+    logger.info("Stage 12/12: evaluate the release gate and publish on success")
     release_report, release_gate_passed = evaluate_release_gate(
         summary_path=OUTPUTS_DIR / "final_validation_summary.json",
         metric_contract_report_path=OUTPUTS_DIR / "metric_contract_validation.csv",
@@ -226,17 +291,25 @@ def main() -> None:
         outputs_dir=OUTPUTS_DIR,
     )
     run_manifest["validation"]["release_gate_passed"] = bool(release_gate_passed)
-    run_manifest["validation"]["release_readiness_state"] = release_report.get("release_readiness_state")
+    run_manifest["validation"]["release_readiness_state"] = release_report.get(
+        "release_readiness_state"
+    )
+    run_manifest["validation"]["dashboard_sha256"] = release_report.get("dashboard_sha256")
 
     write_text(OUTPUTS_DIR / "run_manifest.json", json.dumps(run_manifest, indent=2))
+    publish_validated_dashboard(release_gate_passed)
+    run_manifest["dashboard_published"] = True
+    run_manifest["pipeline_duration_seconds"] = round(perf_counter() - pipeline_started, 3)
+    write_text(OUTPUTS_DIR / "run_manifest.json", json.dumps(run_manifest, indent=2))
 
-    logger.info("Pipeline completed successfully.")
+    logger.info(
+        "Pipeline completed successfully in %.3f seconds.",
+        run_manifest["pipeline_duration_seconds"],
+    )
     logger.info("Raw tables: %s", ", ".join(raw_tables.keys()))
     logger.info("Processed tables: %s", ", ".join(processed_tables.keys()))
     logger.info("Metric contracts passed: %s", metric_contract_valid)
     logger.info("Release gate passed: %s", release_gate_passed)
-    if not release_gate_passed:
-        raise RuntimeError("Release gate failed. Check outputs/release/release_gate_report.json")
 
 
 if __name__ == "__main__":

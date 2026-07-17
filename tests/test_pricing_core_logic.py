@@ -9,7 +9,7 @@ from src.features.pricing_features import (
     build_feature_tables,
     build_order_item_pricing_metrics,
 )
-from src.scoring.risk_scoring import score_customer_pricing_risk
+from src.scoring.risk_scoring import _percentile_score, score_customer_pricing_risk
 from src.validation.data_quality import validate_processed_tables, validate_raw_tables
 
 
@@ -159,22 +159,26 @@ def _risk_profile() -> pd.DataFrame:
                 "customer_id": "C_extreme",
                 "total_orders": 6,
                 "avg_discount_pct": 0.99,
+                "weighted_discount_pct": 0.99,
                 "share_orders_high_discount": 1.0,
                 "revenue_high_discount_share": 1.0,
                 "avg_margin_proxy_pct": 0.0,
                 "repeat_discount_behavior": 1.0,
                 "realized_price_cv": 1.0,
+                "avg_abs_price_realization_residual_pct": 0.2,
             },
             {
                 **base,
                 "customer_id": "C_clean",
                 "total_orders": 6,
                 "avg_discount_pct": 0.0,
+                "weighted_discount_pct": 0.0,
                 "share_orders_high_discount": 0.0,
                 "revenue_high_discount_share": 0.0,
                 "avg_margin_proxy_pct": 0.8,
                 "repeat_discount_behavior": 0.0,
                 "realized_price_cv": 0.0,
+                "avg_abs_price_realization_residual_pct": 0.0,
             },
         ]
     )
@@ -183,7 +187,9 @@ def _risk_profile() -> pd.DataFrame:
 def _processed_tables() -> dict[str, pd.DataFrame]:
     feature_tables = build_feature_tables(_enriched_order_items())
     risk_tables = {
-        "customer_risk_scores": score_customer_pricing_risk(feature_tables["customer_pricing_profile"])
+        "customer_risk_scores": score_customer_pricing_risk(
+            feature_tables["customer_pricing_profile"]
+        )
     }
     return {**feature_tables, **risk_tables}
 
@@ -202,7 +208,7 @@ def test_order_item_pricing_metrics_handle_thresholds_and_zero_revenue() -> None
 
     assert by_item.loc["OI4", "discount_bucket"] == "30%+"
     assert np.isnan(by_item.loc["OI4", "margin_proxy_pct"])
-    assert by_item.loc["OI1", "realized_price_residual_pct"] == pytest.approx(10.0 / 90.0)
+    assert by_item.loc["OI1", "price_realization_residual_pct"] == pytest.approx(10.0 / 90.0)
 
 
 def test_customer_pricing_profile_reconciles_repeat_and_zero_revenue_behavior() -> None:
@@ -215,6 +221,7 @@ def test_customer_pricing_profile_reconciles_repeat_and_zero_revenue_behavior() 
     assert profile.loc["C1", "repeat_discount_behavior"] == pytest.approx(0.5)
     assert profile.loc["C1", "revenue_high_discount_share"] == pytest.approx(220 / 420)
     assert profile.loc["C1", "avg_margin_proxy_pct"] == pytest.approx(150 / 420)
+    assert profile.loc["C1", "avg_abs_price_realization_residual_pct"] >= 0
 
     assert profile.loc["C2", "total_revenue"] == pytest.approx(0.0)
     assert profile.loc["C2", "avg_margin_proxy_pct"] == pytest.approx(0.0)
@@ -238,6 +245,12 @@ def test_score_customer_pricing_risk_stabilizes_low_data_customers_to_neutral_sc
     assert scored["risk_tier"] == "Medium"
 
 
+def test_percentile_score_is_neutral_without_peer_dispersion() -> None:
+    scores = _percentile_score(pd.Series([0.2, 0.2, 0.2]))
+
+    assert scores.eq(50.0).all()
+
+
 def test_score_customer_pricing_risk_prioritizes_extreme_policy_breaches() -> None:
     scored = score_customer_pricing_risk(_risk_profile())
 
@@ -246,10 +259,31 @@ def test_score_customer_pricing_risk_prioritizes_extreme_policy_breaches() -> No
 
     assert extreme["customer_id"] == "C_extreme"
     assert extreme["risk_tier"] == "Critical"
-    assert extreme["recommended_action"] == "investigate rep behavior"
+    assert extreme["recommended_action"] == "review pricing variance"
     assert extreme["governance_priority_score"] > clean["governance_priority_score"]
     assert clean["risk_tier"] == "Low"
     assert clean["recommended_action"] == "monitor only"
+
+
+def test_score_customer_pricing_risk_uses_weighted_discount_depth() -> None:
+    profile = _risk_profile()
+    profile[
+        [
+            "share_orders_high_discount",
+            "revenue_high_discount_share",
+            "repeat_discount_behavior",
+            "avg_abs_price_realization_residual_pct",
+        ]
+    ] = 0.0
+    profile["avg_margin_proxy_pct"] = 0.8
+    profile.loc[profile["customer_id"] == "C_extreme", "avg_discount_pct"] = 0.0
+    profile.loc[profile["customer_id"] == "C_clean", "avg_discount_pct"] = 0.99
+
+    scored = score_customer_pricing_risk(profile).set_index("customer_id")
+
+    assert (
+        scored.loc["C_extreme", "pricing_risk_score"] > scored.loc["C_clean", "pricing_risk_score"]
+    )
 
 
 def test_validate_raw_tables_catches_foreign_key_and_invalid_date_failures() -> None:
@@ -284,7 +318,9 @@ def test_validate_raw_tables_catches_empty_required_tables() -> None:
 
 def test_validate_processed_tables_catches_pricing_reconciliation_failures() -> None:
     processed_tables = _processed_tables()
-    processed_tables["order_item_pricing_metrics"] = processed_tables["order_item_pricing_metrics"].copy()
+    processed_tables["order_item_pricing_metrics"] = processed_tables[
+        "order_item_pricing_metrics"
+    ].copy()
     processed_tables["order_item_pricing_metrics"].loc[0, "line_revenue"] += 25.0
 
     report, is_valid = validate_processed_tables(processed_tables)
@@ -292,7 +328,10 @@ def test_validate_processed_tables_catches_pricing_reconciliation_failures() -> 
 
     assert not is_valid
     assert failed.loc["order_item_pricing_metrics_line_revenue_formula", "status"] == "FAIL"
-    assert failed.loc["order_item_pricing_metrics_weighted_discount_reconciliation", "status"] == "FAIL"
+    assert (
+        failed.loc["order_item_pricing_metrics_weighted_discount_reconciliation", "status"]
+        == "FAIL"
+    )
 
 
 def test_validate_processed_tables_catches_invalid_risk_taxonomy_values() -> None:
@@ -307,3 +346,16 @@ def test_validate_processed_tables_catches_invalid_risk_taxonomy_values() -> Non
     assert not is_valid
     assert failed.loc["customer_risk_scores_allowed_tiers", "status"] == "FAIL"
     assert failed.loc["customer_risk_scores_allowed_actions", "status"] == "FAIL"
+
+
+def test_validate_processed_tables_rejects_empty_required_table() -> None:
+    processed_tables = _processed_tables()
+    processed_tables["customer_risk_scores"] = processed_tables["customer_risk_scores"].iloc[0:0]
+
+    report, is_valid = validate_processed_tables(processed_tables)
+
+    assert not is_valid
+    row_count_check = report.loc[
+        report["check_name"] == "customer_risk_scores_row_count_gate"
+    ].iloc[0]
+    assert row_count_check["status"] == "FAIL"

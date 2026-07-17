@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
+from typing import Any
 
 import numpy as np
 import pandas as pd
 
-from src.utils.policy import get_high_discount_threshold
-
+from src.utils.policy import get_discounted_threshold, get_high_discount_threshold
 
 DISCOUNT_FORMULA_TOLERANCE = 1e-4
 
@@ -27,7 +27,7 @@ RAW_REQUIRED_COLUMNS = {
 }
 
 
-def _result_row(check_name: str, status: str, failed_rows: int, detail: str) -> dict:
+def _result_row(check_name: str, status: str, failed_rows: int, detail: str) -> dict[str, Any]:
     return {
         "check_name": check_name,
         "status": status,
@@ -41,7 +41,7 @@ def _missing_columns(table: pd.DataFrame, required_columns: Iterable[str]) -> li
 
 
 def validate_raw_tables(raw_tables: dict[str, pd.DataFrame]) -> tuple[pd.DataFrame, bool]:
-    checks: list[dict] = []
+    checks: list[dict[str, Any]] = []
 
     for table_name, required in RAW_REQUIRED_COLUMNS.items():
         if table_name not in raw_tables:
@@ -181,8 +181,12 @@ def validate_raw_tables(raw_tables: dict[str, pd.DataFrame]) -> tuple[pd.DataFra
         report = pd.DataFrame(checks)
         return report, False
 
-    discount_out_of_bounds = int(((order_items["discount_pct"] < 0) | (order_items["discount_pct"] > 0.7)).sum())
-    realized_gt_list = int((order_items["realized_unit_price"] > order_items["list_price_at_sale"]).sum())
+    discount_out_of_bounds = int(
+        ((order_items["discount_pct"] < 0) | (order_items["discount_pct"] > 0.7)).sum()
+    )
+    realized_gt_list = int(
+        (order_items["realized_unit_price"] > order_items["list_price_at_sale"]).sum()
+    )
     non_positive_qty = int((order_items["quantity"] <= 0).sum())
     non_positive_list_price = int((order_items["list_price_at_sale"] <= 0).sum())
     non_positive_product_price = int((products["list_price"] <= 0).sum())
@@ -194,7 +198,9 @@ def validate_raw_tables(raw_tables: dict[str, pd.DataFrame]) -> tuple[pd.DataFra
         np.nan,
     )
     discount_mismatch = int(
-        (np.abs(recomputed_discount - order_items["discount_pct"]) > DISCOUNT_FORMULA_TOLERANCE).sum()
+        (
+            np.abs(recomputed_discount - order_items["discount_pct"]) > DISCOUNT_FORMULA_TOLERANCE
+        ).sum()
     )
     order_customer_dates = orders[["customer_id", "order_date"]].merge(
         customers[["customer_id", "signup_date"]].drop_duplicates("customer_id"),
@@ -204,9 +210,7 @@ def validate_raw_tables(raw_tables: dict[str, pd.DataFrame]) -> tuple[pd.DataFra
     parsed_order_dates = pd.to_datetime(order_customer_dates["order_date"], errors="coerce")
     parsed_signup_dates = pd.to_datetime(order_customer_dates["signup_date"], errors="coerce")
     invalid_dates = int(parsed_order_dates.isna().sum() + parsed_signup_dates.isna().sum())
-    orders_before_signup = int(
-        (parsed_order_dates < parsed_signup_dates).sum()
-    )
+    orders_before_signup = int((parsed_order_dates < parsed_signup_dates).sum())
 
     checks.extend(
         [
@@ -272,26 +276,45 @@ def validate_raw_tables(raw_tables: dict[str, pd.DataFrame]) -> tuple[pd.DataFra
     return report, is_valid
 
 
-def validate_processed_tables(processed_tables: dict[str, pd.DataFrame]) -> tuple[pd.DataFrame, bool]:
-    checks: list[dict] = []
+def validate_processed_tables(
+    processed_tables: dict[str, pd.DataFrame],
+) -> tuple[pd.DataFrame, bool]:
+    checks: list[dict[str, Any]] = []
+    structurally_valid_tables: set[str] = set()
 
     required_processed = {
         "order_item_pricing_metrics": [
             "order_item_id",
             "order_id",
             "customer_id",
+            "product_id",
+            "sales_channel",
+            "quantity",
             "realized_price",
+            "list_price_at_sale",
+            "unit_cost",
             "discount_depth",
             "discount_bucket",
+            "line_revenue",
+            "line_list_revenue",
+            "line_cost",
+            "gross_margin_value",
             "margin_proxy_pct",
+            "line_price_realization",
+            "price_realization_residual_pct",
+            "abs_price_realization_residual_pct",
+            "high_discount_flag",
+            "discounted_flag",
         ],
         "customer_pricing_profile": [
             "customer_id",
             "avg_discount_pct",
+            "weighted_discount_pct",
             "share_orders_discounted",
             "revenue_high_discount_share",
             "product_diversity",
             "repeat_discount_behavior",
+            "avg_abs_price_realization_residual_pct",
         ],
         "segment_pricing_summary": [
             "segment",
@@ -317,6 +340,15 @@ def validate_processed_tables(processed_tables: dict[str, pd.DataFrame]) -> tupl
             continue
 
         frame = processed_tables[table_name]
+        row_count = len(frame)
+        checks.append(
+            _result_row(
+                f"{table_name}_row_count_gate",
+                "PASS" if row_count > 0 else "FAIL",
+                0 if row_count > 0 else 1,
+                f"row_count={row_count}, minimum=1",
+            )
+        )
         missing_cols = _missing_columns(frame, required_cols)
         checks.append(
             _result_row(
@@ -326,8 +358,10 @@ def validate_processed_tables(processed_tables: dict[str, pd.DataFrame]) -> tupl
                 "all required columns present" if not missing_cols else f"missing: {missing_cols}",
             )
         )
+        if not missing_cols and row_count > 0:
+            structurally_valid_tables.add(table_name)
 
-    if "order_item_pricing_metrics" in processed_tables:
+    if "order_item_pricing_metrics" in structurally_valid_tables:
         pricing = processed_tables["order_item_pricing_metrics"]
 
         duplicated_order_item = int(pricing["order_item_id"].duplicated().sum())
@@ -340,18 +374,22 @@ def validate_processed_tables(processed_tables: dict[str, pd.DataFrame]) -> tupl
             )
         )
 
-        discount_out_of_bounds = int(((pricing["discount_depth"] < 0) | (pricing["discount_depth"] > 1)).sum())
+        discount_out_of_bounds = int(
+            ((pricing["discount_depth"] < 0) | (pricing["discount_depth"] > 0.7)).sum()
+        )
         checks.append(
             _result_row(
                 "order_item_pricing_metrics_discount_depth_bounds",
                 "PASS" if discount_out_of_bounds == 0 else "FAIL",
                 discount_out_of_bounds,
-                "discount_depth remains within [0, 1]",
+                "discount_depth remains within [0, 0.7]",
             )
         )
 
         if {"realized_price", "list_price_at_sale"}.issubset(pricing.columns):
-            realized_gt_list = int((pricing["realized_price"] > pricing["list_price_at_sale"]).sum())
+            realized_gt_list = int(
+                (pricing["realized_price"] > pricing["list_price_at_sale"]).sum()
+            )
             checks.append(
                 _result_row(
                     "order_item_pricing_metrics_realized_lte_list",
@@ -365,7 +403,9 @@ def validate_processed_tables(processed_tables: dict[str, pd.DataFrame]) -> tupl
             total_revenue = float(pricing["line_revenue"].sum())
             total_list_revenue = float(pricing["line_list_revenue"].sum())
             if total_list_revenue > 0:
-                weighted_direct = float(np.average(pricing["discount_depth"], weights=pricing["line_list_revenue"]))
+                weighted_direct = float(
+                    np.average(pricing["discount_depth"], weights=pricing["line_list_revenue"])
+                )
                 weighted_from_totals = float(1 - (total_revenue / total_list_revenue))
                 weighted_match = bool(abs(weighted_direct - weighted_from_totals) <= 0.001)
                 detail = f"weighted_direct={weighted_direct:.6f}, weighted_from_totals={weighted_from_totals:.6f}"
@@ -392,7 +432,13 @@ def validate_processed_tables(processed_tables: dict[str, pd.DataFrame]) -> tupl
             "gross_margin_value",
             "margin_proxy_pct",
             "discount_depth",
+            "line_price_realization",
+            "price_realization_residual_pct",
+            "abs_price_realization_residual_pct",
             "high_discount_flag",
+            "discounted_flag",
+            "product_id",
+            "sales_channel",
         }
         if arithmetic_columns.issubset(pricing.columns):
             expected_revenue = pricing["quantity"] * pricing["realized_price"]
@@ -404,7 +450,28 @@ def validate_processed_tables(processed_tables: dict[str, pd.DataFrame]) -> tupl
                 pricing["gross_margin_value"] / pricing["line_revenue"],
                 np.nan,
             )
-            expected_high_discount = (pricing["discount_depth"] >= get_high_discount_threshold()).astype(int)
+            expected_high_discount = (
+                pricing["discount_depth"] >= get_high_discount_threshold()
+            ).astype(int)
+            expected_discounted = (pricing["discount_depth"] >= get_discounted_threshold()).astype(
+                int
+            )
+            expected_line_price_realization = pd.Series(
+                np.where(
+                    pricing["list_price_at_sale"] > 0,
+                    pricing["realized_price"] / pricing["list_price_at_sale"],
+                    np.nan,
+                ),
+                index=pricing.index,
+            )
+            expected_baseline = expected_line_price_realization.groupby(
+                [pricing["product_id"], pricing["sales_channel"]]
+            ).transform("mean")
+            expected_realization_residual = np.where(
+                expected_baseline > 0,
+                (expected_line_price_realization - expected_baseline) / expected_baseline,
+                0.0,
+            )
 
             arithmetic_checks = {
                 "order_item_pricing_metrics_line_revenue_formula": np.isclose(
@@ -420,10 +487,38 @@ def validate_processed_tables(processed_tables: dict[str, pd.DataFrame]) -> tupl
                     pricing["gross_margin_value"], expected_margin, rtol=0, atol=0.01
                 ),
                 "order_item_pricing_metrics_margin_proxy_formula": np.isclose(
-                    pricing["margin_proxy_pct"], expected_margin_pct, rtol=0, atol=1e-9, equal_nan=True
+                    pricing["margin_proxy_pct"],
+                    expected_margin_pct,
+                    rtol=0,
+                    atol=1e-9,
+                    equal_nan=True,
                 ),
                 "order_item_pricing_metrics_high_discount_policy": pricing["high_discount_flag"].eq(
                     expected_high_discount
+                ),
+                "order_item_pricing_metrics_line_price_realization_formula": np.isclose(
+                    pricing["line_price_realization"],
+                    expected_line_price_realization,
+                    rtol=0,
+                    atol=1e-9,
+                    equal_nan=True,
+                ),
+                "order_item_pricing_metrics_price_realization_residual_formula": np.isclose(
+                    pricing["price_realization_residual_pct"],
+                    expected_realization_residual,
+                    rtol=0,
+                    atol=1e-9,
+                    equal_nan=True,
+                ),
+                "order_item_pricing_metrics_abs_price_realization_residual_formula": np.isclose(
+                    pricing["abs_price_realization_residual_pct"],
+                    np.abs(expected_realization_residual),
+                    rtol=0,
+                    atol=1e-9,
+                    equal_nan=True,
+                ),
+                "order_item_pricing_metrics_discounted_policy": pricing["discounted_flag"].eq(
+                    expected_discounted
                 ),
             }
             for check_name, matches in arithmetic_checks.items():
@@ -437,7 +532,7 @@ def validate_processed_tables(processed_tables: dict[str, pd.DataFrame]) -> tupl
                     )
                 )
 
-    if "customer_risk_scores" in processed_tables:
+    if "customer_risk_scores" in structurally_valid_tables:
         risk = processed_tables["customer_risk_scores"]
         score_columns = [
             "pricing_risk_score",
@@ -480,9 +575,9 @@ def validate_processed_tables(processed_tables: dict[str, pd.DataFrame]) -> tupl
         allowed_actions = {
             "monitor only",
             "review segment pricing",
-            "investigate rep behavior",
-            "redesign discount policy",
-            "tighten approval thresholds",
+            "review pricing variance",
+            "review discount terms",
+            "review margin guardrails",
         }
         invalid_actions = int((~risk["recommended_action"].isin(allowed_actions)).sum())
         checks.append(
@@ -494,7 +589,7 @@ def validate_processed_tables(processed_tables: dict[str, pd.DataFrame]) -> tupl
             )
         )
 
-    if "customer_pricing_profile" in processed_tables:
+    if "customer_pricing_profile" in structurally_valid_tables:
         profile = processed_tables["customer_pricing_profile"]
 
         unique_customer_profile = int(profile["customer_id"].duplicated().sum())
@@ -525,11 +620,27 @@ def validate_processed_tables(processed_tables: dict[str, pd.DataFrame]) -> tupl
                     )
                 )
 
-        if "order_item_pricing_metrics" in processed_tables and "avg_margin_proxy_pct" in profile.columns:
+        residual_values = pd.to_numeric(
+            profile["avg_abs_price_realization_residual_pct"], errors="coerce"
+        )
+        residual_violations = int((residual_values.isna() | (residual_values < 0)).sum())
+        checks.append(
+            _result_row(
+                "customer_pricing_profile_price_realization_residual_non_negative",
+                "PASS" if residual_violations == 0 else "FAIL",
+                residual_violations,
+                "average absolute price residuals are numeric and non-negative",
+            )
+        )
+
+        if (
+            "order_item_pricing_metrics" in structurally_valid_tables
+            and "avg_margin_proxy_pct" in profile.columns
+        ):
             pricing = processed_tables["order_item_pricing_metrics"]
-            expected_margin = (
-                pricing.groupby("customer_id", as_index=False)
-                .agg(total_revenue=("line_revenue", "sum"), gross_margin_value=("gross_margin_value", "sum"))
+            expected_margin = pricing.groupby("customer_id", as_index=False).agg(
+                total_revenue=("line_revenue", "sum"),
+                gross_margin_value=("gross_margin_value", "sum"),
             )
             expected_margin["expected_margin_proxy_pct"] = np.where(
                 expected_margin["total_revenue"] > 0,
@@ -562,7 +673,7 @@ def validate_processed_tables(processed_tables: dict[str, pd.DataFrame]) -> tupl
                 )
             )
 
-    if {"customer_pricing_profile", "customer_risk_scores"}.issubset(processed_tables.keys()):
+    if {"customer_pricing_profile", "customer_risk_scores"}.issubset(structurally_valid_tables):
         profile_count = int(len(processed_tables["customer_pricing_profile"]))
         risk_count = int(len(processed_tables["customer_risk_scores"]))
         checks.append(

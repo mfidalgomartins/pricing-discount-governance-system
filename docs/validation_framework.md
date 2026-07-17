@@ -24,6 +24,7 @@
 
 ## Processed Data Checks (`validate_processed_tables`)
 - Required columns by analytical table.
+- Non-empty row-count gates for every required processed table.
 - Grain uniqueness:
   - `order_item_pricing_metrics.order_item_id`
   - `customer_pricing_profile.customer_id`
@@ -33,7 +34,7 @@
   - share metrics in `[0, 1]`
   - `discount_depth` bounds and `realized <= list`
   - weighted discount reconciliation (line-item weighted vs aggregate ratio)
-  - line revenue, list revenue, cost, gross margin, margin percentage, and high-discount flag arithmetic
+  - line revenue, list revenue, cost, gross margin, margin percentage, price-realization residual, discounted flag, and high-discount flag arithmetic
   - customer-level revenue-weighted margin reconciliation
 - Taxonomy checks:
   - allowed `risk_tier` values
@@ -65,6 +66,8 @@ Operational rule: treat any `FAIL` status in these files as a blocker until revi
   - period completeness
   - score variance sanity
   - run manifest row-count consistency vs current data
+- Treats missing, empty, stale-window, malformed-status, or unreadable release evidence as
+  explicit failures; no publication check passes through an evidence-free `skip` state.
 - Writes canonical outputs to `outputs/` to keep one governed report surface.
 - Adds explicit release-readiness classification with governance gates:
   - `technically_valid`
@@ -84,10 +87,14 @@ Operational rule: treat any `FAIL` status in these files as a blocker until revi
 
 Current blocking rules:
 - Required readiness flags must match policy.
+- Release-readiness state must equal the configured state.
 - Failed checks must be `0`.
 - Failed blocker checks must be `0`.
-- Dashboard size must be below the configured maximum.
-- Metric-contract failures must be `0`.
+- Dashboard size is inspected from the artifact, must be below the configured maximum,
+  and must match the size recorded by final review.
+- Dashboard SHA-256 must match the artifact inspected by final review.
+- Metric-contract evidence must be non-empty, contain only `PASS`/`FAIL` statuses, and
+  remain within the configured failure allowance.
 
 Outputs:
 - `outputs/release/release_gate_report.json`

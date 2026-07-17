@@ -8,6 +8,7 @@ Reads processed data only (data/processed/) and writes:
 Run:
     python scripts/build_report_assets.py
 """
+
 from __future__ import annotations
 
 import json
@@ -21,6 +22,7 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 import numpy as np
 import pandas as pd
+from matplotlib import font_manager
 
 ROOT = Path(__file__).resolve().parents[1]
 PROC = ROOT / "data" / "processed"
@@ -32,45 +34,58 @@ HIGH_DISCOUNT_THRESHOLD = float(POLICY["high_discount_threshold"])
 SENSITIVITY_THRESHOLDS = [float(value) for value in POLICY["high_discount_sensitivity_thresholds"]]
 
 # ---------------------------------------------------------------------------
-# Editorial design tokens (cohesive with the command-center dashboard)
+# Editorial design tokens (consulting-report system)
 # ---------------------------------------------------------------------------
-PAPER = "#f4f1ea"
-INK = "#1a1a1a"
-INK_LIGHT = "#6b6b6b"
-GRID = "#d8d4cc"
-ACCENT = "#8c2920"   # oxblood — the single accent for emphasis
-WARN = "#936323"     # amber — used only for the warning tier
-OK = "#3c5d2e"       # forest — used only for the healthy tier
-NEUTRAL = "#b7b1a6"  # muted clay for non-emphasised series
-NEUTRAL_D = "#8a8478"
+PAPER = "#ffffff"
+INK = "#151515"
+INK_LIGHT = "#556168"
+GRID = "#d9dfe3"
+ACCENT = "#00a6d6"
+ACCENT_DARK = "#006f91"
+WARN = "#5f8ea3"
+OK = "#9ab8c4"
+NEUTRAL = "#c3cbd0"
+NEUTRAL_D = "#68757d"
 
-plt.rcParams.update({
-    "figure.facecolor": PAPER,
-    "axes.facecolor": PAPER,
-    "savefig.facecolor": PAPER,
-    "axes.edgecolor": INK,
-    "axes.linewidth": 0.8,
-    "axes.labelcolor": INK,
-    "text.color": INK,
-    "xtick.color": INK_LIGHT,
-    "ytick.color": INK_LIGHT,
-    "grid.color": GRID,
-    "grid.linewidth": 0.6,
-    "axes.grid": True,
-    "axes.grid.axis": "y",
-    "axes.spines.top": False,
-    "axes.spines.right": False,
-    "font.family": "DejaVu Sans",
-    "axes.titlesize": 13,
-    "axes.titleweight": "bold",
-    "axes.labelsize": 10,
-    "xtick.labelsize": 9,
-    "ytick.labelsize": 9,
-    "legend.fontsize": 9,
-    "figure.dpi": 160,
-    "savefig.dpi": 160,
-    "savefig.bbox": "tight",
-})
+ARIAL_FONT_FILES = [
+    Path("/System/Library/Fonts/Supplemental/Arial.ttf"),
+    Path("/Library/Fonts/Arial.ttf"),
+]
+for font_path in ARIAL_FONT_FILES:
+    if font_path.exists():
+        font_manager.fontManager.addfont(font_path)
+        break
+
+plt.rcParams.update(
+    {
+        "figure.facecolor": PAPER,
+        "axes.facecolor": PAPER,
+        "savefig.facecolor": PAPER,
+        "axes.edgecolor": NEUTRAL_D,
+        "axes.linewidth": 0.7,
+        "axes.labelcolor": INK,
+        "text.color": INK,
+        "xtick.color": INK_LIGHT,
+        "ytick.color": INK_LIGHT,
+        "grid.color": GRID,
+        "grid.linewidth": 0.5,
+        "axes.grid": True,
+        "axes.grid.axis": "y",
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+        "font.family": "Arial",
+        "font.sans-serif": ["Arial", "DejaVu Sans"],
+        "axes.titlesize": 12.5,
+        "axes.titleweight": "bold",
+        "axes.labelsize": 10,
+        "xtick.labelsize": 9,
+        "ytick.labelsize": 9,
+        "legend.fontsize": 9,
+        "figure.dpi": 180,
+        "savefig.dpi": 180,
+        "savefig.bbox": "tight",
+    }
+)
 
 SEG_ORDER = ["Enterprise", "Public Sector", "Mid-Market", "SMB"]
 CHAN_ORDER = ["Reseller", "Partner", "Direct", "Online"]
@@ -83,31 +98,44 @@ def _save(fig, name: str):
     print("wrote", path.relative_to(ROOT))
 
 
+_FIGURE_SEQUENCE = [2, 1, 6, 5, 3, 4, 7, 9, 8, 10, 11, 13, 14, 15, 12, 18, 16, 17]
+_FIGURE_INDEX = 0
+
+
 def _kicker(ax, kicker: str, title: str, subtitle: str | None = None):
-    """Editorial heading: small caps kicker, bold title, light subtitle."""
+    """Numbered exhibit heading with a conclusion-led title and quiet context line."""
+    global _FIGURE_INDEX
+    figure_no = _FIGURE_SEQUENCE[_FIGURE_INDEX]
+    _FIGURE_INDEX += 1
     ax.set_title("")
     fig = ax.figure
-    fig.text(0.012, 0.985, kicker.upper(), ha="left", va="top",
-             fontsize=8.5, color=ACCENT, weight="bold", family="DejaVu Sans")
-    fig.text(0.012, 0.94, title, ha="left", va="top", fontsize=14.5,
-             color=INK, weight="bold")
+    fig.text(
+        0.012,
+        0.985,
+        f"Figure {figure_no}",
+        ha="left",
+        va="top",
+        fontsize=8.2,
+        color=INK_LIGHT,
+        weight="bold",
+        family="Arial",
+    )
+    fig.text(0.012, 0.94, title, ha="left", va="top", fontsize=14, color=INK, weight="bold")
     if subtitle:
-        fig.text(0.012, 0.895, subtitle, ha="left", va="top", fontsize=9.5,
-                 color=INK_LIGHT)
+        fig.text(0.012, 0.895, subtitle, ha="left", va="top", fontsize=9.2, color=INK_LIGHT)
 
 
 def _src(fig, text: str | None = None):
     text = text or f"Source: pricing governance pipeline, processed marts. {COVERAGE_LABEL}."
-    fig.text(0.012, 0.012, text, ha="left", va="bottom", fontsize=7.2,
-             color=NEUTRAL_D, style="italic")
+    fig.text(0.012, 0.012, text, ha="left", va="bottom", fontsize=6.9, color=NEUTRAL_D)
 
 
 def _pct(x, _=None):
-    return f"{x*100:.0f}%"
+    return f"{x * 100:.0f}%"
 
 
 def _money_m(x, _=None):
-    return f"${x/1e6:,.0f}M"
+    return f"${x / 1e6:,.0f}M"
 
 
 # ---------------------------------------------------------------------------
@@ -122,11 +150,9 @@ cust = pd.read_csv(PROC / "customer_risk_scores.csv")
 prof = pd.read_csv(PROC / "customer_pricing_profile.csv")
 risk_tier = pd.read_csv(PROC / "risk_tier_summary.csv")
 driver = pd.read_csv(PROC / "main_driver_summary.csv")
-# overall health from the warehouse mart (robust to outputs/ cleanup)
+# Read overall health from the warehouse mart so outputs cleanup cannot remove the source.
 overall = pd.read_csv(MART / "mart_overall_pricing_health.csv").iloc[0]
-COVERAGE_LABEL = (
-    f"{monthly['order_month'].min():%B %Y} to {monthly['order_month'].max():%B %Y}"
-)
+COVERAGE_LABEL = f"{monthly['order_month'].min():%B %Y} to {monthly['order_month'].max():%B %Y}"
 
 # threshold sensitivity recomputed from the order-item grain, mirroring
 # src/analysis/formal_analysis._build_threshold_sensitivity (self-contained,
@@ -136,15 +162,19 @@ _thr_rows = []
 for _t in SENSITIVITY_THRESHOLDS:
     _mask = oi["discount_depth"] >= _t
     _hd_rev = oi.loc[_mask, "line_revenue"].sum()
-    _thr_rows.append({
-        "high_discount_threshold": _t,
-        "high_discount_revenue_share": _hd_rev / _total_rev,
-        "high_discount_order_item_share": float(_mask.mean()),
-        "margin_proxy_pct_on_high_discount": (
-            oi.loc[_mask, "gross_margin_value"].sum() / _hd_rev if _hd_rev > 0 else float("nan")),
-        "revenue_with_margin_at_risk": float(
-            oi.loc[_mask & (oi["margin_proxy_pct"] < 0.35), "line_revenue"].sum()),
-    })
+    _thr_rows.append(
+        {
+            "high_discount_threshold": _t,
+            "high_discount_revenue_share": _hd_rev / _total_rev,
+            "high_discount_order_item_share": float(_mask.mean()),
+            "margin_proxy_pct_on_high_discount": (
+                oi.loc[_mask, "gross_margin_value"].sum() / _hd_rev if _hd_rev > 0 else float("nan")
+            ),
+            "revenue_with_margin_at_risk": float(
+                oi.loc[_mask & (oi["margin_proxy_pct"] < 0.35), "line_revenue"].sum()
+            ),
+        }
+    )
 thr = pd.DataFrame(_thr_rows)
 
 seg = seg.set_index("segment").reindex(SEG_ORDER).reset_index()
@@ -168,10 +198,22 @@ ax2.set_ylim(0.10, 0.22)
 ax2.spines["right"].set_visible(True)
 ax2.spines["right"].set_color(ACCENT)
 xlast = monthly["order_month"].iloc[-1]
-ax2.annotate("Weighted discount", (xlast, monthly["weighted_discount_pct"].iloc[-1]),
-             xytext=(-4, 10), textcoords="offset points", color=ACCENT, fontsize=9, weight="bold", ha="right")
-_kicker(ax, "Trend", "Revenue held flat while discount pressure stayed elevated",
-        f"Monthly billed revenue (bars) against the revenue-weighted realized discount (line), {COVERAGE_LABEL}")
+ax2.annotate(
+    "Weighted discount",
+    (xlast, monthly["weighted_discount_pct"].iloc[-1]),
+    xytext=(-4, 10),
+    textcoords="offset points",
+    color=ACCENT,
+    fontsize=9,
+    weight="bold",
+    ha="right",
+)
+_kicker(
+    ax,
+    "Trend",
+    "Revenue held flat while discount pressure stayed elevated",
+    f"Monthly billed revenue (bars) against the revenue-weighted realized discount (line), {COVERAGE_LABEL}",
+)
 _src(fig)
 _save(fig, "01_revenue_trend_discount_overlay.png")
 
@@ -181,20 +223,29 @@ _save(fig, "01_revenue_trend_discount_overlay.png")
 monthly["price_realization"] = monthly["revenue"] / monthly["list_revenue"]
 fig, ax = plt.subplots(figsize=(9.2, 5.0))
 fig.subplots_adjust(top=0.80, bottom=0.13, left=0.10, right=0.96)
-ax.fill_between(monthly["order_month"], monthly["price_realization"], 1.0,
-                color=ACCENT, alpha=0.10)
+ax.fill_between(monthly["order_month"], monthly["price_realization"], 1.0, color=ACCENT, alpha=0.10)
 ax.plot(monthly["order_month"], monthly["price_realization"], color=ACCENT, lw=2.2)
 ax.axhline(1.0, color=INK, lw=0.8)
 mean_pr = monthly["price_realization"].mean()
 ax.axhline(mean_pr, color=INK_LIGHT, lw=0.9, ls="--")
-ax.annotate(f"{len(monthly)}-month mean {mean_pr*100:.1f}%", (monthly['order_month'].iloc[2], mean_pr),
-            xytext=(0, 8), textcoords="offset points", color=INK_LIGHT, fontsize=8.5)
+ax.annotate(
+    f"{len(monthly)}-month mean {mean_pr * 100:.1f}%",
+    (monthly["order_month"].iloc[2], mean_pr),
+    xytext=(0, 8),
+    textcoords="offset points",
+    color=INK_LIGHT,
+    fontsize=8.5,
+)
 ax.yaxis.set_major_formatter(mticker.FuncFormatter(_pct))
 ax.set_ylim(0.78, 1.005)
 ax.set_ylabel("Price realization (billed / list)")
 ax.margins(x=0.01)
-_kicker(ax, "Trend", "One in five list-price dollars is given away every month",
-        "Share of list value actually billed. The shaded band is revenue forgone to discount")
+_kicker(
+    ax,
+    "Trend",
+    "One in five list-price dollars is given away every month",
+    "Share of list value actually billed. The shaded band is revenue forgone to discount",
+)
 _src(fig)
 _save(fig, "02_price_realization_trend.png")
 
@@ -204,20 +255,41 @@ _save(fig, "02_price_realization_trend.png")
 fig, ax = plt.subplots(figsize=(9.2, 5.0))
 fig.subplots_adjust(top=0.80, bottom=0.13, left=0.085, right=0.96)
 d = oi["discount_pct"] * 100
-ax.hist(d, bins=40, color=NEUTRAL, edgecolor=PAPER, linewidth=0.4)
+counts, _, _ = ax.hist(d, bins=40, color=NEUTRAL, edgecolor=PAPER, linewidth=0.4)
 med = d.median()
-ax.axvline(med, color=ACCENT, lw=2)
 high_discount_pct = HIGH_DISCOUNT_THRESHOLD * 100
-ax.axvline(high_discount_pct, color=INK, lw=1.0, ls="--")
-ax.annotate(f"Median {med:.1f}%", (med, ax.get_ylim()[1]*0.92), xytext=(8, 0),
-            textcoords="offset points", color=ACCENT, fontsize=9.5, weight="bold")
-ax.annotate(f"High-discount line ({high_discount_pct:.0f}%)", (high_discount_pct, ax.get_ylim()[1]*0.62), xytext=(8, 0),
-            textcoords="offset points", color=INK, fontsize=8.8)
+# Headroom above the tallest bar keeps both annotations clear of the bars themselves.
+ax.set_ylim(0, counts.max() * 1.28)
+ax.axvline(med, color=ACCENT, lw=2, ymax=0.86)
+ax.axvline(high_discount_pct, color=INK, lw=1.0, ls="--", ymax=0.86)
+ax.annotate(
+    f"Median {med:.1f}%",
+    (med, ax.get_ylim()[1] * 0.96),
+    xytext=(8, 0),
+    textcoords="offset points",
+    color=ACCENT,
+    fontsize=9.5,
+    weight="bold",
+    va="top",
+)
+ax.annotate(
+    f"High-discount line ({high_discount_pct:.0f}%)",
+    (high_discount_pct, ax.get_ylim()[1] * 0.80),
+    xytext=(8, 0),
+    textcoords="offset points",
+    color=INK,
+    fontsize=8.8,
+    va="top",
+)
 ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{x:.0f}%"))
 ax.set_xlabel("Line-item discount")
 ax.set_ylabel("Order items")
-_kicker(ax, "Distribution", "Discounting clusters in a tight 10-20% band, not at the edges",
-        f"All {len(oi):,} order items by realized discount depth")
+_kicker(
+    ax,
+    "Distribution",
+    "Discounting clusters in a tight 10-20% band, not at the edges",
+    f"All {len(oi):,} order items by realized discount depth",
+)
 _src(fig)
 _save(fig, "03_discount_depth_distribution.png")
 
@@ -232,24 +304,40 @@ colors = [NEUTRAL, NEUTRAL, NEUTRAL, ACCENT, ACCENT]
 bars = ax.barh(bucket_order, rev_b.values, color=colors)
 ax.invert_yaxis()
 ax.xaxis.set_major_formatter(mticker.FuncFormatter(_money_m))
-ax.grid(axis="x"); ax.grid(axis="y", visible=False)
+ax.grid(axis="x")
+ax.grid(axis="y", visible=False)
 tot = rev_b.sum()
-for b, v in zip(bars, rev_b.values):
-    ax.text(v + tot*0.01, b.get_y()+b.get_height()/2, f"${v/1e6:,.0f}M  ({v/tot*100:.0f}%)",
-            va="center", fontsize=9, color=INK)
-ax.set_xlim(0, tot*0.78)
+for b, v in zip(bars, rev_b.values, strict=True):
+    ax.text(
+        v + tot * 0.01,
+        b.get_y() + b.get_height() / 2,
+        f"${v / 1e6:,.0f}M  ({v / tot * 100:.0f}%)",
+        va="center",
+        fontsize=9,
+        color=INK,
+    )
+ax.set_xlim(0, tot * 0.78)
 ax.set_xlabel("Revenue")
-_kicker(ax, "Composition", "Most revenue carries a 10-20% discount, but the deep tail is heavy",
-        "Billed revenue by discount band. Bands above 20% are highlighted")
+_kicker(
+    ax,
+    "Composition",
+    "Most revenue carries a 10-20% discount, but the deep tail is heavy",
+    "Billed revenue by discount band. Bands above 20% are highlighted",
+)
 _src(fig)
 _save(fig, "04_revenue_by_discount_bucket.png")
 
 # ===========================================================================
 # 05  Margin by discount bucket (variance)
 # ===========================================================================
-mb = oi.groupby("discount_bucket").apply(
-    lambda g: pd.Series({"margin": g["gross_margin_value"].sum()/g["line_revenue"].sum()}),
-    include_groups=False).reindex(bucket_order)
+mb = (
+    oi.groupby("discount_bucket")
+    .apply(
+        lambda g: pd.Series({"margin": g["gross_margin_value"].sum() / g["line_revenue"].sum()}),
+        include_groups=False,
+    )
+    .reindex(bucket_order)
+)
 fig, ax = plt.subplots(figsize=(9.2, 5.0))
 fig.subplots_adjust(top=0.80, bottom=0.13, left=0.09, right=0.96)
 vals = mb["margin"].values * 100
@@ -258,11 +346,22 @@ bars = ax.bar(bucket_order, vals, color=colors, width=0.62)
 ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{x:.0f}%"))
 ax.set_ylabel("Gross margin proxy")
 ax.set_xlabel("Discount band")
-for b, v in zip(bars, vals):
-    ax.text(b.get_x()+b.get_width()/2, v+0.4, f"{v:.1f}%", ha="center", fontsize=9.5, weight="bold")
-ax.set_ylim(0, max(vals)*1.15)
-_kicker(ax, "Variance", "Each step deeper into discount strips roughly four margin points",
-        "Blended gross-margin proxy within each discount band")
+for b, v in zip(bars, vals, strict=True):
+    ax.text(
+        b.get_x() + b.get_width() / 2,
+        v + 0.4,
+        f"{v:.1f}%",
+        ha="center",
+        fontsize=9.5,
+        weight="bold",
+    )
+ax.set_ylim(0, max(vals) * 1.15)
+_kicker(
+    ax,
+    "Variance",
+    "Each step deeper into discount strips roughly four margin points",
+    "Blended gross-margin proxy within each discount band",
+)
 _src(fig)
 _save(fig, "05_margin_by_discount_bucket.png")
 
@@ -271,23 +370,34 @@ _save(fig, "05_margin_by_discount_bucket.png")
 # ===========================================================================
 fig, ax = plt.subplots(figsize=(9.2, 5.2))
 fig.subplots_adjust(top=0.80, bottom=0.12, left=0.09, right=0.96)
-x = prof["avg_discount_pct"]*100
-y = prof["avg_margin_proxy_pct"]*100
-sizes = (prof["total_revenue"]/prof["total_revenue"].max())*420 + 6
+x = prof["avg_discount_pct"] * 100
+y = prof["avg_margin_proxy_pct"] * 100
+sizes = (prof["total_revenue"] / prof["total_revenue"].max()) * 420 + 6
 ax.scatter(x, y, s=sizes, color=ACCENT, alpha=0.18, edgecolor="none")
 coef = np.polyfit(x, y, 1)
 xs = np.linspace(x.min(), x.max(), 50)
 ax.plot(xs, np.polyval(coef, xs), color=INK, lw=1.8, ls="--")
 r = np.corrcoef(x, y)[0, 1]
-ax.annotate(f"r = {r:.2f}\nslope {coef[0]:.2f} margin pts per discount pt",
-            (0.97, 0.95), xycoords="axes fraction", ha="right", va="top",
-            fontsize=9.5, color=INK, weight="bold")
+ax.annotate(
+    f"r = {r:.2f}\nslope {coef[0]:.2f} margin pts per discount pt",
+    (0.97, 0.95),
+    xycoords="axes fraction",
+    ha="right",
+    va="top",
+    fontsize=9.5,
+    color=INK,
+    weight="bold",
+)
 ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f"{v:.0f}%"))
 ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f"{v:.0f}%"))
 ax.set_xlabel("Customer average discount")
 ax.set_ylabel("Customer average margin proxy")
-_kicker(ax, "Correlation", "Deeper discounting reliably tracks thinner margin",
-        f"Each bubble is one of {len(prof):,} customers, sized by revenue")
+_kicker(
+    ax,
+    "Correlation",
+    "Deeper discounting reliably tracks thinner margin",
+    f"Each bubble is one of {len(prof):,} customers, sized by revenue",
+)
 _src(fig)
 _save(fig, "06_discount_margin_correlation.png")
 
@@ -296,23 +406,33 @@ _save(fig, "06_discount_margin_correlation.png")
 # ===========================================================================
 fig, ax = plt.subplots(figsize=(9.2, 5.4))
 fig.subplots_adjust(top=0.80, bottom=0.12, left=0.09, right=0.96)
-sx = seg["avg_discount_pct"]*100
-sy = seg["avg_margin_proxy_pct"]*100
-ss = (seg["total_revenue"]/seg["total_revenue"].max())*2600 + 200
+sx = seg["avg_discount_pct"] * 100
+sy = seg["avg_margin_proxy_pct"] * 100
+ss = (seg["total_revenue"] / seg["total_revenue"].max()) * 2600 + 200
 seg_colors = [ACCENT, WARN, NEUTRAL_D, OK]
 ax.scatter(sx, sy, s=ss, color=seg_colors, alpha=0.85, edgecolor=PAPER, linewidth=1.5, zorder=3)
 for i, row in seg.iterrows():
-    ax.annotate(f"{row['segment']}\n${row['total_revenue']/1e6:,.0f}M  ·  high-disc {row['share_high_discount']*100:.0f}%",
-                (sx[i], sy[i]), xytext=(0, -38 if row['segment']=='Enterprise' else 16),
-                textcoords="offset points", ha="center", fontsize=8.6, color=INK)
+    ax.annotate(
+        f"{row['segment']}\n${row['total_revenue'] / 1e6:,.0f}M  ·  high-disc {row['share_high_discount'] * 100:.0f}%",
+        (sx[i], sy[i]),
+        xytext=(0, -38 if row["segment"] == "Enterprise" else 16),
+        textcoords="offset points",
+        ha="center",
+        fontsize=8.6,
+        color=INK,
+    )
 ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f"{v:.0f}%"))
 ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda v, _: f"{v:.0f}%"))
 ax.set_xlabel("Average discount")
 ax.set_ylabel("Average margin proxy")
 ax.set_xlim(9, 23)
 ax.set_ylim(40, 55)
-_kicker(ax, "Risk", "Enterprise carries the most revenue at the worst discount-margin position",
-        "Segment position by discount and margin. Bubble area is total revenue")
+_kicker(
+    ax,
+    "Risk",
+    "Enterprise carries the most revenue at the worst discount-margin position",
+    "Segment position by discount and margin. Bubble area is total revenue",
+)
 _src(fig)
 _save(fig, "07_segment_pricing_health.png")
 
@@ -324,95 +444,175 @@ piv = piv.reindex(index=SEG_ORDER, columns=CHAN_ORDER) * 100
 fig, ax = plt.subplots(figsize=(8.6, 5.2))
 fig.subplots_adjust(top=0.78, bottom=0.10, left=0.16, right=0.99)
 from matplotlib.colors import LinearSegmentedColormap
-cmap = LinearSegmentedColormap.from_list("oxblood", [PAPER, "#d8b6ad", ACCENT])
+
+cmap = LinearSegmentedColormap.from_list("consulting_blue", [PAPER, "#bfeaf4", ACCENT_DARK])
 im = ax.imshow(piv.values, cmap=cmap, aspect="auto", vmin=10, vmax=24)
-ax.set_xticks(range(len(CHAN_ORDER))); ax.set_xticklabels(CHAN_ORDER)
-ax.set_yticks(range(len(SEG_ORDER))); ax.set_yticklabels(SEG_ORDER)
+ax.set_xticks(range(len(CHAN_ORDER)))
+ax.set_xticklabels(CHAN_ORDER)
+ax.set_yticks(range(len(SEG_ORDER)))
+ax.set_yticklabels(SEG_ORDER)
 ax.grid(False)
 for i in range(piv.shape[0]):
     for j in range(piv.shape[1]):
         v = piv.values[i, j]
-        ax.text(j, i, f"{v:.1f}%", ha="center", va="center",
-                color=PAPER if v > 18 else INK, fontsize=9.5, weight="bold")
-_kicker(ax, "Concentration", "Discounting concentrates where Enterprise meets the reseller channel",
-        "Average discount by segment and sales channel. Darker is deeper")
+        ax.text(
+            j,
+            i,
+            f"{v:.1f}%",
+            ha="center",
+            va="center",
+            color=PAPER if v > 18 else INK,
+            fontsize=9.5,
+            weight="bold",
+        )
+_kicker(
+    ax,
+    "Concentration",
+    "Discounting concentrates where Enterprise meets the reseller channel",
+    "Average discount by segment and sales channel. Darker is deeper",
+)
 _src(fig)
 _save(fig, "08_segment_channel_heatmap.png")
 
 # ===========================================================================
 # 09  Channel discount ladder (ranking)
 # ===========================================================================
-chan = oi.groupby("sales_channel").apply(
-    lambda g: pd.Series({
-        "discount": (g["line_list_revenue"].sum()-g["line_revenue"].sum())/g["line_list_revenue"].sum(),
-        "revenue": g["line_revenue"].sum(),
-    }), include_groups=False).reindex(CHAN_ORDER)
+chan = (
+    oi.groupby("sales_channel")
+    .apply(
+        lambda g: pd.Series(
+            {
+                "discount": (g["line_list_revenue"].sum() - g["line_revenue"].sum())
+                / g["line_list_revenue"].sum(),
+                "revenue": g["line_revenue"].sum(),
+            }
+        ),
+        include_groups=False,
+    )
+    .reindex(CHAN_ORDER)
+)
 fig, ax = plt.subplots(figsize=(9.2, 5.0))
 fig.subplots_adjust(top=0.80, bottom=0.13, left=0.10, right=0.96)
-vals = chan["discount"].values*100
+vals = chan["discount"].values * 100
 colors = [ACCENT if v == max(vals) else NEUTRAL for v in vals]
 bars = ax.bar(CHAN_ORDER, vals, color=colors, width=0.6)
-for b, v, rv in zip(bars, vals, chan["revenue"].values):
-    ax.text(b.get_x()+b.get_width()/2, v+0.25, f"{v:.1f}%", ha="center", fontsize=9.5, weight="bold")
-    ax.text(b.get_x()+b.get_width()/2, 0.6, f"${rv/1e6:,.0f}M", ha="center", fontsize=8.2, color=PAPER, weight="bold")
+for b, v, rv in zip(bars, vals, chan["revenue"].values, strict=True):
+    ax.text(
+        b.get_x() + b.get_width() / 2,
+        v + 0.25,
+        f"{v:.1f}%",
+        ha="center",
+        fontsize=9.5,
+        weight="bold",
+    )
+    ax.text(
+        b.get_x() + b.get_width() / 2,
+        0.6,
+        f"${rv / 1e6:,.0f}M",
+        ha="center",
+        fontsize=8.2,
+        color=PAPER,
+        weight="bold",
+    )
 ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{x:.0f}%"))
 ax.set_ylabel("Weighted discount")
-ax.set_ylim(0, max(vals)*1.16)
-_kicker(ax, "Ranking", "Indirect channels discount nearly twice as deep as Online",
-        "Revenue-weighted discount by channel. Revenue in white at base")
+ax.set_ylim(0, max(vals) * 1.16)
+_kicker(
+    ax,
+    "Ranking",
+    "Reseller discounts run nearly 50% deeper than Online",
+    "Revenue-weighted discount by channel. Revenue in white at base",
+)
 _src(fig)
 _save(fig, "09_channel_discount_ladder.png")
 
 # ===========================================================================
 # 10  Region comparison (geography)
 # ===========================================================================
-reg = oi.groupby("region").apply(
-    lambda g: pd.Series({
-        "discount": (g["line_list_revenue"].sum()-g["line_revenue"].sum())/g["line_list_revenue"].sum(),
-        "margin": g["gross_margin_value"].sum()/g["line_revenue"].sum(),
-        "revenue": g["line_revenue"].sum(),
-    }), include_groups=False).sort_values("discount", ascending=False)
+reg = (
+    oi.groupby("region")
+    .apply(
+        lambda g: pd.Series(
+            {
+                "discount": (g["line_list_revenue"].sum() - g["line_revenue"].sum())
+                / g["line_list_revenue"].sum(),
+                "margin": g["gross_margin_value"].sum() / g["line_revenue"].sum(),
+                "revenue": g["line_revenue"].sum(),
+            }
+        ),
+        include_groups=False,
+    )
+    .sort_values("discount", ascending=False)
+)
 fig, ax = plt.subplots(figsize=(9.2, 5.0))
 fig.subplots_adjust(top=0.80, bottom=0.13, left=0.10, right=0.90)
 yp = np.arange(len(reg))
-ax.barh(yp, reg["discount"].values*100, color=NEUTRAL, height=0.6)
-ax.set_yticks(yp); ax.set_yticklabels(reg.index)
+ax.barh(yp, reg["discount"].values * 100, color=NEUTRAL, height=0.6)
+ax.set_yticks(yp)
+ax.set_yticklabels(reg.index)
 ax.invert_yaxis()
 ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{x:.0f}%"))
-ax.grid(axis="x"); ax.grid(axis="y", visible=False)
-for i, (disc, rv) in enumerate(zip(reg["discount"].values, reg["revenue"].values)):
-    ax.text(disc*100+0.15, i, f"{disc*100:.1f}%  ·  ${rv/1e6:,.0f}M", va="center", fontsize=9, color=INK)
-ax.set_xlim(0, reg["discount"].max()*100*1.35)
+ax.grid(axis="x")
+ax.grid(axis="y", visible=False)
+for i, (disc, rv) in enumerate(zip(reg["discount"].values, reg["revenue"].values, strict=True)):
+    ax.text(
+        disc * 100 + 0.15,
+        i,
+        f"{disc * 100:.1f}%  ·  ${rv / 1e6:,.0f}M",
+        va="center",
+        fontsize=9,
+        color=INK,
+    )
+ax.set_xlim(0, reg["discount"].max() * 100 * 1.35)
 ax.set_xlabel("Weighted discount")
-_kicker(ax, "Geography", "Discount depth is roughly even across regions",
-        "Weighted discount and revenue by customer region")
+_kicker(
+    ax,
+    "Geography",
+    "Discount depth is roughly even across regions",
+    "Weighted discount and revenue by customer region",
+)
 _src(fig)
 _save(fig, "10_region_comparison.png")
 
 # ===========================================================================
 # 11  Product category margin vs discount (composition)
 # ===========================================================================
-cat = oi.groupby("category").apply(
-    lambda g: pd.Series({
-        "discount": (g["line_list_revenue"].sum()-g["line_revenue"].sum())/g["line_list_revenue"].sum(),
-        "margin": g["gross_margin_value"].sum()/g["line_revenue"].sum(),
-        "revenue": g["line_revenue"].sum(),
-    }), include_groups=False).sort_values("revenue", ascending=True)
+cat = (
+    oi.groupby("category")
+    .apply(
+        lambda g: pd.Series(
+            {
+                "discount": (g["line_list_revenue"].sum() - g["line_revenue"].sum())
+                / g["line_list_revenue"].sum(),
+                "margin": g["gross_margin_value"].sum() / g["line_revenue"].sum(),
+                "revenue": g["line_revenue"].sum(),
+            }
+        ),
+        include_groups=False,
+    )
+    .sort_values("revenue", ascending=True)
+)
 fig, ax = plt.subplots(figsize=(9.2, 5.2))
 fig.subplots_adjust(top=0.80, bottom=0.13, left=0.16, right=0.92)
 yp = np.arange(len(cat))
-ax.barh(yp-0.2, cat["discount"].values*100, height=0.38, color=ACCENT, label="Discount")
-ax.barh(yp+0.2, cat["margin"].values*100, height=0.38, color=NEUTRAL_D, label="Margin proxy")
-ax.set_yticks(yp); ax.set_yticklabels(cat.index)
+ax.barh(yp - 0.2, cat["discount"].values * 100, height=0.38, color=ACCENT, label="Discount")
+ax.barh(yp + 0.2, cat["margin"].values * 100, height=0.38, color=NEUTRAL_D, label="Margin proxy")
+ax.set_yticks(yp)
+ax.set_yticklabels(cat.index)
 ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{x:.0f}%"))
-ax.grid(axis="x"); ax.grid(axis="y", visible=False)
+ax.grid(axis="x")
+ax.grid(axis="y", visible=False)
 ax.legend(loc="lower right", frameon=False)
-for i, (d, m) in enumerate(zip(cat["discount"].values, cat["margin"].values)):
-    ax.text(d*100+0.4, i-0.2, f"{d*100:.0f}%", va="center", fontsize=8.4, color=ACCENT)
-    ax.text(m*100+0.4, i+0.2, f"{m*100:.0f}%", va="center", fontsize=8.4, color=NEUTRAL_D)
+for i, (d, m) in enumerate(zip(cat["discount"].values, cat["margin"].values, strict=True)):
+    ax.text(d * 100 + 0.4, i - 0.2, f"{d * 100:.0f}%", va="center", fontsize=8.4, color=ACCENT)
+    ax.text(m * 100 + 0.4, i + 0.2, f"{m * 100:.0f}%", va="center", fontsize=8.4, color=NEUTRAL_D)
 ax.set_xlim(0, 60)
-_kicker(ax, "Composition", "Professional Services earns the thinnest margin on an ordinary discount",
-        "Discount versus margin proxy by product category")
+_kicker(
+    ax,
+    "Composition",
+    "Professional Services earns the thinnest margin on an ordinary discount",
+    "Discount versus margin proxy by product category",
+)
 _src(fig)
 _save(fig, "11_category_margin_vs_discount.png")
 
@@ -424,42 +624,59 @@ fig, ax = plt.subplots(figsize=(9.2, 5.6))
 fig.subplots_adjust(top=0.80, bottom=0.11, left=0.30, right=0.91)
 yp = np.arange(len(top_prod))
 bars = ax.barh(yp, top_prod["revenue"].values, color=NEUTRAL, height=0.66)
-ax.set_yticks(yp); ax.set_yticklabels(top_prod["product_name"], fontsize=8.6)
+ax.set_yticks(yp)
+ax.set_yticklabels(top_prod["product_name"], fontsize=8.6)
 ax.xaxis.set_major_formatter(mticker.FuncFormatter(_money_m))
-ax.grid(axis="x"); ax.grid(axis="y", visible=False)
+ax.grid(axis="x")
+ax.grid(axis="y", visible=False)
 hi = top_prod["high_discount_share"].values
-for b, v, h in zip(bars, top_prod["revenue"].values, hi):
+for b, v, h in zip(bars, top_prod["revenue"].values, hi, strict=True):
     if h >= 0.30:
         b.set_color(ACCENT)
-    ax.text(v + top_prod['revenue'].max()*0.01, b.get_y()+b.get_height()/2,
-            f"${v/1e6:,.0f}M  ·  {h*100:.0f}% deep", va="center", fontsize=8.2, color=INK)
-ax.set_xlim(0, top_prod["revenue"].max()*1.22)
+    ax.text(
+        v + top_prod["revenue"].max() * 0.01,
+        b.get_y() + b.get_height() / 2,
+        f"${v / 1e6:,.0f}M  ·  {h * 100:.0f}% deep",
+        va="center",
+        fontsize=8.2,
+        color=INK,
+    )
+ax.set_xlim(0, top_prod["revenue"].max() * 1.22)
 ax.set_xlabel("Revenue")
-_kicker(ax, "Ranking", "The top-revenue product also carries the deepest discount exposure",
-        "Top 12 products by revenue. Red marks any product with 30%+ of revenue deeply discounted")
+_kicker(
+    ax,
+    "Ranking",
+    "The top-revenue product also carries the deepest discount exposure",
+    "Top 12 products by revenue. Red marks any product with 30%+ of revenue deeply discounted",
+)
 _src(fig)
 _save(fig, "12_top_products_revenue.png")
 
 # ===========================================================================
 # 13  Risk tier breakdown (customers vs revenue)
 # ===========================================================================
-rt = risk_tier.set_index("risk_tier").reindex(["High", "Medium", "Low"])
+risk_tier_order = ["Critical", "High", "Medium", "Low"]
+rt = risk_tier.set_index("risk_tier").reindex(risk_tier_order).fillna(0)
 fig, axes = plt.subplots(1, 2, figsize=(9.4, 5.0))
 fig.subplots_adjust(top=0.78, bottom=0.12, left=0.09, right=0.97, wspace=0.32)
-tcolors = [ACCENT, WARN, OK]
+tcolors = [INK, ACCENT, WARN, OK]
 axes[0].bar(rt.index, rt["customers"], color=tcolors, width=0.62)
 axes[0].set_ylabel("Customers")
 for i, v in enumerate(rt["customers"]):
-    axes[0].text(i, v+12, f"{int(v)}", ha="center", fontsize=9.5, weight="bold")
+    axes[0].text(i, v + 12, f"{int(v)}", ha="center", fontsize=9.5, weight="bold")
 axes[0].set_title("By customer count", fontsize=10.5, weight="bold", color=INK_LIGHT)
-axes[1].bar(rt.index, rt["total_revenue"]/1e6, color=tcolors, width=0.62)
+axes[1].bar(rt.index, rt["total_revenue"] / 1e6, color=tcolors, width=0.62)
 axes[1].yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"${x:,.0f}M"))
 axes[1].set_ylabel("Revenue")
-for i, v in enumerate(rt["total_revenue"]/1e6):
-    axes[1].text(i, v+18, f"${v:,.0f}M", ha="center", fontsize=9.5, weight="bold")
+for i, v in enumerate(rt["total_revenue"] / 1e6):
+    axes[1].text(i, v + 18, f"${v:,.0f}M", ha="center", fontsize=9.5, weight="bold")
 axes[1].set_title("By revenue exposed", fontsize=10.5, weight="bold", color=INK_LIGHT)
-_kicker(axes[0], "Risk", "A small high-risk group sits on outsized revenue",
-        "Customers and revenue by governance risk tier")
+_kicker(
+    axes[0],
+    "Risk",
+    "A small high-risk group sits on outsized revenue",
+    "Customers and revenue by governance risk tier",
+)
 # _kicker clears the axes title, so re-apply the panel labels afterwards
 axes[0].set_title("By customer count", fontsize=10.5, weight="bold", color=INK_LIGHT)
 axes[1].set_title("By revenue exposed", fontsize=10.5, weight="bold", color=INK_LIGHT)
@@ -475,13 +692,23 @@ s = cust["governance_priority_score"]
 ax.hist(s, bins=40, color=NEUTRAL, edgecolor=PAPER, linewidth=0.4)
 p90 = s.quantile(0.90)
 ax.axvline(p90, color=ACCENT, lw=2)
-ax.annotate(f"90th percentile = {p90:.0f}\n{(s>=p90).sum()} customers above",
-            (p90, ax.get_ylim()[1]*0.85), xytext=(10, 0), textcoords="offset points",
-            color=ACCENT, fontsize=9.2, weight="bold")
+ax.annotate(
+    f"90th percentile = {p90:.0f}\n{(s >= p90).sum()} customers above",
+    (p90, ax.get_ylim()[1] * 0.85),
+    xytext=(10, 0),
+    textcoords="offset points",
+    color=ACCENT,
+    fontsize=9.2,
+    weight="bold",
+)
 ax.set_xlabel("Governance priority score (0-100)")
 ax.set_ylabel("Customers")
-_kicker(ax, "Distribution", "Priority is concentrated in a thin upper tail",
-        f"Governance priority score across {len(cust):,} customers")
+_kicker(
+    ax,
+    "Distribution",
+    "Priority is concentrated in a thin upper tail",
+    f"Governance priority score across {len(cust):,} customers",
+)
 _src(fig)
 _save(fig, "14_priority_score_distribution.png")
 
@@ -489,23 +716,34 @@ _save(fig, "14_priority_score_distribution.png")
 # 15  Revenue concentration (Lorenz curve)
 # ===========================================================================
 rev_sorted = np.sort(prof["total_revenue"].values)[::-1]
-cum = np.cumsum(rev_sorted)/rev_sorted.sum()
-xfrac = np.arange(1, len(cum)+1)/len(cum)
+cum = np.cumsum(rev_sorted) / rev_sorted.sum()
+xfrac = np.arange(1, len(cum) + 1) / len(cum)
 fig, ax = plt.subplots(figsize=(9.2, 5.2))
 fig.subplots_adjust(top=0.80, bottom=0.13, left=0.10, right=0.96)
-ax.plot(xfrac*100, cum*100, color=ACCENT, lw=2.4)
+ax.plot(xfrac * 100, cum * 100, color=ACCENT, lw=2.4)
 ax.plot([0, 100], [0, 100], color=INK_LIGHT, lw=0.9, ls="--")
 for q in (0.10, 0.20):
-    idx = int(q*len(cum))-1
-    ax.scatter([q*100], [cum[idx]*100], color=INK, zorder=5, s=28)
-    ax.annotate(f"top {int(q*100)}% of customers = {cum[idx]*100:.0f}% of revenue",
-                (q*100, cum[idx]*100), xytext=(12, -4), textcoords="offset points",
-                fontsize=9, color=INK, weight="bold")
+    idx = int(q * len(cum)) - 1
+    ax.scatter([q * 100], [cum[idx] * 100], color=INK, zorder=5, s=28)
+    ax.annotate(
+        f"top {int(q * 100)}% of customers = {cum[idx] * 100:.0f}% of revenue",
+        (q * 100, cum[idx] * 100),
+        xytext=(12, -4),
+        textcoords="offset points",
+        fontsize=9,
+        color=INK,
+        weight="bold",
+    )
 ax.set_xlabel("Cumulative share of customers (ranked by revenue)")
 ax.set_ylabel("Cumulative share of revenue")
-ax.set_xlim(0, 100); ax.set_ylim(0, 101)
-_kicker(ax, "Concentration", "Revenue is highly concentrated, which makes targeted remediation viable",
-        "Lorenz curve of revenue across the customer base")
+ax.set_xlim(0, 100)
+ax.set_ylim(0, 101)
+_kicker(
+    ax,
+    "Concentration",
+    "Revenue is highly concentrated, which makes targeted remediation viable",
+    "Lorenz curve of revenue across the customer base",
+)
 _src(fig)
 _save(fig, "15_revenue_concentration_lorenz.png")
 
@@ -514,23 +752,47 @@ _save(fig, "15_revenue_concentration_lorenz.png")
 # ===========================================================================
 fig, ax = plt.subplots(figsize=(9.2, 5.0))
 fig.subplots_adjust(top=0.80, bottom=0.13, left=0.11, right=0.90)
-xt = thr["high_discount_threshold"]*100
-ax.bar(xt, thr["revenue_with_margin_at_risk"]/1e6, width=2.4, color=NEUTRAL)
+xt = thr["high_discount_threshold"] * 100
+ax.bar(xt, thr["revenue_with_margin_at_risk"] / 1e6, width=2.4, color=NEUTRAL)
 ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"${x:,.0f}M"))
 ax.set_ylabel("Revenue with margin at risk", color=INK)
 ax.set_xlabel("High-discount threshold")
 ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{x:.0f}%"))
-for x, v in zip(xt, thr["revenue_with_margin_at_risk"]/1e6):
-    ax.text(x, v+2, f"${v:,.0f}M", ha="center", fontsize=9, weight="bold")
-ax2 = ax.twinx(); ax2.grid(False)
-ax2.plot(xt, thr["high_discount_revenue_share"]*100, color=ACCENT, lw=2.2, marker="o")
+ax2 = ax.twinx()
+ax2.grid(False)
+ax2.plot(xt, thr["high_discount_revenue_share"] * 100, color=ACCENT, lw=2.2, marker="o")
+# Bar-value labels are placed on ax2 (drawn after the line, so it renders on top of the
+# bars) rather than ax, so a label is never hidden behind the line at that x position.
+# Positions are chosen in ax's data space (just above each bar) then mapped into ax2's
+# data space via the shared display transform, since the two axes have different scales.
+# A draw is needed first so both axes have their final autoscaled limits before the
+# transforms below are queried.
+fig.canvas.draw()
+for x, v in zip(xt, thr["revenue_with_margin_at_risk"] / 1e6, strict=True):
+    _, y2 = ax2.transData.inverted().transform(ax.transData.transform((x, v + 2)))
+    ax2.text(
+        x,
+        y2,
+        f"${v:,.0f}M",
+        ha="center",
+        fontsize=9,
+        weight="bold",
+        color=INK,
+        zorder=6,
+        bbox={"facecolor": PAPER, "edgecolor": "none", "pad": 1.5},
+    )
 ax2.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{x:.0f}%"))
 ax2.set_ylabel("High-discount revenue share", color=ACCENT)
 ax2.tick_params(axis="y", colors=ACCENT)
-ax2.spines["right"].set_visible(True); ax2.spines["right"].set_color(ACCENT)
+ax2.spines["right"].set_visible(True)
+ax2.spines["right"].set_color(ACCENT)
 ax.set_xticks([15, 20, 25])
-_kicker(ax, "Sensitivity", "The risk verdict is robust across plausible thresholds",
-        "Revenue at risk (bars) and high-discount share (line) as the threshold moves")
+_kicker(
+    ax,
+    "Sensitivity",
+    "The risk verdict remains stable across the tested thresholds",
+    "Revenue at risk (bars) and high-discount share (line) as the threshold moves",
+)
 _src(fig)
 _save(fig, "16_threshold_sensitivity.png")
 
@@ -548,18 +810,30 @@ fig, ax = plt.subplots(figsize=(9.2, 5.0))
 fig.subplots_adjust(top=0.80, bottom=0.13, left=0.10, right=0.93)
 yp = np.arange(len(dv))
 colors = [ACCENT, NEUTRAL, WARN]
-bars = ax.barh(yp, dv["total_revenue"].values/1e6, color=colors, height=0.6)
-ax.set_yticks(yp); ax.set_yticklabels([label_map[i] for i in dv.index])
+bars = ax.barh(yp, dv["total_revenue"].values / 1e6, color=colors, height=0.6)
+ax.set_yticks(yp)
+ax.set_yticklabels([label_map[i] for i in dv.index])
 ax.invert_yaxis()
 ax.xaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"${x:,.0f}M"))
-ax.grid(axis="x"); ax.grid(axis="y", visible=False)
-for b, rv, c in zip(bars, dv["total_revenue"].values/1e6, dv["customers"].values):
-    ax.text(rv + dv['total_revenue'].max()/1e6*0.01, b.get_y()+b.get_height()/2,
-            f"${rv:,.0f}M  ·  {int(c)} customers", va="center", fontsize=9, color=INK)
-ax.set_xlim(0, dv["total_revenue"].max()/1e6*1.25)
+ax.grid(axis="x")
+ax.grid(axis="y", visible=False)
+for b, rv, c in zip(bars, dv["total_revenue"].values / 1e6, dv["customers"].values, strict=True):
+    ax.text(
+        rv + dv["total_revenue"].max() / 1e6 * 0.01,
+        b.get_y() + b.get_height() / 2,
+        f"${rv:,.0f}M  ·  {int(c)} customers",
+        va="center",
+        fontsize=9,
+        color=INK,
+    )
+ax.set_xlim(0, dv["total_revenue"].max() / 1e6 * 1.25)
 ax.set_xlabel("Revenue attributed to driver")
-_kicker(ax, "Diagnosis", "Discount dependency is the dominant driver by revenue",
-        "Primary risk driver assigned to each customer, aggregated by revenue")
+_kicker(
+    ax,
+    "Diagnosis",
+    "Discount dependency is the dominant driver by revenue",
+    "Primary risk driver assigned to each customer, aggregated by revenue",
+)
 _src(fig)
 _save(fig, "17_main_risk_driver.png")
 
@@ -573,35 +847,62 @@ prof2 = prof2.merge(ten.rename("tenure"), left_on="customer_id", right_index=Tru
 bins = [0, 365, 730, 1095, 1460, 99999]
 labels = ["<1y", "1-2y", "2-3y", "3-4y", "4y+"]
 prof2["tenure_band"] = pd.cut(prof2["tenure"], bins=bins, labels=labels)
-coh = prof2.groupby("tenure_band", observed=True).agg(
-    discount=("avg_discount_pct", "mean"),
-    margin=("avg_margin_proxy_pct", "mean"),
-    customers=("customer_id", "count")).reindex(labels)
+coh = (
+    prof2.groupby("tenure_band", observed=True)
+    .agg(
+        discount=("avg_discount_pct", "mean"),
+        margin=("avg_margin_proxy_pct", "mean"),
+        customers=("customer_id", "count"),
+    )
+    .reindex(labels)
+)
 fig, ax = plt.subplots(figsize=(9.2, 5.0))
 fig.subplots_adjust(top=0.80, bottom=0.13, left=0.09, right=0.91)
-ax.plot(labels, coh["discount"]*100, color=ACCENT, lw=2.2, marker="o", label="Avg discount")
-ax.plot(labels, coh["margin"]*100, color=NEUTRAL_D, lw=2.0, marker="s", ls="--", label="Avg margin proxy")
+ax.plot(labels, coh["discount"] * 100, color=ACCENT, lw=2.2, marker="o", label="Avg discount")
+ax.plot(
+    labels,
+    coh["margin"] * 100,
+    color=NEUTRAL_D,
+    lw=2.0,
+    marker="s",
+    ls="--",
+    label="Avg margin proxy",
+)
 ax.yaxis.set_major_formatter(mticker.FuncFormatter(lambda x, _: f"{x:.0f}%"))
 ax.set_xlabel("Customer tenure at time of sale")
 ax.set_ylabel("Rate")
 ax.legend(loc="center right", frameon=False)
-for i, (d, m) in enumerate(zip(coh["discount"]*100, coh["margin"]*100)):
-    ax.annotate(f"{d:.1f}%", (i, d), xytext=(0, 8), textcoords="offset points", ha="center", fontsize=8.4, color=ACCENT)
-_kicker(ax, "Cohort", "Discount depth is flat across tenure, so it is structural not promotional",
-        "Average discount and margin proxy by customer tenure band")
+for i, (d, _) in enumerate(zip(coh["discount"] * 100, coh["margin"] * 100, strict=True)):
+    ax.annotate(
+        f"{d:.1f}%",
+        (i, d),
+        xytext=(0, 8),
+        textcoords="offset points",
+        ha="center",
+        fontsize=8.4,
+        color=ACCENT,
+    )
+_kicker(
+    ax,
+    "Cohort",
+    "Discount depth is similar across customer-tenure cohorts",
+    "Average discount and margin proxy by customer tenure band",
+)
 _src(fig)
 _save(fig, "18_tenure_cohort.png")
 
 # ---------------------------------------------------------------------------
 # Report statistics
 # ---------------------------------------------------------------------------
-top10_rev_share = float(cum[int(0.10*len(cum))-1])
-top20_rev_share = float(cum[int(0.20*len(cum))-1])
+top10_rev_share = float(cum[int(0.10 * len(cum)) - 1])
+top20_rev_share = float(cum[int(0.20 * len(cum)) - 1])
 revenue_forgone = float(overall["total_list_revenue"] - overall["total_revenue"])
 
 oi["order_year"] = pd.to_datetime(oi["order_date"]).dt.year
 oi["revenue_forgone"] = oi["line_list_revenue"] - oi["line_revenue"]
-oi["high_discount_revenue"] = np.where(oi["high_discount_flag"].astype(bool), oi["line_revenue"], 0.0)
+oi["high_discount_revenue"] = np.where(
+    oi["high_discount_flag"].astype(bool), oi["line_revenue"], 0.0
+)
 annual = (
     oi.groupby("order_year", as_index=False)
     .agg(
@@ -619,54 +920,49 @@ annual["weighted_discount_pct"] = 1 - annual["price_realization"]
 annual["margin_proxy_pct"] = annual["gross_margin_value"] / annual["revenue"]
 annual["high_discount_revenue_share"] = annual["high_discount_revenue"] / annual["revenue"]
 
-segment_value = (
-    oi.groupby("segment", as_index=False)
-    .agg(
-        revenue=("line_revenue", "sum"),
-        list_revenue=("line_list_revenue", "sum"),
-        revenue_forgone=("revenue_forgone", "sum"),
-        gross_margin_value=("gross_margin_value", "sum"),
-        high_discount_revenue=("high_discount_revenue", "sum"),
-        order_items=("order_item_id", "count"),
-        customers=("customer_id", "nunique"),
-    )
+segment_value = oi.groupby("segment", as_index=False).agg(
+    revenue=("line_revenue", "sum"),
+    list_revenue=("line_list_revenue", "sum"),
+    revenue_forgone=("revenue_forgone", "sum"),
+    gross_margin_value=("gross_margin_value", "sum"),
+    high_discount_revenue=("high_discount_revenue", "sum"),
+    order_items=("order_item_id", "count"),
+    customers=("customer_id", "nunique"),
 )
 segment_value["price_realization"] = segment_value["revenue"] / segment_value["list_revenue"]
 segment_value["weighted_discount_pct"] = 1 - segment_value["price_realization"]
 segment_value["margin_proxy_pct"] = segment_value["gross_margin_value"] / segment_value["revenue"]
 segment_value["share_of_revenue_forgone"] = segment_value["revenue_forgone"] / revenue_forgone
-segment_value["high_discount_revenue_share"] = segment_value["high_discount_revenue"] / segment_value["revenue"]
+segment_value["high_discount_revenue_share"] = (
+    segment_value["high_discount_revenue"] / segment_value["revenue"]
+)
 segment_value = segment_value.set_index("segment").reindex(SEG_ORDER).reset_index()
 
-channel_value = (
-    oi.groupby("sales_channel", as_index=False)
-    .agg(
-        revenue=("line_revenue", "sum"),
-        list_revenue=("line_list_revenue", "sum"),
-        revenue_forgone=("revenue_forgone", "sum"),
-        gross_margin_value=("gross_margin_value", "sum"),
-        high_discount_revenue=("high_discount_revenue", "sum"),
-        order_items=("order_item_id", "count"),
-        customers=("customer_id", "nunique"),
-    )
+channel_value = oi.groupby("sales_channel", as_index=False).agg(
+    revenue=("line_revenue", "sum"),
+    list_revenue=("line_list_revenue", "sum"),
+    revenue_forgone=("revenue_forgone", "sum"),
+    gross_margin_value=("gross_margin_value", "sum"),
+    high_discount_revenue=("high_discount_revenue", "sum"),
+    order_items=("order_item_id", "count"),
+    customers=("customer_id", "nunique"),
 )
 channel_value["price_realization"] = channel_value["revenue"] / channel_value["list_revenue"]
 channel_value["weighted_discount_pct"] = 1 - channel_value["price_realization"]
 channel_value["margin_proxy_pct"] = channel_value["gross_margin_value"] / channel_value["revenue"]
 channel_value["share_of_revenue_forgone"] = channel_value["revenue_forgone"] / revenue_forgone
-channel_value["high_discount_revenue_share"] = channel_value["high_discount_revenue"] / channel_value["revenue"]
+channel_value["high_discount_revenue_share"] = (
+    channel_value["high_discount_revenue"] / channel_value["revenue"]
+)
 channel_value = channel_value.set_index("sales_channel").reindex(CHAN_ORDER).reset_index()
 
-risk_detail = (
-    cust.groupby("risk_tier", as_index=False)
-    .agg(
-        customers=("customer_id", "count"),
-        revenue=("total_revenue", "sum"),
-        avg_discount_pct=("avg_discount_pct", "mean"),
-        avg_margin_proxy_pct=("avg_margin_proxy_pct", "mean"),
-        revenue_high_discount_share=("revenue_high_discount_share", "mean"),
-        avg_priority=("governance_priority_score", "mean"),
-    )
+risk_detail = cust.groupby("risk_tier", as_index=False).agg(
+    customers=("customer_id", "count"),
+    revenue=("total_revenue", "sum"),
+    avg_discount_pct=("avg_discount_pct", "mean"),
+    avg_margin_proxy_pct=("avg_margin_proxy_pct", "mean"),
+    revenue_high_discount_share=("revenue_high_discount_share", "mean"),
+    avg_priority=("governance_priority_score", "mean"),
 )
 risk_detail["revenue_share"] = risk_detail["revenue"] / float(cust["total_revenue"].sum())
 
@@ -676,7 +972,7 @@ enterprise_reseller = segchan.loc[er_mask].iloc[0].to_dict()
 recovery_scenarios = [
     {
         "realization_improvement_pp": points,
-        "annualized_revenue_capture": float(overall["total_list_revenue"] * (points / 100)),
+        "revenue_capture_on_analysis_base": float(overall["total_list_revenue"] * (points / 100)),
         "new_price_realization": float(overall["price_realization"] + (points / 100)),
     }
     for points in (1, 2, 3)
@@ -706,8 +1002,12 @@ stats = {
     "pr_min": float(monthly["price_realization"].min()),
     "pr_max": float(monthly["price_realization"].max()),
     "pr_mean": float(monthly["price_realization"].mean()),
-    "disc_margin_r": float(np.corrcoef(prof["avg_discount_pct"], prof["avg_margin_proxy_pct"])[0, 1]),
-    "disc_margin_slope": float(np.polyfit(prof["avg_discount_pct"]*100, prof["avg_margin_proxy_pct"]*100, 1)[0]),
+    "disc_margin_r": float(
+        np.corrcoef(prof["avg_discount_pct"], prof["avg_margin_proxy_pct"])[0, 1]
+    ),
+    "disc_margin_slope": float(
+        np.polyfit(prof["avg_discount_pct"] * 100, prof["avg_margin_proxy_pct"] * 100, 1)[0]
+    ),
     "top10_rev_share": top10_rev_share,
     "top20_rev_share": top20_rev_share,
     "top10_customer_count": int(max(1, round(0.10 * len(prof)))),
@@ -721,15 +1021,27 @@ stats = {
     "risk_tiers": risk_tier.to_dict(orient="records"),
     "drivers": driver.to_dict(orient="records"),
     "threshold": thr.to_dict(orient="records"),
-    "margin_best_bucket": float(mb["margin"].max()*100),
-    "margin_worst_bucket": float(mb["margin"].min()*100),
-    "channel": {k: {"discount": float(chan.loc[k, "discount"]), "revenue": float(chan.loc[k, "revenue"])} for k in CHAN_ORDER},
+    "margin_best_bucket": float(mb["margin"].max() * 100),
+    "margin_worst_bucket": float(mb["margin"].min() * 100),
+    "channel": {
+        k: {"discount": float(chan.loc[k, "discount"]), "revenue": float(chan.loc[k, "revenue"])}
+        for k in CHAN_ORDER
+    },
     "category": cat.reset_index().to_dict(orient="records"),
     "region": reg.reset_index().to_dict(orient="records"),
-    "high_tier_customers": int(rt.loc["High", "customers"]),
-    "high_tier_revenue": float(rt.loc["High", "total_revenue"]),
+    "high_tier_customers": int(cust["risk_tier"].isin(["Critical", "High"]).sum()),
+    "high_tier_revenue": float(
+        cust.loc[cust["risk_tier"].isin(["Critical", "High"]), "total_revenue"].sum()
+    ),
+    "high_tier_avg_priority": float(
+        cust.loc[cust["risk_tier"].isin(["Critical", "High"]), "governance_priority_score"].mean()
+    ),
     "p90_priority": float(s.quantile(0.90)),
-    "enterprise_reseller_disc": float(segchan[(segchan.segment=="Enterprise")&(segchan.sales_channel=="Reseller")]["avg_discount_pct"].iloc[0]),
+    "enterprise_reseller_disc": float(
+        segchan[(segchan.segment == "Enterprise") & (segchan.sales_channel == "Reseller")][
+            "avg_discount_pct"
+        ].iloc[0]
+    ),
     "enterprise_reseller": {
         "revenue": float(enterprise_reseller["revenue"]),
         "avg_discount_pct": float(enterprise_reseller["avg_discount_pct"]),
@@ -740,4 +1052,4 @@ stats = {
 }
 (PROC / "report_stats.json").write_text(json.dumps(stats, indent=2), encoding="utf-8")
 print("\nwrote data/processed/report_stats.json")
-print("charts:", len(list(GRAPHS.glob('*.png'))))
+print("charts:", len(list(GRAPHS.glob("*.png"))))

@@ -65,7 +65,8 @@ customer_base as (
         sum(case when high_discount_flag = 1 then line_revenue else 0 end) as revenue_high_discount,
         count(distinct product_id) as product_diversity,
         sum(gross_margin_value) as gross_margin_value,
-        stddev_pop(realized_price) / nullif(avg(realized_price), 0) as realized_price_cv
+        stddev_pop(realized_price) / nullif(avg(realized_price), 0) as realized_price_cv,
+        avg(abs_price_realization_residual_pct) as avg_abs_price_realization_residual_pct
     from int_order_item_pricing_metrics
     group by 1
 )
@@ -89,6 +90,8 @@ select
         else 0
     end as avg_margin_proxy_pct,
     coalesce(cb.realized_price_cv, 0.0) as realized_price_cv,
+    coalesce(cb.avg_abs_price_realization_residual_pct, 0.0)
+        as avg_abs_price_realization_residual_pct,
     coalesce(os.share_orders_discounted, 0.0) as share_orders_discounted,
     coalesce(os.share_orders_high_discount, 0.0) as share_orders_high_discount,
     coalesce(rb.repeat_discount_behavior, 0.0) as repeat_discount_behavior,

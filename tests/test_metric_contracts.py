@@ -1,5 +1,10 @@
 from __future__ import annotations
 
+import json
+
+import pandas as pd
+import pytest
+
 from src.analysis.formal_analysis import run_formal_pricing_analysis
 from src.features.pricing_features import build_feature_tables
 from src.ingestion.synthetic_data import SyntheticDataConfig, generate_synthetic_business_data
@@ -58,7 +63,9 @@ def test_metric_contracts_reject_non_numeric_bounded_value(tmp_path) -> None:
     feature_tables = build_feature_tables(enriched)
     risk_tables = build_risk_outputs(feature_tables)
     processed_tables = {"order_item_enriched": enriched, **feature_tables, **risk_tables}
-    processed_tables["order_item_pricing_metrics"] = processed_tables["order_item_pricing_metrics"].copy()
+    processed_tables["order_item_pricing_metrics"] = processed_tables[
+        "order_item_pricing_metrics"
+    ].copy()
     processed_tables["order_item_pricing_metrics"]["line_revenue"] = processed_tables[
         "order_item_pricing_metrics"
     ]["line_revenue"].astype(object)
@@ -78,3 +85,43 @@ def test_metric_contracts_reject_non_numeric_bounded_value(tmp_path) -> None:
         & (report["check_name"] == "bound_line_revenue")
     ]
     assert failure["status"].eq("FAIL").all()
+
+
+def test_metric_contracts_reject_empty_table(tmp_path) -> None:
+    config_path = tmp_path / "contracts.json"
+    config_path.write_text(
+        json.dumps(
+            {
+                "tables": {
+                    "empty_table": {
+                        "source": "processed",
+                        "required_columns": ["id"],
+                        "primary_key": ["id"],
+                    }
+                }
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    report, is_valid = validate_metric_contracts(
+        processed_tables={"empty_table": pd.DataFrame({"id": pd.Series(dtype="string")})},
+        outputs_dir=tmp_path,
+        config_path=config_path,
+    )
+
+    assert not is_valid
+    row_count_check = report.loc[report["check_name"] == "row_count_positive"].iloc[0]
+    assert row_count_check["status"] == "FAIL"
+
+
+def test_metric_contracts_reject_empty_contract_registry(tmp_path) -> None:
+    config_path = tmp_path / "contracts.json"
+    config_path.write_text(json.dumps({"tables": {}}), encoding="utf-8")
+
+    with pytest.raises(ValueError, match="non-empty"):
+        validate_metric_contracts(
+            processed_tables={},
+            outputs_dir=tmp_path,
+            config_path=config_path,
+        )

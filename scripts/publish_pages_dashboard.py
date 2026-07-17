@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 import logging
 import shutil
 from pathlib import Path
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", datefmt="%Y-%m-%dT%H:%M:%S")
+logging.basicConfig(
+    level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s", datefmt="%Y-%m-%dT%H:%M:%S"
+)
 logger = logging.getLogger(__name__)
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,6 +24,7 @@ DOCS_DASHBOARD = DOCS_DIR / DASHBOARD_FILENAME
 DOCS_VENDOR_DIR = DOCS_DIR / "vendor"
 DOCS_VENDOR = DOCS_VENDOR_DIR / "chart.umd.min.js"
 DOCS_NOJEKYLL = DOCS_DIR / ".nojekyll"
+RELEASE_GATE_REPORT = ROOT / "outputs" / "release" / "release_gate_report.json"
 
 DOCS_INDEX_TEMPLATE = f"""<!doctype html>
 <html lang=\"en\">
@@ -28,7 +33,8 @@ DOCS_INDEX_TEMPLATE = f"""<!doctype html>
   <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
   <title>Pricing Discipline Command Center</title>
   <meta name=\"description\" content=\"Pricing governance analytics: discount leakage, margin exposure, and customer intervention prioritization.\" />
-  <link rel=\"canonical\" href=\"https://mfidalgomartins.github.io/pricing-discount-governance-system/docs/pricing-discipline-command-center.html\" />
+  <link rel=\"icon\" href=\"data:,\" />
+  <link rel=\"canonical\" href=\"https://mfidalgomartins.github.io/pricing-discount-governance-system/pricing-discipline-command-center.html\" />
   <meta property=\"og:title\" content=\"Pricing Discipline Command Center\" />
   <meta property=\"og:description\" content=\"Pricing governance analytics with discount leakage, margin risk, and customer-level intervention views.\" />
   <meta property=\"og:type\" content=\"website\" />
@@ -43,10 +49,24 @@ DOCS_INDEX_TEMPLATE = f"""<!doctype html>
 
 
 def publish() -> None:
+    if not RELEASE_GATE_REPORT.exists():
+        raise FileNotFoundError(
+            "Release gate report is missing. Run the pipeline before publishing the dashboard."
+        )
+    release_report = json.loads(RELEASE_GATE_REPORT.read_text(encoding="utf-8"))
+    if release_report.get("gate_passed") is not True:
+        raise RuntimeError("Release gate did not pass. Dashboard publication is blocked.")
+
     missing = [p for p in (OUTPUTS_DASHBOARD, OUTPUTS_VENDOR) if not p.exists()]
     if missing:
         missing_list = ", ".join(str(p) for p in missing)
         raise FileNotFoundError(f"Missing required dashboard asset(s): {missing_list}")
+
+    digest = hashlib.sha256(OUTPUTS_DASHBOARD.read_bytes()).hexdigest()
+    if digest != release_report.get("dashboard_sha256"):
+        raise RuntimeError(
+            "Dashboard changed after validation. Run the pipeline before publishing."
+        )
 
     html_text = OUTPUTS_DASHBOARD.read_text(encoding="utf-8")
     if 'src="vendor/chart.umd.min.js"' not in html_text:

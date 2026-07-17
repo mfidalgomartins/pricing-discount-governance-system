@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-
 import pandas as pd
-
 
 REQUIRED_RAW_COLUMNS = {
     "customers": {"customer_id", "signup_date", "segment", "region", "company_size"},
@@ -133,4 +131,8 @@ def build_order_item_enriched(raw_tables: dict[str, pd.DataFrame]) -> pd.DataFra
         "days_since_signup",
     ]
 
-    return enriched[ordered_columns].sort_values(["order_date", "order_id", "order_item_id"]).reset_index(drop=True)
+    return (
+        enriched[ordered_columns]
+        .sort_values(["order_date", "order_id", "order_item_id"])
+        .reset_index(drop=True)
+    )

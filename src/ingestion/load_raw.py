@@ -4,7 +4,6 @@ from pathlib import Path
 
 import pandas as pd
 
-
 RAW_TABLE_DATE_COLUMNS = {
     "customers": ["signup_date"],
     "orders": ["order_date"],
@@ -21,14 +20,12 @@ def load_raw_tables(raw_dir: Path) -> dict[str, pd.DataFrame]:
     code can never silently operate on an incomplete dataset.
     """
     missing = [
-        f"{name}.csv"
-        for name in RAW_TABLE_DATE_COLUMNS
-        if not (raw_dir / f"{name}.csv").exists()
+        f"{name}.csv" for name in RAW_TABLE_DATE_COLUMNS if not (raw_dir / f"{name}.csv").exists()
     ]
     if missing:
         raise FileNotFoundError(
             f"Missing required raw CSV(s) in {raw_dir}: {', '.join(missing)}. "
-            "Run `make run` (or scripts/run_pipeline.py) to regenerate."
+            "Provide the complete source contract or run `make run` to regenerate the synthetic baseline."
         )
 
     return {

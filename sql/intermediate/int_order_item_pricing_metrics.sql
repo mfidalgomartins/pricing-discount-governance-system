@@ -1,6 +1,8 @@
 create or replace table int_order_item_pricing_metrics as
 with policy as (
-    select max(high_discount_threshold) as high_discount_threshold
+    select
+        max(high_discount_threshold) as high_discount_threshold,
+        max(discounted_threshold) as discounted_threshold
     from policy_thresholds
 ),
 base as (
@@ -34,7 +36,12 @@ base as (
         e.rep_region,
         e.days_since_signup,
         e.realized_unit_price as realized_price,
-        e.discount_pct as discount_depth
+        e.discount_pct as discount_depth,
+        case
+            when e.list_price_at_sale > 0
+                then e.realized_unit_price / e.list_price_at_sale
+            else null
+        end as line_price_realization
     from int_order_item_enriched e
 ),
 line_financials as (
@@ -49,20 +56,20 @@ pricing_metrics as (
     select
         lf.*,
         lf.line_revenue - lf.line_cost as gross_margin_value,
-        avg(lf.realized_price) over (
+        avg(lf.line_price_realization) over (
             partition by lf.product_id, lf.sales_channel
-        ) as product_channel_avg_realized_price
+        ) as product_channel_avg_price_realization
     from line_financials lf
 ),
 pricing_residuals as (
     select
         pm.*,
         case
-            when pm.product_channel_avg_realized_price > 0
-                then (pm.realized_price - pm.product_channel_avg_realized_price)
-                    / pm.product_channel_avg_realized_price
+            when pm.product_channel_avg_price_realization > 0
+                then (pm.line_price_realization - pm.product_channel_avg_price_realization)
+                    / pm.product_channel_avg_price_realization
             else 0.0
-        end as realized_price_residual_pct
+        end as price_realization_residual_pct
     from pricing_metrics pm
 )
 select
@@ -92,6 +99,7 @@ select
     pr.days_since_signup,
     pr.realized_price,
     pr.discount_depth,
+    pr.line_price_realization,
     -- Regra de negocio: buckets sao fechados no limite superior, alinhados com pandas.cut.
     case
         when pr.discount_depth is null then null
@@ -110,14 +118,14 @@ select
             then pr.gross_margin_value / pr.line_revenue
         else null
     end as margin_proxy_pct,
-    pr.realized_price_residual_pct,
-    abs(pr.realized_price_residual_pct) as abs_realized_price_residual_pct,
+    pr.price_realization_residual_pct,
+    abs(pr.price_realization_residual_pct) as abs_price_realization_residual_pct,
     case
         when pr.discount_depth >= policy.high_discount_threshold then 1
         else 0
     end as high_discount_flag,
     case
-        when pr.discount_depth >= 0.05 then 1
+        when pr.discount_depth >= policy.discounted_threshold then 1
         else 0
     end as discounted_flag
 from pricing_residuals pr

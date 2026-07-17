@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import pytest
 import pandas as pd
-import numpy as np
+import pytest
 
-from src.ingestion.synthetic_data import generate_synthetic_business_data, SyntheticDataConfig
-from src.validation.data_quality import validate_raw_tables
-from src.scoring.risk_scoring import _risk_tier_from_score, _scale_excess, _scale_shortfall
 from src.analysis.formal_analysis import _pricing_health_verdict
+from src.ingestion.synthetic_data import SyntheticDataConfig, generate_synthetic_business_data
+from src.scoring.risk_scoring import _risk_tier_from_score, _scale_excess, _scale_shortfall
+from src.validation.data_quality import validate_processed_tables, validate_raw_tables
 
 
 def _base_config() -> SyntheticDataConfig:
@@ -37,6 +36,30 @@ def test_validate_raw_tables_returns_failure_on_missing_column() -> None:
         "order_items_required_columns" in row["check_name"] and row["status"] == "FAIL"
         for row in report.to_dict("records")
     ), "Expected order_items_required_columns FAIL in report"
+
+
+def test_validate_processed_tables_returns_failure_on_missing_column() -> None:
+    processed = {
+        "order_item_pricing_metrics": pd.DataFrame(
+            {
+                "order_item_id": ["OI1"],
+                "order_id": ["O1"],
+                "customer_id": ["C1"],
+                "realized_price": [90.0],
+                "discount_depth": [0.1],
+                "margin_proxy_pct": [0.4],
+            }
+        )
+    }
+
+    report, valid = validate_processed_tables(processed)
+
+    assert not valid
+    failure = report.loc[
+        report["check_name"] == "order_item_pricing_metrics_required_columns"
+    ].iloc[0]
+    assert failure["status"] == "FAIL"
+    assert "discount_bucket" in failure["detail"]
 
 
 def test_validate_raw_tables_returns_failure_on_missing_table() -> None:
@@ -107,7 +130,9 @@ def test_order_before_signup_caught_by_raw_validation() -> None:
     raw = _base_raw()
     customer_id = raw["orders"].loc[0, "customer_id"]
     raw["customers"] = raw["customers"].copy()
-    raw["customers"].loc[raw["customers"]["customer_id"] == customer_id, "signup_date"] = pd.Timestamp("2030-01-01")
+    raw["customers"].loc[raw["customers"]["customer_id"] == customer_id, "signup_date"] = (
+        pd.Timestamp("2030-01-01")
+    )
 
     report, valid = validate_raw_tables(raw)
 
@@ -121,6 +146,7 @@ def test_synthetic_config_rejects_invalid_inputs() -> None:
         SyntheticDataConfig(n_products=4)
     with pytest.raises(ValueError, match="start_date"):
         SyntheticDataConfig(start_date="2025-01-01", end_date="2024-01-01")
+
 
 def test_cli_rejects_products_below_minimum() -> None:
     import scripts.run_pipeline as run_pipeline
@@ -183,12 +209,16 @@ def test_scale_excess_zero_max_excess_returns_zeros() -> None:
     assert (result == 0.0).all()
 
 
-def _health_row(weighted_discount: float, high_discount_share: float, margin_proxy: float) -> pd.Series:
-    return pd.Series({
-        "weighted_realized_discount": weighted_discount,
-        "high_discount_revenue_share": high_discount_share,
-        "margin_proxy_pct": margin_proxy,
-    })
+def _health_row(
+    weighted_discount: float, high_discount_share: float, margin_proxy: float
+) -> pd.Series:
+    return pd.Series(
+        {
+            "weighted_realized_discount": weighted_discount,
+            "high_discount_revenue_share": high_discount_share,
+            "margin_proxy_pct": margin_proxy,
+        }
+    )
 
 
 def test_pricing_health_verdict_healthy() -> None:

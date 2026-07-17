@@ -3,6 +3,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 import pytest
+from pandas.errors import MergeError
+from PIL import Image
 
 from src.analysis.data_profiling import _profile_single_table
 from src.features.pricing_features import build_feature_tables
@@ -14,6 +16,21 @@ from src.scoring.risk_scoring import build_risk_outputs
 from src.utils.paths import PROJECT_ROOT
 from src.utils.policy import get_high_discount_threshold
 from src.validation.data_quality import validate_processed_tables, validate_raw_tables
+
+
+def test_report_uses_consulting_grade_visual_contract() -> None:
+    reports_dir = PROJECT_ROOT / "outputs" / "reports"
+    report_files = sorted(reports_dir.glob("*.pdf"))
+
+    assert [path.name for path in report_files] == ["pricing_discount_governance_report.pdf"]
+
+    report_bytes = report_files[0].read_bytes()
+    assert b"Georgia-Bold" in report_bytes
+    assert b"Arial" in report_bytes
+
+    chart_path = PROJECT_ROOT / "outputs" / "graphs" / "02_price_realization_trend.png"
+    with Image.open(chart_path) as chart:
+        assert chart.convert("RGB").getpixel((0, 0)) == (255, 255, 255)
 
 
 def _small_config() -> SyntheticDataConfig:
@@ -65,7 +82,7 @@ def test_order_item_enrichment_rejects_duplicate_dimension_key() -> None:
         ignore_index=True,
     )
 
-    with pytest.raises(Exception, match="many-to-one|not unique"):
+    with pytest.raises(MergeError, match=r"many-to-one|not unique"):
         build_order_item_enriched(raw_tables)
 
 
@@ -92,10 +109,10 @@ def test_risk_scores_bounds_and_actions() -> None:
         assert customer_risk[col].between(0, 100).all(), f"{col} out of bounds"
 
     expected_actions = {
-        "tighten approval thresholds",
+        "review margin guardrails",
         "review segment pricing",
-        "investigate rep behavior",
-        "redesign discount policy",
+        "review pricing variance",
+        "review discount terms",
         "monitor only",
     }
     assert set(customer_risk["recommended_action"]).issubset(expected_actions)
@@ -112,11 +129,15 @@ def test_weighted_discount_and_margin_consistency() -> None:
     total_list_revenue = float(pricing["line_list_revenue"].sum())
     total_margin = float(pricing["gross_margin_value"].sum())
 
-    weighted_discount_direct = float(np.average(pricing["discount_depth"], weights=pricing["line_list_revenue"]))
+    weighted_discount_direct = float(
+        np.average(pricing["discount_depth"], weights=pricing["line_list_revenue"])
+    )
     weighted_discount_from_totals = float(1 - total_revenue / total_list_revenue)
     assert abs(weighted_discount_direct - weighted_discount_from_totals) <= 1e-5
 
-    weighted_margin_direct = float(np.average(pricing["margin_proxy_pct"], weights=pricing["line_revenue"]))
+    weighted_margin_direct = float(
+        np.average(pricing["margin_proxy_pct"], weights=pricing["line_revenue"])
+    )
     weighted_margin_from_totals = float(total_margin / total_revenue)
     assert abs(weighted_margin_direct - weighted_margin_from_totals) <= 1e-9
 
@@ -131,9 +152,8 @@ def test_customer_and_segment_margin_are_revenue_weighted() -> None:
         ("customer_id", "customer_pricing_profile"),
         ("segment", "segment_pricing_summary"),
     ]:
-        expected = (
-            pricing.groupby(grain, as_index=False)
-            .agg(revenue=("line_revenue", "sum"), margin=("gross_margin_value", "sum"))
+        expected = pricing.groupby(grain, as_index=False).agg(
+            revenue=("line_revenue", "sum"), margin=("gross_margin_value", "sum")
         )
         expected["expected_margin_proxy_pct"] = expected["margin"] / expected["revenue"]
         actual = features[table_name].merge(
@@ -148,16 +168,19 @@ def test_profiling_allows_signed_residual_metrics() -> None:
     frame = pd.DataFrame(
         {
             "order_item_id": ["OI1", "OI2"],
-            "realized_price_residual_pct": [-0.10, 0.10],
+            "price_realization_residual_pct": [-0.10, 0.10],
         }
     )
 
     issues = _profile_single_table("order_item_pricing_metrics", frame)["issues"]
 
-    assert issues.empty or not (
-        (issues["column_name"] == "realized_price_residual_pct")
-        & (issues["issue_type"] == "impossible_negative_value")
-    ).any()
+    assert (
+        issues.empty
+        or not (
+            (issues["column_name"] == "price_realization_residual_pct")
+            & (issues["issue_type"] == "impossible_negative_value")
+        ).any()
+    )
 
 
 def test_sql_warehouse_layer_execution(tmp_path) -> None:
@@ -194,9 +217,17 @@ def test_sql_warehouse_layer_execution(tmp_path) -> None:
     sql_customer = sql_outputs["mart_customer_pricing_profile"]
     sql_overall = sql_outputs["mart_overall_pricing_health"].iloc[0]
 
-    assert int(sql_validation.loc[sql_validation["check_name"] == "int_order_item_enriched_no_silent_drops", "status"].eq("PASS").iloc[0])
+    assert int(
+        sql_validation.loc[
+            sql_validation["check_name"] == "int_order_item_enriched_no_silent_drops", "status"
+        ]
+        .eq("PASS")
+        .iloc[0]
+    )
     assert len(sql_customer) == pricing["customer_id"].nunique()
-    assert float(sql_overall["total_revenue"]) == pytest.approx(float(pricing["line_revenue"].sum()), rel=1e-9)
+    assert float(sql_overall["total_revenue"]) == pytest.approx(
+        float(pricing["line_revenue"].sum()), rel=1e-9
+    )
     assert float(sql_overall["weighted_realized_discount"]) == pytest.approx(
         float(np.average(pricing["discount_depth"], weights=pricing["line_list_revenue"])),
         rel=1e-4,
@@ -213,13 +244,26 @@ def test_sql_warehouse_layer_execution(tmp_path) -> None:
 
     pandas_customer = build_feature_tables(enriched)["customer_pricing_profile"]
     customer_parity = sql_customer.merge(
-        pandas_customer[["customer_id", "avg_margin_proxy_pct", "revenue_high_discount_share"]],
+        pandas_customer[
+            [
+                "customer_id",
+                "avg_margin_proxy_pct",
+                "revenue_high_discount_share",
+                "avg_abs_price_realization_residual_pct",
+            ]
+        ],
         on="customer_id",
         suffixes=("_sql", "_pandas"),
         validate="one_to_one",
     )
-    assert np.allclose(customer_parity["avg_margin_proxy_pct_sql"], customer_parity["avg_margin_proxy_pct_pandas"])
+    assert np.allclose(
+        customer_parity["avg_margin_proxy_pct_sql"], customer_parity["avg_margin_proxy_pct_pandas"]
+    )
     assert np.allclose(
         customer_parity["revenue_high_discount_share_sql"],
         customer_parity["revenue_high_discount_share_pandas"],
+    )
+    assert np.allclose(
+        customer_parity["avg_abs_price_realization_residual_pct_sql"],
+        customer_parity["avg_abs_price_realization_residual_pct_pandas"],
     )

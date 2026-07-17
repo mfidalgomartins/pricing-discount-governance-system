@@ -48,11 +48,15 @@ def _generate_customers(config: SyntheticDataConfig, rng: np.random.Generator) -
         "Enterprise": ["Large", "Enterprise"],
         "Public Sector": ["Large", "Enterprise"],
     }
-    company_size = [rng.choice(company_size_map[s], p=[0.7, 0.3] if s == "SMB" else [0.6, 0.4]) for s in segment]
+    company_size = [
+        rng.choice(company_size_map[s], p=[0.7, 0.3] if s == "SMB" else [0.6, 0.4]) for s in segment
+    ]
 
     signup_end = pd.Timestamp(config.start_date) - pd.Timedelta(days=1)
     signup_start = signup_end - pd.Timedelta(days=1460)
-    signup_dates = signup_start + pd.to_timedelta(rng.integers(0, 1461, size=config.n_customers), unit="D")
+    signup_dates = signup_start + pd.to_timedelta(
+        rng.integers(0, 1461, size=config.n_customers), unit="D"
+    )
 
     customers = pd.DataFrame(
         {
@@ -87,12 +91,20 @@ def _generate_customers(config: SyntheticDataConfig, rng: np.random.Generator) -
 
 
 def _generate_products(config: SyntheticDataConfig, rng: np.random.Generator) -> pd.DataFrame:
-    categories = ["Core Platform", "Analytics", "Security", "Collaboration", "Professional Services"]
+    categories = [
+        "Core Platform",
+        "Analytics",
+        "Security",
+        "Collaboration",
+        "Professional Services",
+    ]
     category_weights = [0.28, 0.22, 0.18, 0.16, 0.16]
 
     category = np.array(
         categories
-        + list(rng.choice(categories, size=config.n_products - len(categories), p=category_weights)),
+        + list(
+            rng.choice(categories, size=config.n_products - len(categories), p=category_weights)
+        ),
         dtype=object,
     )
     rng.shuffle(category)
@@ -107,7 +119,9 @@ def _generate_products(config: SyntheticDataConfig, rng: np.random.Generator) ->
 
     records = []
     for i, cat in enumerate(category, start=1):
-        low_price, high_price, min_cost_ratio, max_cost_ratio, discount_sensitivity = pricing_rules[cat]
+        low_price, high_price, min_cost_ratio, max_cost_ratio, discount_sensitivity = pricing_rules[
+            cat
+        ]
         list_price = rng.uniform(low_price, high_price)
         cost_ratio = rng.uniform(min_cost_ratio, max_cost_ratio)
         unit_cost = list_price * cost_ratio
@@ -178,7 +192,9 @@ def _generate_orders(
 
     customer_probs = customers["order_weight"].to_numpy()
     customer_probs = customer_probs / customer_probs.sum()
-    sampled_customer_idx = rng.choice(customers.index.to_numpy(), size=config.n_orders, p=customer_probs)
+    sampled_customer_idx = rng.choice(
+        customers.index.to_numpy(), size=config.n_orders, p=customer_probs
+    )
 
     order_dates = rng.choice(all_dates, size=config.n_orders, p=date_weights)
     order_dates = pd.to_datetime(order_dates)
@@ -193,7 +209,9 @@ def _generate_orders(
         for row in customers.itertuples(index=False)
     }
 
-    sampled_customers = customers.loc[sampled_customer_idx, ["customer_id", "segment", "region"]].reset_index(drop=True)
+    sampled_customers = customers.loc[
+        sampled_customer_idx, ["customer_id", "segment", "region"]
+    ].reset_index(drop=True)
     sales_channel = _sample_sales_channels(sampled_customers["segment"], rng)
     assigned_rep = sampled_customers["customer_id"].map(primary_rep).to_numpy(dtype=object)
 
@@ -205,20 +223,26 @@ def _generate_orders(
             regional_reps = np.array(reps_by_region.get(region, all_reps), dtype=object)
             assigned_rep[mask] = rng.choice(regional_reps, size=int(mask.sum()))
 
-    # Manter deals online maioritariamente com reps non-channel.
+    # Keep most online deals with non-channel representatives.
     online_inside_sales = (sales_channel == "Online") & (rng.random(config.n_orders) < 0.65)
     if online_inside_sales.any():
-        assigned_rep[online_inside_sales] = rng.choice(non_channel_reps, size=int(online_inside_sales.sum()))
+        assigned_rep[online_inside_sales] = rng.choice(
+            non_channel_reps, size=int(online_inside_sales.sum())
+        )
 
-    orders = pd.DataFrame(
-        {
-            "order_id": [f"O{i:07d}" for i in range(1, config.n_orders + 1)],
-            "customer_id": sampled_customers["customer_id"].to_numpy(),
-            "order_date": order_dates,
-            "sales_channel": sales_channel,
-            "sales_rep_id": assigned_rep,
-        }
-    ).sort_values("order_date").reset_index(drop=True)
+    orders = (
+        pd.DataFrame(
+            {
+                "order_id": [f"O{i:07d}" for i in range(1, config.n_orders + 1)],
+                "customer_id": sampled_customers["customer_id"].to_numpy(),
+                "order_date": order_dates,
+                "sales_channel": sales_channel,
+                "sales_rep_id": assigned_rep,
+            }
+        )
+        .sort_values("order_date")
+        .reset_index(drop=True)
+    )
     return orders
 
 
@@ -299,7 +323,6 @@ def _generate_order_items(
     rng: np.random.Generator,
 ) -> pd.DataFrame:
     customer_lookup = customers.set_index("customer_id")
-    product_lookup = products.set_index("product_id")
     rep_lookup = sales_reps.set_index("sales_rep_id")
 
     segment_base_discount = {
@@ -331,10 +354,16 @@ def _generate_order_items(
             quantity = _quantity_by_context(product["category"], customer["company_size"], rng)
 
             year_uplift = 1 + 0.03 * (order.order_date.year - pd.Timestamp(config.start_date).year)
-            list_price_at_sale = float(product["list_price"]) * year_uplift * (1 + rng.normal(0, 0.015))
+            list_price_at_sale = (
+                float(product["list_price"]) * year_uplift * (1 + rng.normal(0, 0.015))
+            )
             list_price_at_sale = max(list_price_at_sale, float(product["list_price"]) * 0.9)
 
-            quarter_push = 0.02 if (order.order_date.month in [3, 6, 9, 12] and order.order_date.day >= 20) else 0.0
+            quarter_push = (
+                0.02
+                if (order.order_date.month in [3, 6, 9, 12] and order.order_date.day >= 20)
+                else 0.0
+            )
             dependency_effect = float(customer["discount_dependency_trait"]) * 0.10
             rep_effect = (float(rep["aggressiveness"]) - 1.0) * 0.07
             sensitivity_effect = float(product["discount_sensitivity"]) * 0.05
@@ -363,7 +392,9 @@ def _generate_order_items(
                 "Enterprise": 0.46,
                 "Public Sector": 0.42,
             }
-            discount_pct = float(np.clip(preliminary_discount, 0.0, segment_caps[customer["segment"]]))
+            discount_pct = float(
+                np.clip(preliminary_discount, 0.0, segment_caps[customer["segment"]])
+            )
             realized_price = list_price_at_sale * (1 - discount_pct)
 
             # Margin floor prevents impossible pricing but still allows erosion.
@@ -389,7 +420,9 @@ def _generate_order_items(
     return order_items
 
 
-def generate_synthetic_business_data(config: SyntheticDataConfig | None = None) -> dict[str, pd.DataFrame]:
+def generate_synthetic_business_data(
+    config: SyntheticDataConfig | None = None,
+) -> dict[str, pd.DataFrame]:
     config = config or SyntheticDataConfig()
     rng = np.random.default_rng(config.seed)
 
@@ -402,7 +435,9 @@ def generate_synthetic_business_data(config: SyntheticDataConfig | None = None) 
     raw_tables: dict[str, pd.DataFrame] = {
         "customers": customers[["customer_id", "signup_date", "segment", "region", "company_size"]],
         "products": products[["product_id", "product_name", "category", "list_price", "unit_cost"]],
-        "orders": orders[["order_id", "customer_id", "order_date", "sales_channel", "sales_rep_id"]],
+        "orders": orders[
+            ["order_id", "customer_id", "order_date", "sales_channel", "sales_rep_id"]
+        ],
         "order_items": order_items[
             [
                 "order_item_id",

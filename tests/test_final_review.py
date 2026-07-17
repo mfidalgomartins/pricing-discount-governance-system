@@ -63,8 +63,12 @@ def test_final_validation_review_generates_outputs(tmp_path: Path) -> None:
 
     assert "final_validation_checks" in result_tables
     assert not result_tables["final_validation_checks"].empty
-    assert {"gate", "severity", "blocker"}.issubset(result_tables["final_validation_checks"].columns)
-    assert "metric_contract_validation_passthrough" in set(result_tables["final_validation_checks"]["check_name"])
+    assert {"gate", "severity", "blocker"}.issubset(
+        result_tables["final_validation_checks"].columns
+    )
+    assert "metric_contract_validation_passthrough" in set(
+        result_tables["final_validation_checks"]["check_name"]
+    )
     assert "final_validation_readiness" in result_tables
     assert (tmp_path / "outputs" / "final_validation_review.md").exists()
     assert (tmp_path / "outputs" / "final_validation_summary.json").exists()
@@ -72,7 +76,9 @@ def test_final_validation_review_generates_outputs(tmp_path: Path) -> None:
     assert (tmp_path / "outputs" / "release" / "release_readiness.json").exists()
     assert (tmp_path / "outputs" / "release" / "release_readiness.md").exists()
 
-    payload = json.loads((tmp_path / "outputs" / "final_validation_summary.json").read_text(encoding="utf-8"))
+    payload = json.loads(
+        (tmp_path / "outputs" / "final_validation_summary.json").read_text(encoding="utf-8")
+    )
     assert "release_readiness_state" in payload
     assert "readiness_flags" in payload
     assert set(payload["readiness_flags"]) == {
@@ -81,3 +87,5 @@ def test_final_validation_review_generates_outputs(tmp_path: Path) -> None:
         "decision_support_only",
         "publish_blocked",
     }
+    assert payload["readiness_flags"]["publish_blocked"] is True
+    assert payload["release_readiness_state"] == "publish-blocked"

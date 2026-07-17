@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-import pytest
 
 from src.analysis.formal_analysis import (
     _build_governance_action_queue,
@@ -48,16 +47,13 @@ def _make_pricing(n: int = 20, seed: int = 42) -> pd.DataFrame:
 
 
 def _make_customer_profile(pricing: pd.DataFrame) -> pd.DataFrame:
-    return (
-        pricing.groupby("customer_id", as_index=False)
-        .agg(
-            segment=("segment", "first"),
-            region=("region", "first"),
-            total_revenue=("line_revenue", "sum"),
-            revenue_high_discount_share=("high_discount_flag", "mean"),
-            repeat_discount_behavior=("high_discount_flag", "mean"),
-            share_orders_discounted=("high_discount_flag", "mean"),
-        )
+    return pricing.groupby("customer_id", as_index=False).agg(
+        segment=("segment", "first"),
+        region=("region", "first"),
+        total_revenue=("line_revenue", "sum"),
+        revenue_high_discount_share=("high_discount_flag", "mean"),
+        repeat_discount_behavior=("high_discount_flag", "mean"),
+        share_orders_discounted=("high_discount_flag", "mean"),
     )
 
 
@@ -66,7 +62,9 @@ def _make_risk_scores(customer_profile: pd.DataFrame) -> pd.DataFrame:
     rng = np.random.default_rng(0)
     scores = customer_profile[["customer_id", "segment", "region", "total_revenue"]].copy()
     scores["governance_priority_score"] = rng.uniform(20, 90, n)
-    scores["risk_tier"] = ["High" if s > 65 else "Medium" for s in scores["governance_priority_score"]]
+    scores["risk_tier"] = [
+        "High" if s > 65 else "Medium" for s in scores["governance_priority_score"]
+    ]
     scores["main_risk_driver"] = "discount_dependency"
     scores["recommended_action"] = "Review"
     return scores
@@ -90,9 +88,14 @@ class TestBuildGovernanceActionQueue:
         rs = _make_risk_scores(cp)
         result = _build_governance_action_queue(pricing, rs)
         required = {
-            "customer_id", "segment", "region", "risk_tier",
-            "governance_priority_score", "priority_value_proxy",
-            "high_discount_revenue", "margin_at_risk_revenue",
+            "customer_id",
+            "segment",
+            "region",
+            "risk_tier",
+            "governance_priority_score",
+            "priority_value_proxy",
+            "high_discount_revenue",
+            "margin_at_risk_revenue",
         }
         assert required.issubset(result.columns)
 

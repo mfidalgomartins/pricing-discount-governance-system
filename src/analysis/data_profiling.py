@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Iterable
 from dataclasses import dataclass
 from pathlib import Path
-from collections.abc import Iterable
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -33,7 +34,10 @@ TABLE_DEFINITIONS: dict[str, TableDefinition] = {
         name="orders",
         grain="1 row per order header",
         primary_key=["order_id"],
-        foreign_keys={"customer_id": "customers.customer_id", "sales_rep_id": "sales_reps.sales_rep_id"},
+        foreign_keys={
+            "customer_id": "customers.customer_id",
+            "sales_rep_id": "sales_reps.sales_rep_id",
+        },
     ),
     "order_items": TableDefinition(
         name="order_items",
@@ -118,7 +122,9 @@ STRUCTURAL_COLUMNS = {
 }
 
 
-def _classify_column(series: pd.Series, column_name: str, pk_cols: Iterable[str], fk_cols: Iterable[str]) -> str:
+def _classify_column(
+    series: pd.Series, column_name: str, pk_cols: Iterable[str], fk_cols: Iterable[str]
+) -> str:
     lower = column_name.lower()
     if column_name in pk_cols or column_name in fk_cols or lower.endswith("_id"):
         return "identifier"
@@ -156,7 +162,17 @@ def _expected_non_negative(column_name: str) -> bool:
     if any(key in column_name.lower() for key in signed_metric_keywords):
         return False
 
-    keywords = ["price", "discount", "quantity", "revenue", "cost", "orders", "customers", "share", "variance"]
+    keywords = [
+        "price",
+        "discount",
+        "quantity",
+        "revenue",
+        "cost",
+        "orders",
+        "customers",
+        "share",
+        "variance",
+    ]
     return any(key in column_name.lower() for key in keywords)
 
 
@@ -170,7 +186,7 @@ def _profile_single_table(table_name: str, frame: pd.DataFrame) -> dict[str, pd.
     column_count = frame.shape[1]
     fk_cols = definition.foreign_keys.keys()
 
-    column_records: list[dict] = []
+    column_records: list[dict[str, Any]] = []
     for column in frame.columns:
         series = frame[column]
         distinct_count = int(series.nunique(dropna=True))
@@ -191,7 +207,9 @@ def _profile_single_table(table_name: str, frame: pd.DataFrame) -> dict[str, pd.
 
     column_profile = pd.DataFrame(column_records)
 
-    temporal_columns = column_profile.loc[column_profile["column_type"] == "temporal", "column_name"].tolist()
+    temporal_columns = column_profile.loc[
+        column_profile["column_type"] == "temporal", "column_name"
+    ].tolist()
     date_min: str | None = None
     date_max: str | None = None
     if temporal_columns:
@@ -209,7 +227,9 @@ def _profile_single_table(table_name: str, frame: pd.DataFrame) -> dict[str, pd.
             date_min = combined.min().strftime("%Y-%m-%d")
             date_max = combined.max().strftime("%Y-%m-%d")
 
-    duplicate_on_pk = int(frame.duplicated(subset=definition.primary_key).sum()) if definition.primary_key else 0
+    duplicate_on_pk = (
+        int(frame.duplicated(subset=definition.primary_key).sum()) if definition.primary_key else 0
+    )
 
     summary = pd.DataFrame(
         [
@@ -217,7 +237,9 @@ def _profile_single_table(table_name: str, frame: pd.DataFrame) -> dict[str, pd.
                 "table_name": table_name,
                 "grain": definition.grain,
                 "primary_key": ", ".join(definition.primary_key),
-                "foreign_keys": ", ".join([f"{k}->{v}" for k, v in definition.foreign_keys.items()]),
+                "foreign_keys": ", ".join(
+                    [f"{k}->{v}" for k, v in definition.foreign_keys.items()]
+                ),
                 "row_count": row_count,
                 "column_count": column_count,
                 "date_coverage_start": date_min,
@@ -227,8 +249,10 @@ def _profile_single_table(table_name: str, frame: pd.DataFrame) -> dict[str, pd.
         ]
     )
 
-    dimension_cols = column_profile.loc[column_profile["column_type"].isin(["dimension", "structural"]), "column_name"].tolist()
-    top_values_records: list[dict] = []
+    dimension_cols = column_profile.loc[
+        column_profile["column_type"].isin(["dimension", "structural"]), "column_name"
+    ].tolist()
+    top_values_records: list[dict[str, Any]] = []
     for col in dimension_cols:
         vc = frame[col].fillna("<NULL>").astype(str).value_counts(dropna=False).head(5)
         for value, count in vc.items():
@@ -243,8 +267,10 @@ def _profile_single_table(table_name: str, frame: pd.DataFrame) -> dict[str, pd.
             )
     top_values = pd.DataFrame(top_values_records)
 
-    metric_cols = column_profile.loc[column_profile["column_type"] == "metric", "column_name"].tolist()
-    numeric_records: list[dict] = []
+    metric_cols = column_profile.loc[
+        column_profile["column_type"] == "metric", "column_name"
+    ].tolist()
+    numeric_records: list[dict[str, Any]] = []
     for col in metric_cols:
         s = pd.to_numeric(frame[col], errors="coerce")
         numeric_records.append(
@@ -265,7 +291,7 @@ def _profile_single_table(table_name: str, frame: pd.DataFrame) -> dict[str, pd.
         )
     numeric_summary = pd.DataFrame(numeric_records)
 
-    issues: list[dict] = []
+    issues: list[dict[str, Any]] = []
 
     for row in column_records:
         col = row["column_name"]
@@ -295,7 +321,12 @@ def _profile_single_table(table_name: str, frame: pd.DataFrame) -> dict[str, pd.
                 }
             )
 
-        if col_type in {"dimension", "structural"} and distinct_count > 0 and cardinality_ratio > 0.90 and row_count > 100:
+        if (
+            col_type in {"dimension", "structural"}
+            and distinct_count > 0
+            and cardinality_ratio > 0.90
+            and row_count > 100
+        ):
             issues.append(
                 {
                     "table_name": table_name,
@@ -402,7 +433,7 @@ def _profile_single_table(table_name: str, frame: pd.DataFrame) -> dict[str, pd.
 
 
 def _cross_table_join_checks(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
-    issues: list[dict] = []
+    issues: list[dict[str, Any]] = []
 
     def _record_issue(
         table_name: str,
@@ -422,28 +453,62 @@ def _cross_table_join_checks(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
         )
 
     if {"orders", "customers"}.issubset(tables):
-        missing = int((~tables["orders"]["customer_id"].isin(tables["customers"]["customer_id"])).sum())
+        missing = int(
+            (~tables["orders"]["customer_id"].isin(tables["customers"]["customer_id"])).sum()
+        )
         if missing > 0:
-            _record_issue("orders", "customer_id", "High", "possible_join_issue", f"{missing} order rows do not match customers")
+            _record_issue(
+                "orders",
+                "customer_id",
+                "High",
+                "possible_join_issue",
+                f"{missing} order rows do not match customers",
+            )
 
     if {"orders", "sales_reps"}.issubset(tables):
-        missing = int((~tables["orders"]["sales_rep_id"].isin(tables["sales_reps"]["sales_rep_id"])).sum())
+        missing = int(
+            (~tables["orders"]["sales_rep_id"].isin(tables["sales_reps"]["sales_rep_id"])).sum()
+        )
         if missing > 0:
-            _record_issue("orders", "sales_rep_id", "High", "possible_join_issue", f"{missing} order rows do not match sales reps")
+            _record_issue(
+                "orders",
+                "sales_rep_id",
+                "High",
+                "possible_join_issue",
+                f"{missing} order rows do not match sales reps",
+            )
 
     if {"order_items", "orders"}.issubset(tables):
         missing = int((~tables["order_items"]["order_id"].isin(tables["orders"]["order_id"])).sum())
         if missing > 0:
-            _record_issue("order_items", "order_id", "High", "possible_join_issue", f"{missing} order item rows do not match orders")
+            _record_issue(
+                "order_items",
+                "order_id",
+                "High",
+                "possible_join_issue",
+                f"{missing} order item rows do not match orders",
+            )
 
     if {"order_items", "products"}.issubset(tables):
-        missing = int((~tables["order_items"]["product_id"].isin(tables["products"]["product_id"])).sum())
+        missing = int(
+            (~tables["order_items"]["product_id"].isin(tables["products"]["product_id"])).sum()
+        )
         if missing > 0:
-            _record_issue("order_items", "product_id", "High", "possible_join_issue", f"{missing} order item rows do not match products")
+            _record_issue(
+                "order_items",
+                "product_id",
+                "High",
+                "possible_join_issue",
+                f"{missing} order item rows do not match products",
+            )
 
     if {"customer_risk_scores", "customer_pricing_profile"}.issubset(tables):
         missing = int(
-            (~tables["customer_risk_scores"]["customer_id"].isin(tables["customer_pricing_profile"]["customer_id"])).sum()
+            (
+                ~tables["customer_risk_scores"]["customer_id"].isin(
+                    tables["customer_pricing_profile"]["customer_id"]
+                )
+            ).sum()
         )
         if missing > 0:
             _record_issue(
@@ -472,15 +537,21 @@ def _cross_table_join_checks(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
 
 
 def _build_population_coverage(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
-    total_customers = int(tables.get("customers", pd.DataFrame()).get("customer_id", pd.Series(dtype=str)).nunique())
+    total_customers = int(
+        tables.get("customers", pd.DataFrame()).get("customer_id", pd.Series(dtype=str)).nunique()
+    )
     transacting_customers = int(
         tables.get("orders", pd.DataFrame()).get("customer_id", pd.Series(dtype=str)).nunique()
     )
     profiled_customers = int(
-        tables.get("customer_pricing_profile", pd.DataFrame()).get("customer_id", pd.Series(dtype=str)).nunique()
+        tables.get("customer_pricing_profile", pd.DataFrame())
+        .get("customer_id", pd.Series(dtype=str))
+        .nunique()
     )
     scored_customers = int(
-        tables.get("customer_risk_scores", pd.DataFrame()).get("customer_id", pd.Series(dtype=str)).nunique()
+        tables.get("customer_risk_scores", pd.DataFrame())
+        .get("customer_id", pd.Series(dtype=str))
+        .nunique()
     )
 
     excluded_non_transacting = max(total_customers - transacting_customers, 0)
@@ -563,7 +634,9 @@ def _render_markdown(
         lines.append(
             f"- Excluded non-transacting customers: {int(row['excluded_non_transacting_customers']):,} ({row['excluded_non_transacting_share']:.2%})"
         )
-        lines.append(f"- Transacting but not profiled: {int(row['transacting_not_profiled_customers']):,}")
+        lines.append(
+            f"- Transacting but not profiled: {int(row['transacting_not_profiled_customers']):,}"
+        )
         lines.append(f"- Profiled but not scored: {int(row['profiled_not_scored_customers']):,}")
 
     return "\n".join(lines)
@@ -615,14 +688,28 @@ def run_data_profiling(
         if not results["issues"].empty:
             issues_tables.append(results["issues"])
 
-    profile_summary_df = pd.concat(profile_summaries, ignore_index=True) if profile_summaries else pd.DataFrame()
-    column_profile_df = pd.concat(column_profiles, ignore_index=True) if column_profiles else pd.DataFrame()
-    top_values_df = pd.concat(top_values_tables, ignore_index=True) if top_values_tables else pd.DataFrame()
-    numeric_summary_df = pd.concat(numeric_summaries, ignore_index=True) if numeric_summaries else pd.DataFrame()
+    profile_summary_df = (
+        pd.concat(profile_summaries, ignore_index=True) if profile_summaries else pd.DataFrame()
+    )
+    column_profile_df = (
+        pd.concat(column_profiles, ignore_index=True) if column_profiles else pd.DataFrame()
+    )
+    top_values_df = (
+        pd.concat(top_values_tables, ignore_index=True) if top_values_tables else pd.DataFrame()
+    )
+    numeric_summary_df = (
+        pd.concat(numeric_summaries, ignore_index=True) if numeric_summaries else pd.DataFrame()
+    )
 
-    local_issues_df = pd.concat(issues_tables, ignore_index=True) if issues_tables else pd.DataFrame()
+    local_issues_df = (
+        pd.concat(issues_tables, ignore_index=True) if issues_tables else pd.DataFrame()
+    )
     join_issues_df = _cross_table_join_checks(combined_tables)
-    issues_df = pd.concat([local_issues_df, join_issues_df], ignore_index=True) if not local_issues_df.empty or not join_issues_df.empty else pd.DataFrame(columns=["table_name", "column_name", "severity", "issue_type", "detail"])
+    issues_df = (
+        pd.concat([local_issues_df, join_issues_df], ignore_index=True)
+        if not local_issues_df.empty or not join_issues_df.empty
+        else pd.DataFrame(columns=["table_name", "column_name", "severity", "issue_type", "detail"])
+    )
 
     population_coverage_df = _build_population_coverage(combined_tables)
 

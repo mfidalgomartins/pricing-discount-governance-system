@@ -5,7 +5,7 @@ Practical runbook for reproducing, validating, and publishing the Pricing Discou
 ## 1) Environment Setup
 
 Requirements:
-- Python 3.12 or newer.
+- Python 3.12.
 - Network access only for dependency installation.
 - No secrets or external data services are required for the synthetic baseline.
 
@@ -69,9 +69,9 @@ Reproducibility rules:
 5. Build pandas enriched and pricing feature tables.
 6. Build customer risk scoring outputs.
 7. Validate processed tables and metric contracts.
-8. Run profiling, formal analysis, visualization pack, dashboard build, and GitHub Pages dashboard copy.
+8. Run profiling, formal analysis, visualization pack, and build the dashboard candidate.
 9. Run final validation review.
-10. Evaluate release gate and write `outputs/run_manifest.json`.
+10. Evaluate the release gate, publish the GitHub Pages copy only on success, and write `outputs/run_manifest.json`.
 
 The pipeline stops on failed raw, SQL, processed, metric-contract, or release-gate checks. Start debugging from the file named in the exception.
 
@@ -91,7 +91,7 @@ Operational rules:
 - `order_items` is the canonical transaction grain.
 - Joins must preserve order-item row counts unless the target table is explicitly aggregated.
 - Percentage/share metrics must stay in `[0, 1]`.
-- Monetary metrics use synthetic currency units and should be reconciled from `line_revenue`.
+- Monetary metrics use modeled USD for presentation and should be reconciled from `line_revenue`.
 - Customer scoring covers transacting customers only.
 - Non-transacting customers may exist in `customers` but must not enter behavior/risk metrics.
 
@@ -102,10 +102,12 @@ See [data_dictionary.md](data_dictionary.md) and [data_model_and_grain.md](data_
 Run before changing release artifacts:
 
 ```bash
-make lint
-make test
-make preflight
+make check   # lint, format-check, typecheck, compile, tests (90% gate), preflight
+make audit   # dependency vulnerability scan (network required)
 ```
+
+Or run the stages individually: `make lint`, `make format-check`, `make typecheck`,
+`make test`, `make preflight`.
 
 Run a release gate check after `make run`:
 
@@ -152,16 +154,16 @@ Release candidate sequence:
 make install
 make run
 make report
-make lint
-make test
+make audit
+make check
 python scripts/release_gate.py
-make preflight
 ```
 
 Publish only when:
 - `release_gate_report.json` has `"gate_passed": true`.
 - `final_validation_summary.json` has no failed blocker checks.
 - Dashboard parity check passes: `docs/pricing-discipline-command-center.html` matches `outputs/dashboard/pricing-discipline-command-center.html`.
+- Dashboard SHA-256 matches the artifact recorded by the final review and release gate.
 - Chart pack and PDF have been rebuilt after the final pipeline run.
 - The synthetic-data caveat remains visible in report/dashboard documentation.
 

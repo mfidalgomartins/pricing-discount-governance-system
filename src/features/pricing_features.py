@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-
 import numpy as np
 import pandas as pd
 
-from src.utils.policy import get_high_discount_threshold
+from src.utils.policy import get_discounted_threshold, get_high_discount_threshold
 
 _HIGH_DISCOUNT_THRESHOLD = get_high_discount_threshold()
+_DISCOUNTED_THRESHOLD = get_discounted_threshold()
 
 DISCOUNT_BUCKETS = [-0.001, 0.05, 0.10, 0.20, 0.30, 1.0]
 DISCOUNT_LABELS = ["0-5%", "5-10%", "10-20%", "20-30%", "30%+"]
@@ -33,22 +33,33 @@ def build_order_item_pricing_metrics(enriched: pd.DataFrame) -> pd.DataFrame:
         metrics["gross_margin_value"] / metrics["line_revenue"],
         np.nan,
     )
-    baseline_price = metrics.groupby(["product_id", "sales_channel"])["realized_price"].transform("mean")
-    metrics["realized_price_residual_pct"] = np.where(
-        baseline_price > 0,
-        (metrics["realized_price"] - baseline_price) / baseline_price,
+    metrics["line_price_realization"] = np.where(
+        metrics["list_price_at_sale"] > 0,
+        metrics["realized_price"] / metrics["list_price_at_sale"],
+        np.nan,
+    )
+    baseline_realization = metrics.groupby(["product_id", "sales_channel"])[
+        "line_price_realization"
+    ].transform("mean")
+    metrics["price_realization_residual_pct"] = np.where(
+        baseline_realization > 0,
+        (metrics["line_price_realization"] - baseline_realization) / baseline_realization,
         0.0,
     )
-    metrics["abs_realized_price_residual_pct"] = metrics["realized_price_residual_pct"].abs()
-    metrics["high_discount_flag"] = (metrics["discount_depth"] >= _HIGH_DISCOUNT_THRESHOLD).astype(int)
-    metrics["discounted_flag"] = (metrics["discount_depth"] >= 0.05).astype(int)
+    metrics["abs_price_realization_residual_pct"] = metrics["price_realization_residual_pct"].abs()
+    metrics["high_discount_flag"] = (metrics["discount_depth"] >= _HIGH_DISCOUNT_THRESHOLD).astype(
+        int
+    )
+    metrics["discounted_flag"] = (metrics["discount_depth"] >= _DISCOUNTED_THRESHOLD).astype(int)
 
     return metrics
 
 
 def build_customer_pricing_profile(pricing_metrics: pd.DataFrame) -> pd.DataFrame:
     pricing_metrics = pricing_metrics.copy()
-    pricing_metrics["discount_weighted_value"] = pricing_metrics["discount_depth"] * pricing_metrics["line_list_revenue"]
+    pricing_metrics["discount_weighted_value"] = (
+        pricing_metrics["discount_depth"] * pricing_metrics["line_list_revenue"]
+    )
     pricing_metrics["high_discount_revenue_component"] = np.where(
         pricing_metrics["high_discount_flag"] == 1,
         pricing_metrics["line_revenue"],
@@ -66,34 +77,38 @@ def build_customer_pricing_profile(pricing_metrics: pd.DataFrame) -> pd.DataFram
         .sort_values(["customer_id", "order_date", "order_id"])
     )
 
-    order_level["prev_high_discount_order"] = order_level.groupby("customer_id")["high_discount_order"].shift(1).fillna(0)
+    order_level["prev_high_discount_order"] = (
+        order_level.groupby("customer_id")["high_discount_order"].shift(1).fillna(0)
+    )
     order_level["repeat_high_discount_pair"] = (
         (order_level["high_discount_order"] == 1) & (order_level["prev_high_discount_order"] == 1)
     ).astype(int)
 
     consecutive_denominator = order_level.groupby("customer_id").size().sub(1).clip(lower=1)
     repeat_behavior = (
-        order_level.groupby("customer_id")["repeat_high_discount_pair"].sum() / consecutive_denominator
+        order_level.groupby("customer_id")["repeat_high_discount_pair"].sum()
+        / consecutive_denominator
     ).rename("repeat_discount_behavior")
 
-    customer_profile = (
-        pricing_metrics.groupby("customer_id", as_index=False)
-        .agg(
-            segment=("segment", "first"),
-            region=("region", "first"),
-            company_size=("company_size", "first"),
-            total_orders=("order_id", pd.Series.nunique),
-            total_order_items=("order_item_id", "count"),
-            total_revenue=("line_revenue", "sum"),
-            avg_discount_pct=("discount_depth", "mean"),
-            total_list_revenue=("line_list_revenue", "sum"),
-            weighted_discount_num=("discount_weighted_value", "sum"),
-            share_order_items_discounted=("discounted_flag", "mean"),
-            revenue_high_discount=("high_discount_revenue_component", "sum"),
-            product_diversity=("product_id", pd.Series.nunique),
-            gross_margin_value=("gross_margin_value", "sum"),
-            realized_price_cv=("realized_price", lambda s: float(s.std(ddof=0) / s.mean()) if s.mean() > 0 else 0.0),
-        )
+    customer_profile = pricing_metrics.groupby("customer_id", as_index=False).agg(
+        segment=("segment", "first"),
+        region=("region", "first"),
+        company_size=("company_size", "first"),
+        total_orders=("order_id", pd.Series.nunique),
+        total_order_items=("order_item_id", "count"),
+        total_revenue=("line_revenue", "sum"),
+        avg_discount_pct=("discount_depth", "mean"),
+        total_list_revenue=("line_list_revenue", "sum"),
+        weighted_discount_num=("discount_weighted_value", "sum"),
+        share_order_items_discounted=("discounted_flag", "mean"),
+        revenue_high_discount=("high_discount_revenue_component", "sum"),
+        product_diversity=("product_id", pd.Series.nunique),
+        gross_margin_value=("gross_margin_value", "sum"),
+        realized_price_cv=(
+            "realized_price",
+            lambda s: float(s.std(ddof=0) / s.mean()) if s.mean() > 0 else 0.0,
+        ),
+        avg_abs_price_realization_residual_pct=("abs_price_realization_residual_pct", "mean"),
     )
 
     order_stats = order_level.groupby("customer_id", as_index=False).agg(
@@ -102,7 +117,9 @@ def build_customer_pricing_profile(pricing_metrics: pd.DataFrame) -> pd.DataFram
     )
 
     customer_profile = customer_profile.merge(order_stats, on="customer_id", how="left")
-    customer_profile = customer_profile.merge(repeat_behavior.reset_index(), on="customer_id", how="left")
+    customer_profile = customer_profile.merge(
+        repeat_behavior.reset_index(), on="customer_id", how="left"
+    )
     customer_profile["weighted_discount_pct"] = np.where(
         customer_profile["total_list_revenue"] > 0,
         customer_profile["weighted_discount_num"] / customer_profile["total_list_revenue"],
@@ -126,28 +143,31 @@ def build_customer_pricing_profile(pricing_metrics: pd.DataFrame) -> pd.DataFram
         "repeat_discount_behavior",
         "revenue_high_discount_share",
         "realized_price_cv",
+        "avg_abs_price_realization_residual_pct",
     ]
     customer_profile[fill_cols] = customer_profile[fill_cols].fillna(0)
 
     return customer_profile.drop(
-        columns=["revenue_high_discount", "total_list_revenue", "weighted_discount_num", "gross_margin_value"]
+        columns=[
+            "revenue_high_discount",
+            "total_list_revenue",
+            "weighted_discount_num",
+            "gross_margin_value",
+        ]
     ).sort_values("total_revenue", ascending=False)
 
 
 def build_segment_pricing_summary(pricing_metrics: pd.DataFrame) -> pd.DataFrame:
-    segment_summary = (
-        pricing_metrics.groupby("segment", as_index=False)
-        .agg(
-            total_revenue=("line_revenue", "sum"),
-            avg_discount_pct=("discount_depth", "mean"),
-            median_discount_pct=("discount_depth", "median"),
-            share_high_discount=("high_discount_flag", "mean"),
-            gross_margin_value=("gross_margin_value", "sum"),
-            realized_price_variance=("realized_price", "var"),
-            realized_price_std=("realized_price", "std"),
-            realized_price_residual_std=("realized_price_residual_pct", "std"),
-            realized_price_residual_abs_mean=("abs_realized_price_residual_pct", "mean"),
-        )
+    segment_summary = pricing_metrics.groupby("segment", as_index=False).agg(
+        total_revenue=("line_revenue", "sum"),
+        avg_discount_pct=("discount_depth", "mean"),
+        median_discount_pct=("discount_depth", "median"),
+        share_high_discount=("high_discount_flag", "mean"),
+        gross_margin_value=("gross_margin_value", "sum"),
+        realized_price_variance=("realized_price", "var"),
+        realized_price_std=("realized_price", "std"),
+        price_realization_residual_std=("price_realization_residual_pct", "std"),
+        price_realization_residual_abs_mean=("abs_price_realization_residual_pct", "mean"),
     )
 
     segment_summary["avg_margin_proxy_pct"] = np.where(
@@ -160,12 +180,20 @@ def build_segment_pricing_summary(pricing_metrics: pd.DataFrame) -> pd.DataFrame
         * segment_summary["share_high_discount"].clip(0, 1)
         * 100
     )
-    segment_summary["realized_price_variance"] = segment_summary["realized_price_variance"].fillna(0)
+    segment_summary["realized_price_variance"] = segment_summary["realized_price_variance"].fillna(
+        0
+    )
     segment_summary["realized_price_std"] = segment_summary["realized_price_std"].fillna(0)
-    segment_summary["realized_price_residual_std"] = segment_summary["realized_price_residual_std"].fillna(0)
-    segment_summary["realized_price_residual_abs_mean"] = segment_summary["realized_price_residual_abs_mean"].fillna(0)
+    segment_summary["price_realization_residual_std"] = segment_summary[
+        "price_realization_residual_std"
+    ].fillna(0)
+    segment_summary["price_realization_residual_abs_mean"] = segment_summary[
+        "price_realization_residual_abs_mean"
+    ].fillna(0)
 
-    return segment_summary.drop(columns="gross_margin_value").sort_values("margin_erosion_proxy", ascending=False)
+    return segment_summary.drop(columns="gross_margin_value").sort_values(
+        "margin_erosion_proxy", ascending=False
+    )
 
 
 def build_segment_channel_diagnostics(pricing_metrics: pd.DataFrame) -> pd.DataFrame:

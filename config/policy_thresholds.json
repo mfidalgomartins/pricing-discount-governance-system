@@ -8,14 +8,22 @@
     "mixed_margin_proxy_min": 0.4
   },
   "customer_risk_scoring": {
-    "avg_discount_policy_threshold": 0.18,
+    "weighted_discount_policy_threshold": 0.18,
     "high_discount_order_share_threshold": 0.35,
     "high_discount_revenue_share_threshold": 0.4,
     "repeat_discount_behavior_threshold": 0.2,
     "margin_proxy_floor_threshold": 0.38,
-    "realized_price_cv_threshold": 0.45,
+    "price_realization_residual_abs_mean_threshold": 0.075,
     "min_reliable_order_count": 6,
     "neutral_score": 50.0,
+    "scaling_ranges": {
+      "weighted_discount_excess": 0.2,
+      "price_realization_residual_excess": 0.125,
+      "high_discount_order_share_excess": 0.65,
+      "high_discount_revenue_share_excess": 0.6,
+      "repeat_discount_behavior_excess": 0.8,
+      "margin_proxy_shortfall": 0.38
+    },
     "weights": {
       "governance_priority": {
         "pricing_risk_score": 0.4,
@@ -25,11 +33,11 @@
       "pricing_risk": {
         "rel_blend": 0.60,
         "rel_discount_depth": 0.50,
-        "rel_variability": 0.30,
+        "rel_price_residual": 0.30,
         "rel_discount_share": 0.20,
         "abs_blend": 0.40,
         "abs_discount_depth": 0.45,
-        "abs_variability": 0.30,
+        "abs_price_residual": 0.30,
         "abs_high_discount_order_share": 0.25
       },
       "discount_dependency": {
@@ -59,7 +67,9 @@
       "medium_min": 45
     }
   },
+  "discounted_threshold": 0.05,
   "high_discount_threshold": 0.2,
+  "margin_at_risk_proxy_max": 0.35,
   "high_discount_sensitivity_thresholds": [0.15, 0.2, 0.25],
   "methodology_note": "Operational governance thresholds for synthetic portfolio analytics. Scores are descriptive decision-support heuristics, not causal or predictive models."
 }

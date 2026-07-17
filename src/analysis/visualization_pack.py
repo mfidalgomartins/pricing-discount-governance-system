@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import matplotlib
 import numpy as np
 import pandas as pd
 import seaborn as sns
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
@@ -16,7 +18,7 @@ _HIGH_DISCOUNT_THRESHOLD = get_high_discount_threshold()
 
 
 def _currency_millions(x: float, _pos: int) -> str:
-    return f"${x/1_000_000:.1f}M"
+    return f"${x / 1_000_000:.1f}M"
 
 
 def _percent_axis(x: float, _pos: int) -> str:
@@ -52,7 +54,7 @@ def create_visualization_pack(
 
     sns.set_theme(style="whitegrid", context="talk")
 
-    chart_manifest: list[dict] = []
+    chart_manifest: list[dict[str, Any]] = []
 
     # 1) Discount distribution
     fig, ax = plt.subplots(figsize=(11, 6))
@@ -64,8 +66,16 @@ def create_visualization_pack(
         if (median_discount >= 15 or p90_discount >= 30)
         else "Discount Distribution Remains Moderately Concentrated"
     )
-    ax.axvline(median_discount, color="#e03131", linestyle="--", linewidth=2, label=f"Median: {median_discount:.1f}%")
-    ax.axvline(p90_discount, color="#f08c00", linestyle=":", linewidth=2, label=f"P90: {p90_discount:.1f}%")
+    ax.axvline(
+        median_discount,
+        color="#e03131",
+        linestyle="--",
+        linewidth=2,
+        label=f"Median: {median_discount:.1f}%",
+    )
+    ax.axvline(
+        p90_discount, color="#f08c00", linestyle=":", linewidth=2, label=f"P90: {p90_discount:.1f}%"
+    )
     ax.set_title(discount_title)
     ax.set_xlabel("Discount depth (%)")
     ax.set_ylabel("Order item count")
@@ -92,7 +102,14 @@ def create_visualization_pack(
         mincnt=1,
     )
     max_val = max(sample["list_price_at_sale"].max(), sample["realized_price"].max())
-    ax.plot([0, max_val], [0, max_val], linestyle="--", linewidth=2, color="#d9480f", label="Parity: realized=list")
+    ax.plot(
+        [0, max_val],
+        [0, max_val],
+        linestyle="--",
+        linewidth=2,
+        color="#d9480f",
+        label="Parity: realized=list",
+    )
     ax.set_title("Realized vs List Price Relationship (Transaction Density)")
     ax.set_xlabel("List price at sale")
     ax.set_ylabel("Realized unit price")
@@ -113,7 +130,9 @@ def create_visualization_pack(
 
     # 3) High-risk segment comparison
     risk_segment = (
-        customer_risk.assign(high_risk=customer_risk["risk_tier"].isin(["High", "Critical"]).astype(int))
+        customer_risk.assign(
+            high_risk=customer_risk["risk_tier"].isin(["High", "Critical"]).astype(int)
+        )
         .groupby("segment", as_index=False)
         .agg(
             high_risk_customer_share=("high_risk", "mean"),
@@ -157,7 +176,8 @@ def create_visualization_pack(
 
     # 4) Revenue under high discount
     monthly_comp = (
-        pricing.groupby(["order_month_date", "high_discount_flag"], as_index=False)["line_revenue"].sum()
+        pricing.groupby(["order_month_date", "high_discount_flag"], as_index=False)["line_revenue"]
+        .sum()
         .pivot(index="order_month_date", columns="high_discount_flag", values="line_revenue")
         .fillna(0)
         .rename(columns={0: "standard_discount_revenue", 1: "high_discount_revenue"})
@@ -166,9 +186,12 @@ def create_visualization_pack(
 
     total_high_discount_revenue = float(monthly_comp["high_discount_revenue"].sum())
     total_revenue = float(
-        monthly_comp["high_discount_revenue"].sum() + monthly_comp["standard_discount_revenue"].sum()
+        monthly_comp["high_discount_revenue"].sum()
+        + monthly_comp["standard_discount_revenue"].sum()
     )
-    high_discount_revenue_share = total_high_discount_revenue / total_revenue if total_revenue else np.nan
+    high_discount_revenue_share = (
+        total_high_discount_revenue / total_revenue if total_revenue else np.nan
+    )
     revenue_title = (
         "High-Discount Deals Represent a Material Share of Monthly Revenue"
         if high_discount_revenue_share >= 0.25
@@ -238,13 +261,13 @@ def create_visualization_pack(
     ax.set_title(channel_title)
     ax.set_xlabel("Sales channel")
     ax.set_ylabel("Average discount (%)")
-    ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _p: f"{x*100:.0f}%"))
+    ax.yaxis.set_major_formatter(FuncFormatter(lambda x, _p: f"{x * 100:.0f}%"))
 
     for i, row in enumerate(channel_cmp.itertuples(index=False)):
         ax.text(
             i,
             row.avg_discount_pct + 0.004,
-            f"Margin {row.avg_margin_proxy_pct*100:.1f}%",
+            f"Margin {row.avg_margin_proxy_pct * 100:.1f}%",
             ha="center",
             va="bottom",
             fontsize=9,
@@ -265,7 +288,9 @@ def create_visualization_pack(
         high_discount_revenue=pricing["line_revenue"].where(pricing["high_discount_flag"] == 1, 0.0)
     )
     product_dep = (
-        pricing_with_discount_scope.groupby(["product_id", "product_name", "category"], as_index=False)
+        pricing_with_discount_scope.groupby(
+            ["product_id", "product_name", "category"], as_index=False
+        )
         .agg(
             revenue=("line_revenue", "sum"),
             high_discount_revenue=("high_discount_revenue", "sum"),
@@ -285,9 +310,17 @@ def create_visualization_pack(
         product_dep["high_discount_revenue"] / product_dep["revenue"],
         0,
     )
-    product_dep["dependence_score"] = product_dep["high_discount_revenue_share"] * np.log1p(product_dep["revenue"])
-    top_dep = product_dep.sort_values("dependence_score", ascending=False).head(15).sort_values("dependence_score")
-    max_dependency_share = float(top_dep["high_discount_revenue_share"].max()) if not top_dep.empty else 0.0
+    product_dep["dependence_score"] = product_dep["high_discount_revenue_share"] * np.log1p(
+        product_dep["revenue"]
+    )
+    top_dep = (
+        product_dep.sort_values("dependence_score", ascending=False)
+        .head(15)
+        .sort_values("dependence_score")
+    )
+    max_dependency_share = (
+        float(top_dep["high_discount_revenue_share"].max()) if not top_dep.empty else 0.0
+    )
     product_title = (
         "Top Products Show Material Reliance on Discounted Revenue"
         if max_dependency_share >= 0.40
@@ -295,7 +328,7 @@ def create_visualization_pack(
     )
 
     fig, ax = plt.subplots(figsize=(12, 8))
-    bars = ax.barh(top_dep["product_name"], top_dep["dependence_score"], color="#5f3dc4", alpha=0.9)
+    ax.barh(top_dep["product_name"], top_dep["dependence_score"], color="#5f3dc4", alpha=0.9)
     ax.set_title(product_title)
     ax.set_xlabel("Discount dependence ranking score")
     ax.set_ylabel("Product")
@@ -304,7 +337,7 @@ def create_visualization_pack(
         ax.text(
             row.dependence_score + 0.01,
             i,
-            f"{row.high_discount_revenue_share*100:.0f}% high-discount revenue",
+            f"{row.high_discount_revenue_share * 100:.0f}% high-discount revenue",
             va="center",
             fontsize=9,
         )

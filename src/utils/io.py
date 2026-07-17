@@ -17,8 +17,7 @@ def _as_path(path: str | Path) -> Path:
 def _validate_table_name(name: str) -> None:
     if not isinstance(name, str) or not SAFE_TABLE_NAME_PATTERN.fullmatch(name):
         raise ValueError(
-            "Table name must contain only letters, numbers, underscores, and hyphens: "
-            f"{name!r}"
+            f"Table name must contain only letters, numbers, underscores, and hyphens: {name!r}"
         )
 
 

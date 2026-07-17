@@ -6,7 +6,7 @@
       "description": "Order-item grain pricing fact table used for all revenue, discount, margin proxy, and time-series diagnostics.",
       "grain": "one row per order_item_id",
       "primary_key": ["order_item_id"],
-      "not_null_keys": ["order_item_id", "order_id", "order_date", "order_month", "customer_id", "product_id", "line_revenue", "line_list_revenue", "discount_depth", "high_discount_flag", "margin_proxy_pct"],
+      "not_null_keys": ["order_item_id", "order_id", "order_date", "order_month", "customer_id", "product_id", "line_revenue", "line_list_revenue", "discount_depth", "line_price_realization", "price_realization_residual_pct", "high_discount_flag", "margin_proxy_pct"],
       "required_columns": [
         "order_item_id",
         "order_id",
@@ -23,6 +23,8 @@
         "realized_price",
         "list_price_at_sale",
         "discount_depth",
+        "line_price_realization",
+        "price_realization_residual_pct",
         "high_discount_flag",
         "margin_proxy_pct"
       ],
@@ -32,6 +34,7 @@
         {"column": "realized_price", "min": 0.0},
         {"column": "list_price_at_sale", "min": 0.0},
         {"column": "discount_depth", "min": 0.0, "max": 0.7},
+        {"column": "line_price_realization", "min": 0.0, "max": 1.0},
         {"column": "high_discount_flag", "min": 0, "max": 1},
         {"column": "margin_proxy_pct", "min": -0.25, "max": 1.0}
       ]
@@ -42,7 +45,7 @@
       "description": "Customer-level pricing behavior profile used as the input to governance risk scoring.",
       "grain": "one row per customer_id with at least one order",
       "primary_key": ["customer_id"],
-      "not_null_keys": ["customer_id", "total_orders", "total_revenue", "avg_discount_pct", "share_orders_discounted", "share_orders_high_discount", "revenue_high_discount_share", "avg_margin_proxy_pct", "realized_price_cv", "repeat_discount_behavior"],
+      "not_null_keys": ["customer_id", "total_orders", "total_revenue", "avg_discount_pct", "weighted_discount_pct", "share_orders_discounted", "share_orders_high_discount", "revenue_high_discount_share", "avg_margin_proxy_pct", "realized_price_cv", "avg_abs_price_realization_residual_pct", "repeat_discount_behavior"],
       "required_columns": [
         "customer_id",
         "segment",
@@ -50,22 +53,26 @@
         "total_orders",
         "total_revenue",
         "avg_discount_pct",
+        "weighted_discount_pct",
         "share_orders_discounted",
         "share_orders_high_discount",
         "revenue_high_discount_share",
         "avg_margin_proxy_pct",
         "realized_price_cv",
+        "avg_abs_price_realization_residual_pct",
         "repeat_discount_behavior"
       ],
       "bounds": [
         {"column": "total_orders", "min": 1},
         {"column": "total_revenue", "min": 0.0},
         {"column": "avg_discount_pct", "min": 0.0, "max": 0.7},
+        {"column": "weighted_discount_pct", "min": 0.0, "max": 0.7},
         {"column": "share_orders_discounted", "min": 0.0, "max": 1.0},
         {"column": "share_orders_high_discount", "min": 0.0, "max": 1.0},
         {"column": "revenue_high_discount_share", "min": 0.0, "max": 1.0},
         {"column": "avg_margin_proxy_pct", "min": 0.0, "max": 1.0},
         {"column": "realized_price_cv", "min": 0.0},
+        {"column": "avg_abs_price_realization_residual_pct", "min": 0.0},
         {"column": "repeat_discount_behavior", "min": 0.0, "max": 1.0}
       ]
     },
@@ -95,7 +102,9 @@
         {"column": "low_data_flag", "min": 0, "max": 1}
       ],
       "allowed_values": {
-        "risk_tier": ["Low", "Medium", "High", "Critical"]
+        "risk_tier": ["Low", "Medium", "High", "Critical"],
+        "main_risk_driver": ["pricing_risk_score", "discount_dependency_score", "margin_erosion_score"],
+        "recommended_action": ["monitor only", "review segment pricing", "review pricing variance", "review discount terms", "review margin guardrails"]
       }
     },
     "segment_pricing_summary": {
@@ -104,7 +113,7 @@
       "description": "Segment-level pricing quality summary with margin proxy and mix-normalized residual dispersion.",
       "grain": "one row per segment",
       "primary_key": ["segment"],
-      "not_null_keys": ["segment", "total_revenue", "avg_discount_pct", "median_discount_pct", "share_high_discount", "avg_margin_proxy_pct", "realized_price_residual_std", "realized_price_residual_abs_mean", "margin_erosion_proxy"],
+      "not_null_keys": ["segment", "total_revenue", "avg_discount_pct", "median_discount_pct", "share_high_discount", "avg_margin_proxy_pct", "price_realization_residual_std", "price_realization_residual_abs_mean", "margin_erosion_proxy"],
       "required_columns": [
         "segment",
         "total_revenue",
@@ -112,8 +121,8 @@
         "median_discount_pct",
         "share_high_discount",
         "avg_margin_proxy_pct",
-        "realized_price_residual_std",
-        "realized_price_residual_abs_mean",
+        "price_realization_residual_std",
+        "price_realization_residual_abs_mean",
         "margin_erosion_proxy"
       ],
       "bounds": [
@@ -121,7 +130,7 @@
         {"column": "avg_discount_pct", "min": 0.0, "max": 0.7},
         {"column": "share_high_discount", "min": 0.0, "max": 1.0},
         {"column": "avg_margin_proxy_pct", "min": 0.0, "max": 1.0},
-        {"column": "realized_price_residual_abs_mean", "min": 0.0},
+        {"column": "price_realization_residual_abs_mean", "min": 0.0},
         {"column": "margin_erosion_proxy", "min": 0.0}
       ]
     },

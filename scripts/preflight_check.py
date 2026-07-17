@@ -17,6 +17,12 @@ REQUIRED_PATHS = [
     "LICENSE",
     "Makefile",
     "pyproject.toml",
+    "CONTRIBUTING.md",
+    "CHANGELOG.md",
+    "SECURITY.md",
+    "ARCHITECTURE.md",
+    ".editorconfig",
+    ".pre-commit-config.yaml",
     ".github/workflows/ci.yml",
     ".github/dependabot.yml",
     "requirements.lock",
@@ -37,6 +43,7 @@ REQUIRED_PATHS = [
     "config/metric_contracts.json",
     "config/dashboard_policy.json",
     "config/policy_thresholds.json",
+    "config/release_policy.json",
 ]
 
 MARKDOWN_LINK_PATTERN = re.compile(r"\[[^\]]+\]\(([^)#]+)(?:#[^)]+)?\)")
@@ -50,11 +57,12 @@ FORBIDDEN_TRACKED_PATTERNS = [
     "**/.DS_Store",
     "*.DS_Store",
     "**/.gitkeep",
-    "CONTRIBUTING.md",
     "CODE_OF_CONDUCT.md",
-    "CHANGELOG.md",
     "TODO.md",
     "NOTES.md",
+    "GOAL.md",
+    "PROJECT_AUDIT*.md",
+    "PROJECT_UPGRADE*.md",
     "requirements.txt",
     "scripts/cleanup_repository.py",
     "scripts/generate_graphs.py",
@@ -76,7 +84,9 @@ def _project_path(rel: str | Path) -> Path:
 
 
 def _tracked_files() -> list[str]:
-    out = subprocess.check_output(["git", "ls-files"], cwd=PROJECT_ROOT, text=True, stderr=subprocess.STDOUT)
+    out = subprocess.check_output(
+        ["git", "ls-files"], cwd=PROJECT_ROOT, text=True, stderr=subprocess.STDOUT
+    )
     return [line.strip() for line in out.splitlines() if line.strip()]
 
 
@@ -142,18 +152,28 @@ def _dependency_spec_issues() -> list[str]:
             issues.append(f"Dependency is not exactly pinned in pyproject.toml: {requirement}")
             continue
         package_name, version = parsed
+        if package_name in declared:
+            issues.append(f"Duplicate dependency in pyproject.toml: {package_name}")
         declared[package_name] = version
 
     locked: dict[str, str] = {}
-    for line_number, raw_line in enumerate(lock_path.read_text(encoding="utf-8").splitlines(), start=1):
+    for line_number, raw_line in enumerate(
+        lock_path.read_text(encoding="utf-8").splitlines(), start=1
+    ):
         line = raw_line.split("#", 1)[0].strip()
         if not line:
             continue
         parsed = _parse_pinned_requirement(line)
         if parsed is None:
-            issues.append(f"Unsupported requirement format in requirements.lock:{line_number}: {raw_line}")
+            issues.append(
+                f"Unsupported requirement format in requirements.lock:{line_number}: {raw_line}"
+            )
             continue
         package_name, version = parsed
+        if package_name in locked:
+            issues.append(
+                f"Duplicate dependency in requirements.lock:{line_number}: {package_name}"
+            )
         locked[package_name] = version
 
     for package_name, version in declared.items():
@@ -178,7 +198,9 @@ def _config_json_issues() -> list[str]:
             issues.append(f"Invalid JSON config: {path.relative_to(PROJECT_ROOT)} ({exc})")
             continue
         if not isinstance(payload, dict):
-            issues.append(f"JSON config must contain an object at top level: {path.relative_to(PROJECT_ROOT)}")
+            issues.append(
+                f"JSON config must contain an object at top level: {path.relative_to(PROJECT_ROOT)}"
+            )
     return issues
 
 

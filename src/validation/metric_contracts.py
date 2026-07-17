@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
@@ -12,7 +13,7 @@ def _result_row(
     passed: bool,
     detail: str,
     severity: str = "High",
-) -> dict:
+) -> dict[str, Any]:
     return {
         "contract_table": contract_table,
         "check_name": check_name,
@@ -22,15 +23,23 @@ def _result_row(
     }
 
 
-def _load_contracts(config_path: Path) -> dict:
+def _load_contracts(config_path: Path) -> dict[str, Any]:
     if not config_path.exists():
         raise FileNotFoundError(f"Metric contract config not found: {config_path}")
-    return json.loads(config_path.read_text(encoding="utf-8"))
+    payload = json.loads(config_path.read_text(encoding="utf-8"))
+    if not isinstance(payload, dict) or set(payload) != {"tables"}:
+        raise ValueError("Metric contract config must define exactly one top-level tables object")
+    if not isinstance(payload["tables"], dict) or not payload["tables"]:
+        raise ValueError("Metric contract tables must be a non-empty object")
+    if any(not isinstance(spec, dict) for spec in payload["tables"].values()):
+        raise ValueError("Every metric contract table specification must be an object")
+    contracts: dict[str, Any] = payload
+    return contracts
 
 
 def _resolve_table(
     table_name: str,
-    spec: dict,
+    spec: dict[str, Any],
     processed_tables: dict[str, pd.DataFrame],
     outputs_dir: Path,
 ) -> pd.DataFrame | None:
@@ -58,7 +67,7 @@ def validate_metric_contracts(
     contracts = _load_contracts(config_path)
     table_specs = contracts.get("tables", {})
 
-    checks: list[dict] = []
+    checks: list[dict[str, Any]] = []
 
     for table_name, spec in table_specs.items():
         table = _resolve_table(table_name, spec, processed_tables, outputs_dir)
@@ -82,6 +91,15 @@ def validate_metric_contracts(
                 severity="Low",
             )
         )
+        table_nonempty = not table.empty
+        checks.append(
+            _result_row(
+                table_name,
+                "row_count_positive",
+                table_nonempty,
+                f"rows={len(table)}",
+            )
+        )
 
         required_columns = spec.get("required_columns", [])
         missing_columns = [col for col in required_columns if col not in table.columns]
@@ -94,7 +112,7 @@ def validate_metric_contracts(
             )
         )
 
-        if missing_columns:
+        if missing_columns or not table_nonempty:
             continue
 
         primary_key = spec.get("primary_key", [])
@@ -103,7 +121,14 @@ def validate_metric_contracts(
         if primary_key:
             missing_pk_cols = [col for col in primary_key if col not in table.columns]
             if missing_pk_cols:
-                checks.append(_result_row(table_name, "primary_key_columns_present", False, f"missing={missing_pk_cols}"))
+                checks.append(
+                    _result_row(
+                        table_name,
+                        "primary_key_columns_present",
+                        False,
+                        f"missing={missing_pk_cols}",
+                    )
+                )
             else:
                 duplicate_keys = int(table.duplicated(subset=primary_key).sum())
                 checks.append(
@@ -117,10 +142,21 @@ def validate_metric_contracts(
 
         not_null_keys = spec.get("not_null_keys")
         if not_null_keys is None:
-            not_null_keys = [col for col in required_columns if col.endswith("_id") or col in {"order_date", "order_month"}]
+            not_null_keys = [
+                col
+                for col in required_columns
+                if col.endswith("_id") or col in {"order_date", "order_month"}
+            ]
         missing_not_null_cols = [col for col in not_null_keys if col not in table.columns]
         if missing_not_null_cols:
-            checks.append(_result_row(table_name, "not_null_key_columns_present", False, f"missing={missing_not_null_cols}"))
+            checks.append(
+                _result_row(
+                    table_name,
+                    "not_null_key_columns_present",
+                    False,
+                    f"missing={missing_not_null_cols}",
+                )
+            )
 
         null_rate_cols = [col for col in not_null_keys if col in table.columns]
         if null_rate_cols:
@@ -138,7 +174,11 @@ def validate_metric_contracts(
         for bound_spec in spec.get("bounds", []):
             col = bound_spec["column"]
             if col not in table.columns:
-                checks.append(_result_row(table_name, f"bound_{col}", False, "column missing for bounds check"))
+                checks.append(
+                    _result_row(
+                        table_name, f"bound_{col}", False, "column missing for bounds check"
+                    )
+                )
                 continue
 
             series = pd.to_numeric(table[col], errors="coerce")
@@ -164,7 +204,9 @@ def validate_metric_contracts(
 
         for col, allowed in spec.get("allowed_values", {}).items():
             if col not in table.columns:
-                checks.append(_result_row(table_name, f"allowed_values_{col}", False, "column missing"))
+                checks.append(
+                    _result_row(table_name, f"allowed_values_{col}", False, "column missing")
+                )
                 continue
 
             invalid = (~table[col].isin(allowed)) & table[col].notna()
@@ -180,7 +222,9 @@ def validate_metric_contracts(
 
     report = pd.DataFrame(checks)
     if report.empty:
-        report = pd.DataFrame(columns=["contract_table", "check_name", "status", "severity", "detail"])
+        report = pd.DataFrame(
+            columns=["contract_table", "check_name", "status", "severity", "detail"]
+        )
 
     is_valid = bool((report["status"] == "PASS").all()) if not report.empty else False
     return report, is_valid

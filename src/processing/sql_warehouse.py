@@ -3,10 +3,12 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
-from src.utils.policy import get_high_discount_threshold
+from src.utils.paths import PROJECT_ROOT
+from src.utils.policy import get_discounted_threshold, get_high_discount_threshold
 
 try:
     import duckdb
@@ -61,6 +63,14 @@ MART_PRIMARY_KEYS = {
 }
 
 
+def _portable_path(path: Path) -> str:
+    resolved = path.resolve()
+    try:
+        return resolved.relative_to(PROJECT_ROOT.resolve()).as_posix()
+    except ValueError:
+        return str(resolved)
+
+
 def _load_raw_tables(conn: duckdb.DuckDBPyConnection, raw_dir: Path) -> None:
     for table_name, file_name in RAW_TABLE_SOURCES.items():
         source_path = raw_dir / file_name
@@ -75,8 +85,13 @@ def _load_raw_tables(conn: duckdb.DuckDBPyConnection, raw_dir: Path) -> None:
             [str(source_path)],
         )
     conn.execute(
-        "create or replace table policy_thresholds as select ?::double as high_discount_threshold",
-        [get_high_discount_threshold()],
+        """
+        create or replace table policy_thresholds as
+        select
+            ?::double as high_discount_threshold,
+            ?::double as discounted_threshold
+        """,
+        [get_high_discount_threshold(), get_discounted_threshold()],
     )
 
 
@@ -86,7 +101,7 @@ def _run_model_file(conn: duckdb.DuckDBPyConnection, model_path: Path) -> None:
 
 
 def _run_sql_validations(conn: duckdb.DuckDBPyConnection) -> pd.DataFrame:
-    checks: list[dict] = []
+    checks: list[dict[str, Any]] = []
 
     def add_check(name: str, passed: bool, detail: str) -> None:
         checks.append(
@@ -112,7 +127,9 @@ def _run_sql_validations(conn: duckdb.DuckDBPyConnection) -> pd.DataFrame:
         )
 
     raw_order_items = int(conn.execute("select count(*) from stg_order_items").fetchone()[0])
-    enriched_order_items = int(conn.execute("select count(*) from int_order_item_enriched").fetchone()[0])
+    enriched_order_items = int(
+        conn.execute("select count(*) from int_order_item_enriched").fetchone()[0]
+    )
     add_check(
         "int_order_item_enriched_no_silent_drops",
         raw_order_items == enriched_order_items,
@@ -152,16 +169,26 @@ def _run_sql_validations(conn: duckdb.DuckDBPyConnection) -> pd.DataFrame:
     for mart_name, key_cols in MART_PRIMARY_KEYS.items():
         key_expr = ", ".join(key_cols)
         row_count = int(conn.execute(f"select count(*) from {mart_name}").fetchone()[0])
-        distinct_count = int(conn.execute(f"select count(*) from (select distinct {key_expr} from {mart_name})").fetchone()[0])
+        distinct_count = int(
+            conn.execute(
+                f"select count(*) from (select distinct {key_expr} from {mart_name})"
+            ).fetchone()[0]
+        )
         add_check(
             f"{mart_name}_primary_key_uniqueness",
             row_count == distinct_count,
             f"rows={row_count}, distinct_keys={distinct_count}",
         )
 
-    base_revenue = float(conn.execute("select sum(line_revenue) from int_order_item_pricing_metrics").fetchone()[0])
-    segment_revenue = float(conn.execute("select sum(total_revenue) from mart_segment_pricing_summary").fetchone()[0])
-    monthly_revenue = float(conn.execute("select sum(revenue) from mart_monthly_pricing_health").fetchone()[0])
+    base_revenue = float(
+        conn.execute("select sum(line_revenue) from int_order_item_pricing_metrics").fetchone()[0]
+    )
+    segment_revenue = float(
+        conn.execute("select sum(total_revenue) from mart_segment_pricing_summary").fetchone()[0]
+    )
+    monthly_revenue = float(
+        conn.execute("select sum(revenue) from mart_monthly_pricing_health").fetchone()[0]
+    )
 
     tol = max(1.0, base_revenue * 0.0001)
     add_check(
@@ -258,7 +285,7 @@ def run_sql_warehouse_models(config: SqlLayerRunConfig) -> dict[str, pd.DataFram
     try:
         _load_raw_tables(conn, config.raw_dir)
 
-        model_runs: list[dict] = []
+        model_runs: list[dict[str, Any]] = []
         for layer_name, files in MODEL_ORDER.items():
             layer_dir = config.sql_dir / layer_name
             for file_name in files:
@@ -273,7 +300,7 @@ def run_sql_warehouse_models(config: SqlLayerRunConfig) -> dict[str, pd.DataFram
                         "model_name": model_name,
                         "relation_name": relation_name,
                         "row_count": row_count,
-                        "sql_path": str(model_path),
+                        "sql_path": _portable_path(model_path),
                     }
                 )
 
@@ -291,13 +318,15 @@ def run_sql_warehouse_models(config: SqlLayerRunConfig) -> dict[str, pd.DataFram
         model_run_df.to_csv(config.outputs_dir / "sql_model_run_log.csv", index=False)
 
         manifest = {
-            "database_path": str(config.db_path),
-            "sql_directory": str(config.sql_dir),
-            "layers": {layer: files for layer, files in MODEL_ORDER.items()},
+            "database_path": _portable_path(config.db_path),
+            "sql_directory": _portable_path(config.sql_dir),
+            "layers": dict(MODEL_ORDER),
             "marts_exported": sorted(marts.keys()),
             "all_sql_checks_passed": bool((validation_report["status"] == "PASS").all()),
         }
-        (config.outputs_dir / "sql_model_manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+        (config.outputs_dir / "sql_model_manifest.json").write_text(
+            json.dumps(manifest, indent=2), encoding="utf-8"
+        )
 
         return {
             "sql_model_run_log": model_run_df,

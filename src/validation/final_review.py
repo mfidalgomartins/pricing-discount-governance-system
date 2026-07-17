@@ -1,17 +1,29 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
 
+from src.utils.paths import CONFIGS_DIR
 from src.utils.policy import get_high_discount_threshold
 from src.validation.data_quality import DISCOUNT_FORMULA_TOLERANCE
+from src.validation.release_gate import load_release_policy
 
 _HIGH_DISCOUNT_THRESHOLD = get_high_discount_threshold()
+
+
+def _sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 def _check_row(
@@ -22,7 +34,7 @@ def _check_row(
     gate: str,
     severity: str,
     blocker: bool = False,
-) -> dict:
+) -> dict[str, Any]:
     return {
         "check_name": name,
         "status": "PASS" if passed else "FAIL",
@@ -77,10 +89,8 @@ def _render_review(
     )
     for row in check_table.itertuples(index=False):
         lines.append(
-            (
-                f"- {row.check_name}: {row.status} "
-                f"(gate={row.gate}, severity={row.severity}, blocker={row.blocker}) {row.detail}"
-            )
+            f"- {row.check_name}: {row.status} "
+            f"(gate={row.gate}, severity={row.severity}, blocker={row.blocker}) {row.detail}"
         )
 
     lines.extend(
@@ -138,7 +148,7 @@ def _release_readiness(check_table: pd.DataFrame) -> tuple[str, dict[str, bool]]
     return release_state, readiness_flags
 
 
-def _extract_dashboard_payload(dashboard_path: Path) -> dict | None:
+def _extract_dashboard_payload(dashboard_path: Path) -> dict[str, Any] | None:
     if not dashboard_path.exists():
         return None
     try:
@@ -150,9 +160,28 @@ def _extract_dashboard_payload(dashboard_path: Path) -> dict | None:
     if not match:
         return None
     try:
-        return json.loads(match.group(1))
+        payload: dict[str, Any] = json.loads(match.group(1))
+        return payload
     except json.JSONDecodeError:
         return None
+
+
+def _status_report_result(path: Path) -> tuple[bool, str]:
+    if not path.exists():
+        return False, f"missing {path.name}"
+    try:
+        report = pd.read_csv(path)
+    except pd.errors.EmptyDataError:
+        return False, "report is empty"
+    if report.empty or "status" not in report.columns:
+        return False, "report must be non-empty and contain a status column"
+
+    statuses = report["status"].astype("string")
+    invalid_statuses = int((~statuses.isin(["PASS", "FAIL"])).sum())
+    failures = int(statuses.eq("FAIL").sum())
+    passed = invalid_statuses == 0 and failures == 0
+    detail = f"rows={len(report)}, failures={failures}, invalid_statuses={invalid_statuses}"
+    return passed, detail
 
 
 def run_final_validation_review(
@@ -161,7 +190,7 @@ def run_final_validation_review(
     outputs_dir: Path,
     docs_dir: Path,
     dashboard_path: Path,
-) -> dict[str, pd.DataFrame | dict]:
+) -> dict[str, pd.DataFrame | dict[str, Any]]:
     outputs_dir.mkdir(parents=True, exist_ok=True)
     docs_dir.mkdir(parents=True, exist_ok=True)
 
@@ -177,7 +206,7 @@ def run_final_validation_review(
     customer_risk_scores = processed_tables["customer_risk_scores"]
     segment_summary = processed_tables["segment_pricing_summary"]
 
-    checks: list[dict] = []
+    checks: list[dict[str, Any]] = []
 
     checks.append(
         _check_row(
@@ -283,7 +312,9 @@ def run_final_validation_review(
         gross_margin_value=("gross_margin_value", "sum"),
     )
     margin_line = float(np.average(pricing["margin_proxy_pct"], weights=pricing["line_revenue"]))
-    margin_monthly = float(np.average(monthly["gross_margin_value"] / monthly["revenue"], weights=monthly["revenue"]))
+    margin_monthly = float(
+        np.average(monthly["gross_margin_value"] / monthly["revenue"], weights=monthly["revenue"])
+    )
     checks.append(
         _check_row(
             "margin_proxy_consistency_line_vs_monthly",
@@ -295,7 +326,9 @@ def run_final_validation_review(
         )
     )
 
-    month_series = pd.period_range(pricing["order_date"].min(), pricing["order_date"].max(), freq="M")
+    month_series = pd.period_range(
+        pricing["order_date"].min(), pricing["order_date"].max(), freq="M"
+    )
     observed_months = pd.PeriodIndex(pd.to_datetime(pricing["order_date"]), freq="M").unique()
     checks.append(
         _check_row(
@@ -330,7 +363,9 @@ def run_final_validation_review(
     weighted_discount = float(
         np.average(pricing["discount_depth"], weights=pricing["line_list_revenue"])
     )
-    weighted_discount_total = float(1 - pricing["line_revenue"].sum() / pricing["line_list_revenue"].sum())
+    weighted_discount_total = float(
+        1 - pricing["line_revenue"].sum() / pricing["line_list_revenue"].sum()
+    )
     checks.append(
         _check_row(
             "weighted_discount_consistency",
@@ -355,13 +390,15 @@ def run_final_validation_review(
     )
 
     tier_order = ["Low", "Medium", "High", "Critical"]
-    observed_tier_medians = (
-        customer_risk_scores.groupby("risk_tier", as_index=False)["governance_priority_score"].median()
-    )
+    observed_tier_medians = customer_risk_scores.groupby("risk_tier", as_index=False)[
+        "governance_priority_score"
+    ].median()
     observed_tier_medians["tier_rank"] = observed_tier_medians["risk_tier"].map(
         {tier: idx for idx, tier in enumerate(tier_order)}
     )
-    observed_tier_medians = observed_tier_medians.dropna(subset=["tier_rank"]).sort_values("tier_rank")
+    observed_tier_medians = observed_tier_medians.dropna(subset=["tier_rank"]).sort_values(
+        "tier_rank"
+    )
     risk_tier_monotonic = bool(
         observed_tier_medians["governance_priority_score"].is_monotonic_increasing
         if len(observed_tier_medians) > 1
@@ -385,7 +422,9 @@ def run_final_validation_review(
     recomputed_driver = customer_risk_scores[
         ["pricing_risk_score", "discount_dependency_score", "margin_erosion_score"]
     ].idxmax(axis=1)
-    driver_alignment_ok = bool((recomputed_driver == customer_risk_scores["main_risk_driver"]).all())
+    driver_alignment_ok = bool(
+        (recomputed_driver == customer_risk_scores["main_risk_driver"]).all()
+    )
     checks.append(
         _check_row(
             "main_risk_driver_alignment",
@@ -401,15 +440,15 @@ def run_final_validation_review(
         "Low": {"monitor only"},
         "Medium": {"review segment pricing"},
         "High": {
-            "investigate rep behavior",
-            "redesign discount policy",
-            "tighten approval thresholds",
+            "review pricing variance",
+            "review discount terms",
+            "review margin guardrails",
             "review segment pricing",
         },
         "Critical": {
-            "investigate rep behavior",
-            "redesign discount policy",
-            "tighten approval thresholds",
+            "review pricing variance",
+            "review discount terms",
+            "review margin guardrails",
             "review segment pricing",
         },
     }
@@ -462,7 +501,9 @@ def run_final_validation_review(
         manifest_end = manifest.get("configuration", {}).get("end_date")
         if manifest_start == coverage_start and manifest_end == coverage_end:
             manifest_raw_orders = int(manifest["row_counts"]["raw"]["orders"])
-            manifest_pricing_rows = int(manifest["row_counts"]["processed"]["order_item_pricing_metrics"])
+            manifest_pricing_rows = int(
+                manifest["row_counts"]["processed"]["order_item_pricing_metrics"]
+            )
             checks.append(
                 _check_row(
                     "run_manifest_rowcount_consistency",
@@ -472,34 +513,52 @@ def run_final_validation_review(
                         f"manifest_pricing={manifest_pricing_rows}, actual_pricing={len(pricing)}"
                     ),
                     gate="consistency",
-                    severity="Medium",
-                    blocker=False,
+                    severity="High",
+                    blocker=True,
                 )
             )
         else:
             checks.append(
                 _check_row(
                     "run_manifest_rowcount_consistency",
-                    True,
+                    False,
                     (
-                        "manifest check skipped due differing run window "
+                        "manifest run window differs from current data "
                         f"(manifest={manifest_start}..{manifest_end}, current={coverage_start}..{coverage_end})"
                     ),
                     gate="consistency",
-                    severity="Low",
-                    blocker=False,
+                    severity="High",
+                    blocker=True,
                 )
             )
+    else:
+        checks.append(
+            _check_row(
+                "run_manifest_rowcount_consistency",
+                False,
+                "missing run_manifest.json",
+                gate="consistency",
+                severity="High",
+                blocker=True,
+            )
+        )
 
     overall_health_path = outputs_dir / "overall_pricing_health.csv"
     if overall_health_path.exists():
         overall_health = pd.read_csv(overall_health_path)
         if not overall_health.empty:
             output_weighted_discount = float(overall_health.iloc[0]["weighted_realized_discount"])
-            output_high_discount_share = float(overall_health.iloc[0]["high_discount_revenue_share"])
+            output_high_discount_share = float(
+                overall_health.iloc[0]["high_discount_revenue_share"]
+            )
             output_total_revenue = float(overall_health.iloc[0]["total_revenue"])
             computed_high_discount_share = (
-                float(pricing.loc[pricing["discount_depth"] >= _HIGH_DISCOUNT_THRESHOLD, "line_revenue"].sum() / pricing_revenue)
+                float(
+                    pricing.loc[
+                        pricing["discount_depth"] >= _HIGH_DISCOUNT_THRESHOLD, "line_revenue"
+                    ].sum()
+                    / pricing_revenue
+                )
                 if pricing_revenue > 0
                 else 0.0
             )
@@ -518,47 +577,54 @@ def run_final_validation_review(
                     blocker=False,
                 )
             )
-
-    formal_validation_path = outputs_dir / "formal_analysis_validation_checks.csv"
-    if formal_validation_path.exists():
-        formal_checks = pd.read_csv(formal_validation_path)
-        formal_ok = bool((formal_checks["status"] == "PASS").all())
-        checks.append(
-            _check_row(
-                "formal_analysis_validation_passthrough",
-                formal_ok,
-                f"passed={(formal_checks['status'] == 'PASS').sum()} of {len(formal_checks)}",
-                gate="analytical",
-                severity="High",
-                blocker=False,
+        else:
+            checks.append(
+                _check_row(
+                    "cross_output_overall_health_consistency",
+                    False,
+                    "overall_pricing_health.csv is empty",
+                    gate="consistency",
+                    severity="High",
+                    blocker=True,
+                )
             )
-        )
-
-    metric_contract_path = outputs_dir / "metric_contract_validation.csv"
-    if metric_contract_path.exists():
-        metric_contract_checks = pd.read_csv(metric_contract_path)
-        metric_contract_ok = bool((metric_contract_checks["status"] == "PASS").all())
-        checks.append(
-            _check_row(
-                "metric_contract_validation_passthrough",
-                metric_contract_ok,
-                f"passed={(metric_contract_checks['status'] == 'PASS').sum()} of {len(metric_contract_checks)}",
-                gate="governance",
-                severity="High",
-                blocker=False,
-            )
-        )
     else:
         checks.append(
             _check_row(
-                "metric_contract_validation_passthrough",
+                "cross_output_overall_health_consistency",
                 False,
-                "missing outputs/metric_contract_validation.csv",
-                gate="governance",
+                "missing overall_pricing_health.csv",
+                gate="consistency",
                 severity="High",
-                blocker=False,
+                blocker=True,
             )
         )
+
+    formal_validation_path = outputs_dir / "formal_analysis_validation_checks.csv"
+    formal_ok, formal_detail = _status_report_result(formal_validation_path)
+    checks.append(
+        _check_row(
+            "formal_analysis_validation_passthrough",
+            formal_ok,
+            formal_detail,
+            gate="analytical",
+            severity="High",
+            blocker=True,
+        )
+    )
+
+    metric_contract_path = outputs_dir / "metric_contract_validation.csv"
+    metric_contract_ok, metric_contract_detail = _status_report_result(metric_contract_path)
+    checks.append(
+        _check_row(
+            "metric_contract_validation_passthrough",
+            metric_contract_ok,
+            metric_contract_detail,
+            gate="governance",
+            severity="High",
+            blocker=True,
+        )
+    )
 
     if dashboard_path.exists():
         dashboard_text = dashboard_path.read_text(encoding="utf-8")
@@ -570,6 +636,17 @@ def run_final_validation_review(
                 gate="consistency",
                 severity="Medium",
                 blocker=False,
+            )
+        )
+    else:
+        checks.append(
+            _check_row(
+                "dashboard_data_as_of_consistency",
+                False,
+                "dashboard artifact is missing",
+                gate="consistency",
+                severity="High",
+                blocker=True,
             )
         )
 
@@ -633,13 +710,32 @@ def run_final_validation_review(
         checks.append(
             _check_row(
                 "dashboard_kpi_all_scope_consistency",
-                True,
-                "skipped (dashboard payload not embedded or unreadable)",
+                False,
+                "dashboard payload is not embedded or readable",
                 gate="consistency",
-                severity="Low",
-                blocker=False,
+                severity="High",
+                blocker=True,
             )
         )
+
+    release_policy = load_release_policy(CONFIGS_DIR / "release_policy.json")
+    max_dashboard_size_mb = float(release_policy["max_dashboard_size_mb"])
+    dashboard_size_mb = (
+        dashboard_path.stat().st_size / (1024 * 1024) if dashboard_path.exists() else np.nan
+    )
+    dashboard_size_ok = (
+        not np.isnan(dashboard_size_mb) and dashboard_size_mb <= max_dashboard_size_mb
+    )
+    checks.append(
+        _check_row(
+            "dashboard_size_policy",
+            dashboard_size_ok,
+            f"max={max_dashboard_size_mb:.3f}, actual={dashboard_size_mb}",
+            gate="technical",
+            severity="High",
+            blocker=True,
+        )
+    )
 
     check_table = pd.DataFrame(checks).sort_values(["gate", "check_name"]).reset_index(drop=True)
     failed_checks = int((check_table["status"] == "FAIL").sum())
@@ -648,8 +744,12 @@ def run_final_validation_review(
     for row in check_table[check_table["status"] == "FAIL"].itertuples(index=False):
         issues.append((row.severity, f"{row.check_name} failed ({row.detail})"))
 
-    excluded_customers = int(customers["customer_id"].nunique() - customer_profile["customer_id"].nunique())
-    excluded_share = excluded_customers / customers["customer_id"].nunique() if len(customers) else np.nan
+    excluded_customers = int(
+        customers["customer_id"].nunique() - customer_profile["customer_id"].nunique()
+    )
+    excluded_share = (
+        excluded_customers / customers["customer_id"].nunique() if len(customers) else np.nan
+    )
     if excluded_customers > 0:
         severity = "Medium" if excluded_share > 0.05 else "Low"
         issues.append(
@@ -659,18 +759,6 @@ def run_final_validation_review(
                     "Customer population exclusion at analysis layer: "
                     f"{excluded_customers} customers ({excluded_share:.2%}) have no orders "
                     "and are excluded from customer-level scoring."
-                ),
-            )
-        )
-
-    dashboard_size_mb = dashboard_path.stat().st_size / (1024 * 1024) if dashboard_path.exists() else np.nan
-    if not np.isnan(dashboard_size_mb) and dashboard_size_mb > 5.0:
-        issues.append(
-            (
-                "Low",
-                (
-                    "Dashboard payload remains sizable for a single-file deliverable: "
-                    f"HTML size is {dashboard_size_mb:.2f} MB with embedded data."
                 ),
             )
         )
@@ -700,13 +788,17 @@ def run_final_validation_review(
     readiness_df.to_csv(outputs_dir / "final_validation_readiness.csv", index=False)
 
     summary_payload = {
-        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "generated_at_utc": datetime.now(UTC).isoformat(),
         "overall_assessment": release_state,
         "release_readiness_state": release_state,
         "readiness_flags": readiness_flags,
         "failed_checks": failed_checks,
-        "failed_blocker_checks": int(((check_table["status"] == "FAIL") & check_table["blocker"]).sum()),
-        "failed_technical_checks": int(((check_table["status"] == "FAIL") & (check_table["gate"] == "technical")).sum()),
+        "failed_blocker_checks": int(
+            ((check_table["status"] == "FAIL") & check_table["blocker"]).sum()
+        ),
+        "failed_technical_checks": int(
+            ((check_table["status"] == "FAIL") & (check_table["gate"] == "technical")).sum()
+        ),
         "failed_analytical_checks": int(
             (
                 (check_table["status"] == "FAIL")
@@ -716,15 +808,23 @@ def run_final_validation_review(
         "excluded_customers": excluded_customers,
         "excluded_customer_pct": float(excluded_share) if not np.isnan(excluded_share) else None,
         "high_discount_revenue_share": float(
-            pricing.loc[pricing["discount_depth"] >= _HIGH_DISCOUNT_THRESHOLD, "line_revenue"].sum() / pricing["line_revenue"].sum()
+            pricing.loc[pricing["discount_depth"] >= _HIGH_DISCOUNT_THRESHOLD, "line_revenue"].sum()
+            / pricing["line_revenue"].sum()
         )
         if float(pricing["line_revenue"].sum()) > 0
         else None,
-        "dashboard_size_mb": float(round(dashboard_size_mb, 3)) if not np.isnan(dashboard_size_mb) else None,
+        "dashboard_size_mb": float(round(dashboard_size_mb, 3))
+        if not np.isnan(dashboard_size_mb)
+        else None,
+        "dashboard_sha256": _sha256(dashboard_path) if dashboard_path.exists() else None,
         "all_checks_passed": failed_checks == 0,
-        "share_orders_high_discount_variance": float(customer_profile["share_orders_high_discount"].var(ddof=0)),
+        "share_orders_high_discount_variance": float(
+            customer_profile["share_orders_high_discount"].var(ddof=0)
+        ),
     }
-    (outputs_dir / "final_validation_summary.json").write_text(json.dumps(summary_payload, indent=2), encoding="utf-8")
+    (outputs_dir / "final_validation_summary.json").write_text(
+        json.dumps(summary_payload, indent=2), encoding="utf-8"
+    )
 
     release_dir = outputs_dir / "release"
     release_dir.mkdir(parents=True, exist_ok=True)
@@ -743,7 +843,9 @@ def run_final_validation_review(
         ]
     )
     (release_dir / "release_readiness.md").write_text(release_readiness_md, encoding="utf-8")
-    (release_dir / "release_readiness.json").write_text(json.dumps(summary_payload, indent=2), encoding="utf-8")
+    (release_dir / "release_readiness.json").write_text(
+        json.dumps(summary_payload, indent=2), encoding="utf-8"
+    )
 
     issue_rows = pd.DataFrame(
         [{"severity": severity, "message": message} for severity, message in issues]

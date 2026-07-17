@@ -17,6 +17,9 @@ Is the company growing through pricing discipline, or through discounting patter
 - `discount_depth`: order-item realized discount (`discount_pct`).
 - `price_realization`: `sum(line_revenue) / sum(line_list_revenue)`.
 - `weighted_realized_discount`: `1 - sum(line_revenue) / sum(line_list_revenue)`.
+- `weighted_discount_pct`: customer discount weighted by line list revenue; used in risk scoring instead of an unweighted line average.
+- `line_price_realization`: realized unit price divided by list price at sale.
+- `price_realization_residual_pct`: relative deviation from the product/channel peer price-realization baseline, `(line realization / peer realization) - 1`; this controls for list-price level before pricing-variance scoring.
 - `high_discount_revenue_share`: revenue share from order lines at or above the configured `high_discount_threshold` (default 20%).
 - `margin_proxy_pct`: `(line_revenue - line_cost) / line_revenue`.
 - `repeat_discount_behavior`: share of consecutive customer orders where both were high-discount.
@@ -39,12 +42,20 @@ Reliability guardrail:
 
 ## Policy Anchors
 Default thresholds are explicit policy assumptions, not universal constants:
-- Avg discount threshold: 18%
+- Discounted-line threshold: 5%
+- High-discount line threshold: 20%
+- Margin-at-risk proxy ceiling on high-discount lines: 35%
+- Weighted customer discount threshold: 18%
 - High-discount order share threshold: 35%
 - High-discount revenue share threshold: 40%
 - Repeat-discount behavior escalation threshold: 20% of consecutive order pairs
 - Margin proxy floor: 38%
-- Realized price CV threshold: 45%
+- Mean absolute product/channel-normalized price-realization residual threshold: 7.5%
+
+Analytical diagnostics use named review heuristics rather than release policy. Current
+examples include a minimum of 120 order lines for rep comparisons, a two-standard-deviation
+rep outlier flag, and 25 lines for product/channel variance comparisons. These flags are
+triage aids and do not change release readiness.
 
 ## Interpretation Guardrails
 - Scores indicate intervention priority, not causal proof.
