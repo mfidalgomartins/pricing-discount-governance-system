@@ -1,6 +1,11 @@
 # Pricing Discipline & Discount Governance
 
-Reproducible pricing governance analytics for detecting discount leakage, quantifying margin exposure, and prioritizing customer interventions across a B2B revenue book.
+**A governed analytics layer that catches discount leakage and margin erosion before they reach the P&L** — reproducible pricing diagnostics across a $1.88B B2B revenue book, from raw order lines to an executive-ready dashboard and report.
+
+<p>
+<a href="https://mfidalgomartins.github.io/pricing-discount-governance-system/"><img alt="Open the Live Dashboard" src="https://img.shields.io/badge/Open%20the%20Live%20Dashboard-2563eb?style=for-the-badge&logo=googlechrome&logoColor=white"></a>
+<a href="outputs/reports/pricing_discount_governance_report.pdf"><img alt="Read the Analytical Report" src="https://img.shields.io/badge/Read%20the%20Analytical%20Report-b91c1c?style=for-the-badge&logo=adobeacrobatreader&logoColor=white"></a>
+</p>
 
 [![CI](https://github.com/mfidalgomartins/pricing-discount-governance-system/actions/workflows/ci.yml/badge.svg)](https://github.com/mfidalgomartins/pricing-discount-governance-system/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/Python-3.12-blue)
@@ -9,7 +14,11 @@ Reproducible pricing governance analytics for detecting discount leakage, quanti
 ![Type checked](https://img.shields.io/badge/mypy-strict-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 
-**[▶ Open the live dashboard](https://mfidalgomartins.github.io/pricing-discount-governance-system/)** · **[▤ Read the executive report (PDF)](outputs/reports/pricing_discount_governance_report.pdf)** · **[Architecture](ARCHITECTURE.md)**
+[Architecture](ARCHITECTURE.md) · [Operations Runbook](docs/operations_runbook.md) · [Data Dictionary](docs/data_dictionary.md) · [Contributing](CONTRIBUTING.md)
+
+## Why It Matters
+
+Discount-led growth can look healthy on a revenue chart while quietly bleeding margin underneath it. On the governed baseline in this repository, **18.2 cents of every list dollar never reaches the invoice**, and a third of revenue already sits at or above the threshold the business itself defines as high discount. That gap is invisible in a top-line revenue report and only shows up once someone asks the right question at the customer, segment, or channel level — which is what this system is built to answer, reproducibly, on demand.
 
 ## Flagship Deliverables
 
@@ -61,7 +70,7 @@ for offline review and distribution.
 
 ## Business Problem
 
-Discount-led growth can look healthy while quietly reducing price realization and margin quality. This project builds a governed analytics layer that separates sustainable pricing performance from structural discount dependency across customers, segments, products, channels, regions, and sales reps.
+This project builds a governed analytics layer that separates sustainable pricing performance from structural discount dependency across customers, segments, products, channels, regions, and sales reps — turning "discounting feels high" into a specific, ranked, dollar-quantified account list.
 
 The published baseline covers **38,391 order lines**, **1,173 transacting customers**, and **$1.88B in revenue** from **January 2023 to December 2025**.
 
