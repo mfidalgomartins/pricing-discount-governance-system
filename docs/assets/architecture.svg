@@ -1,0 +1,83 @@
+<svg viewBox="0 0 1240 560" xmlns="http://www.w3.org/2000/svg" font-family="Helvetica, Arial, sans-serif">
+  <rect x="0" y="0" width="1240" height="560" fill="#ffffff"/>
+
+  <!-- Title -->
+  <text x="40" y="46" font-size="22" font-weight="700" fill="#0f172a">Pipeline architecture</text>
+  <text x="40" y="70" font-size="13" fill="#64748b">Synthetic data to governed, published deliverables — one directional flow, validated at every boundary</text>
+
+  <!-- Stage row -->
+  <g font-size="13" font-weight="600" fill="#0f172a">
+    <!-- 1 Ingestion -->
+    <rect x="40" y="120" width="140" height="72" rx="8" fill="#eef2ff" stroke="#4f46e5" stroke-width="1.5"/>
+    <text x="110" y="150" text-anchor="middle">Ingestion</text>
+    <text x="110" y="168" text-anchor="middle" font-size="10.5" font-weight="400" fill="#475569">synthetic_data</text>
+    <text x="110" y="181" text-anchor="middle" font-size="10.5" font-weight="400" fill="#475569">load_raw</text>
+
+    <!-- 2 Raw validation -->
+    <rect x="210" y="120" width="140" height="72" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5"/>
+    <text x="280" y="150" text-anchor="middle">Raw validation</text>
+    <text x="280" y="168" text-anchor="middle" font-size="10.5" font-weight="400" fill="#475569">data_quality</text>
+    <text x="280" y="181" text-anchor="middle" font-size="10.5" font-weight="400" fill="#475569">schema · PK/FK</text>
+
+    <!-- 3 SQL warehouse -->
+    <rect x="380" y="120" width="140" height="72" rx="8" fill="#eef2ff" stroke="#4f46e5" stroke-width="1.5"/>
+    <text x="450" y="150" text-anchor="middle">SQL warehouse</text>
+    <text x="450" y="168" text-anchor="middle" font-size="10.5" font-weight="400" fill="#475569">DuckDB · sql/</text>
+    <text x="450" y="181" text-anchor="middle" font-size="10.5" font-weight="400" fill="#475569">staging → marts</text>
+
+    <!-- 4 Pandas enrichment / features / scoring -->
+    <rect x="550" y="120" width="150" height="72" rx="8" fill="#eef2ff" stroke="#4f46e5" stroke-width="1.5"/>
+    <text x="625" y="145" text-anchor="middle">Enrichment,</text>
+    <text x="625" y="161" text-anchor="middle">features &amp; scoring</text>
+    <text x="625" y="178" text-anchor="middle" font-size="10.5" font-weight="400" fill="#475569">processing · features · scoring</text>
+
+    <!-- 5 Processed validation -->
+    <rect x="730" y="120" width="140" height="72" rx="8" fill="#fef2f2" stroke="#dc2626" stroke-width="1.5"/>
+    <text x="800" y="150" text-anchor="middle">Processed</text>
+    <text x="800" y="166" text-anchor="middle">validation</text>
+    <text x="800" y="181" text-anchor="middle" font-size="10.5" font-weight="400" fill="#475569">metric_contracts</text>
+
+    <!-- 6 Analysis -->
+    <rect x="900" y="120" width="140" height="72" rx="8" fill="#eef2ff" stroke="#4f46e5" stroke-width="1.5"/>
+    <text x="970" y="150" text-anchor="middle">Analysis</text>
+    <text x="970" y="168" text-anchor="middle" font-size="10.5" font-weight="400" fill="#475569">profiling · formal</text>
+    <text x="970" y="181" text-anchor="middle" font-size="10.5" font-weight="400" fill="#475569">analysis · charts</text>
+
+    <!-- 7 Dashboard + release gate -->
+    <rect x="1070" y="120" width="130" height="72" rx="8" fill="#f0fdf4" stroke="#16a34a" stroke-width="1.5"/>
+    <text x="1135" y="145" text-anchor="middle">Release gate</text>
+    <text x="1135" y="161" text-anchor="middle">→ publish</text>
+    <text x="1135" y="178" text-anchor="middle" font-size="10.5" font-weight="400" fill="#475569">dashboard · report</text>
+  </g>
+
+  <!-- Arrows -->
+  <g stroke="#94a3b8" stroke-width="2" marker-end="url(#arrow)">
+    <line x1="180" y1="156" x2="206" y2="156"/>
+    <line x1="350" y1="156" x2="376" y2="156"/>
+    <line x1="520" y1="156" x2="546" y2="156"/>
+    <line x1="700" y1="156" x2="726" y2="156"/>
+    <line x1="870" y1="156" x2="896" y2="156"/>
+    <line x1="1040" y1="156" x2="1066" y2="156"/>
+  </g>
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#94a3b8"/>
+    </marker>
+  </defs>
+
+  <!-- Governance band -->
+  <rect x="40" y="250" width="1160" height="90" rx="10" fill="#fffbeb" stroke="#d97706" stroke-width="1.5"/>
+  <text x="60" y="277" font-size="13" font-weight="700" fill="#0f172a">Governed by config/</text>
+  <text x="60" y="298" font-size="11.5" fill="#475569">policy_thresholds.json — discount &amp; margin-at-risk definitions, scoring weights, risk tiers</text>
+  <text x="60" y="315" font-size="11.5" fill="#475569">release_policy.json — publication gate rules   ·   metric_contracts.json — grain, nullability, bounds   ·   dashboard_policy.json — KPI thresholds</text>
+
+  <!-- Quality gate band -->
+  <rect x="40" y="360" width="1160" height="90" rx="10" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.5"/>
+  <text x="60" y="387" font-size="13" font-weight="700" fill="#0f172a">Quality gates (make check · CI)</text>
+  <text x="60" y="408" font-size="11.5" fill="#475569">ruff lint + format · mypy --strict · byte-compile · pytest (90% coverage floor) · repository preflight</text>
+  <text x="60" y="425" font-size="11.5" fill="#475569">CI adds: pip-audit · package build · smoke pipeline run · release gate · post-publish parity check</text>
+
+  <!-- Footer note -->
+  <text x="40" y="490" font-size="11.5" fill="#64748b">SQL and pandas compute the same metrics independently; metric_contracts asserts parity so neither path can drift silently.</text>
+  <text x="40" y="510" font-size="11.5" fill="#64748b">The docs/ publication copy refreshes only after final validation and the release gate pass — a SHA-256 binding blocks a stale approval from shipping a changed artifact.</text>
+</svg>

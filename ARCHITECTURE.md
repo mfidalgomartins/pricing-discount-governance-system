@@ -4,6 +4,8 @@ This document explains how the pieces fit together. For metric definitions see
 [docs/data_dictionary.md](docs/data_dictionary.md); for the operating checklist see
 [docs/operations_runbook.md](docs/operations_runbook.md).
 
+![Pipeline architecture](docs/assets/architecture.svg)
+
 ## Design principles
 
 1. **Reproducibility first.** The same seed and parameters yield equivalent analytical
